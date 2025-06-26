@@ -11,8 +11,6 @@ class Anniversary {
   final bool isPinned;
   final bool isHighlighted;
   final String repetitiveType;
-  final String selectedType;
-
 
   Anniversary({
     required this.id,
@@ -25,7 +23,6 @@ class Anniversary {
     required this.isPinned,
     required this.isHighlighted,
     required this.repetitiveType,
-     required this.selectedType
   });
 
   /// JSON 转对象
@@ -40,7 +37,7 @@ class Anniversary {
       type: json['type'] ?? '',
       isPinned: json['isPinned'] ?? false,
       isHighlighted: json['isHighlighted'] ?? false,
-      repetitiveType: json['repetitiveType'] ?? '', selectedType: '',
+      repetitiveType: '',
     );
   }
 
@@ -57,7 +54,6 @@ class Anniversary {
       'isPinned': isPinned,
       'isHighlighted': isHighlighted,
       'repetitiveType': repetitiveType,
-      'selectedType':''
     };
   }
 }

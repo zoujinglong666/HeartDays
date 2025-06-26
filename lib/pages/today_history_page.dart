@@ -193,7 +193,7 @@ class _TodayHistoryPageState extends State<TodayHistoryPage> with SingleTickerPr
                   children: [
                     // 古风背景
                     Image.network(
-                      "https://upload.wikimedia.org/wikipedia/commons/7/7e/Mao_Zedong_in_1957_%28cropped%29.jpg", // 替换为您的古风背景图
+                      "http://gips3.baidu.com/it/u=3476243082,1256047914&fm=3028&app=3028&f=JPEG&fmt=auto?w=2048&h=2048", // 替换为您的古风背景图
                       fit: BoxFit.cover,
                     ),
                     // 渐变遮罩
@@ -306,14 +306,24 @@ class _TodayHistoryPageState extends State<TodayHistoryPage> with SingleTickerPr
       );
     }
 
+    if (filteredEvents.isEmpty) {
+      return const Center(
+        child: Text('暂无历史记录', style: TextStyle(fontSize: 16)),
+      );
+    }
+
     return ListView.builder(
       padding: const EdgeInsets.only(top: 16, bottom: 24),
       itemCount: filteredEvents.length,
       itemBuilder: (context, index) {
         final event = filteredEvents[index];
-        return _buildHistoryEventCard(event, index);
+        return KeyedSubtree(
+          key: ValueKey(event.hashCode), // 假设每个event有一个唯一的id属性
+          child: _buildHistoryEventCard(event, index),
+        );
       },
     );
+
   }
 
   // 构建单个历史事件卡片
@@ -347,13 +357,13 @@ class _TodayHistoryPageState extends State<TodayHistoryPage> with SingleTickerPr
                 ),
               ],
               // 古风纸张质感
-              image: const DecorationImage(
-                image: NetworkImage(
-                  "https://img.zcool.cn/community/01639e5cb6d910a8012141685a6e29.jpg@1280w_1l_2o_100sh.jpg", // 替换为您的纸张纹理图
-                ),
-                fit: BoxFit.cover,
-                opacity: 0.1,
-              ),
+              // image: const DecorationImage(
+              //   image: NetworkImage(
+              //     "https://img.zcool.cn/community/01639e5cb6d910a8012141685a6e29.jpg@1280w_1l_2o_100sh.jpg", // 替换为您的纸张纹理图
+              //   ),
+              //   fit: BoxFit.cover,
+              //   opacity: 0.1,
+              // ),
             ),
             child: InkWell(
               onTap: () => _showEventDetails(event),
@@ -475,13 +485,13 @@ class _TodayHistoryPageState extends State<TodayHistoryPage> with SingleTickerPr
             color: Colors.white,
             borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
             // 古风纸张质感
-            image: DecorationImage(
-              image: NetworkImage(
-                "https://img.zcool.cn/community/01639e5cb6d910a8012141685a6e29.jpg@1280w_1l_2o_100sh.jpg", // 替换为您的纸张纹理图
-              ),
-              fit: BoxFit.cover,
-              opacity: 0.1,
-            ),
+            // image: DecorationImage(
+            //   image: NetworkImage(
+            //     "https://img.zcool.cn/community/01639e5cb6d910a8012141685a6e29.jpg@1280w_1l_2o_100sh.jpg", // 替换为您的纸张纹理图
+            //   ),
+            //   fit: BoxFit.cover,
+            //   opacity: 0.1,
+            // ),
           ),
           padding: const EdgeInsets.only(top: 8),
           child: Column(

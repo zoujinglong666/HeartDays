@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:heart_days/pages/node_page.dart';
 import '../components/CuteTabBar.dart';
 import 'home_page.dart';
 import 'mine_page.dart';
@@ -19,6 +20,7 @@ class _MainPageState extends State<MainPage> {
   final List<Widget> pages = [
     const HomePage(),
     const PlanPage(),
+    const NodePage(),
     const MinePage(),
   ];
 

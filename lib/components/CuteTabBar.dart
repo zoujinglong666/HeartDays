@@ -134,6 +134,7 @@ class _CuteTabBarState extends State<CuteTabBar> with TickerProviderStateMixin {
   final List<_TabItem> tabs = const [
     _TabItem(icon: Icons.home_filled, label: '首页'),
     _TabItem(icon: Icons.favorite, label: '计划'),
+    _TabItem(icon: Icons.note_alt, label: '便签'),
     _TabItem(icon: Icons.person, label: '我的'),
   ];
 

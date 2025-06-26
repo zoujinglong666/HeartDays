@@ -32,7 +32,7 @@ class HomePage extends StatefulWidget {
 class _HomePageState extends State<HomePage> {
   List<Anniversary> anniversaries = [];
   String oneSentenceContent = "";
-
+  bool _isAscending = true; // 控制升序/降序
 
   List<Map<String, dynamic>> getBuiltinAnniversaries() {
     final now = DateTime.now();
@@ -51,9 +51,12 @@ class _HomePageState extends State<HomePage> {
     // 计算春节（支持判断是否已过）
     final lunarCalendar = LunarCalendar.from(utcDateTime: now);
     final thisYearSpringFestival = lunarCalendar.chineseNewYear;
-    final nextSpringFestival = (today.isAfter(thisYearSpringFestival))
-        ? LunarCalendar.from(utcDateTime: DateTime(now.year + 1, 1, 1)).chineseNewYear
-        : thisYearSpringFestival;
+    final nextSpringFestival =
+        (today.isAfter(thisYearSpringFestival))
+            ? LunarCalendar.from(
+              utcDateTime: DateTime(now.year + 1, 1, 1),
+            ).chineseNewYear
+            : thisYearSpringFestival;
 
     return [
       {
@@ -75,6 +78,16 @@ class _HomePageState extends State<HomePage> {
         'type': 'system',
       },
     ];
+  }
+
+  void _sortAnniversariesByDate() {
+    setState(() {
+      anniversaries.sort(
+        (a, b) =>
+            _isAscending ? a.date.compareTo(b.date) : b.date.compareTo(a.date),
+      );
+      _isAscending = !_isAscending; // 每次点击切换排序方向
+    });
   }
 
   Future<List<Anniversary>> loadAnniversariesFromLocal() async {
@@ -162,7 +175,6 @@ class _HomePageState extends State<HomePage> {
     }
   }
 
-
   Future<void> _loadData() async {
     final list = await loadAnniversariesFromLocal();
 
@@ -206,35 +218,48 @@ class _HomePageState extends State<HomePage> {
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 const Text(
-                  "我的纪念日",
+                  "特别时刻",
                   style: TextStyle(
                     fontSize: 16,
                     fontWeight: FontWeight.bold,
-                    color: Color(0xFFD81B60),
+                    color: Color(0xFF6487A6), // 适配浅蓝风格的深灰蓝标题
                   ),
                 ),
-                Container(
-                  decoration: BoxDecoration(
-                    color: Colors.pink.shade50,
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 12,
-                    vertical: 6,
-                  ),
-                  child: Row(
-                    children: [
-                      Icon(Icons.sort, size: 16, color: Colors.pink.shade400),
-                      const SizedBox(width: 4),
-                      Text(
-                        "排序",
-                        style: TextStyle(
-                          fontSize: 14,
-                          color: Colors.pink.shade400,
-                          fontWeight: FontWeight.w500,
+
+                InkWell(
+                  onTap: _sortAnniversariesByDate,
+                  child: Container(
+                    decoration: BoxDecoration(
+                      color: Color(0xFFE6F0FA), // ✅ 浅蓝背景
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 12,
+                      vertical: 6,
+                    ),
+                    child: Row(
+                      children: [
+                        // Icon(Icons.sort, size: 16, color: Color(0xFF64A6D9)),
+                        Transform.rotate(
+                          angle: _isAscending ? 0 : 3.14, // 旋转箭头以表示方向
+                          child: Icon(
+                            Icons.sort,
+                            size: 16,
+                            color: const Color(0xFF64A6D9),
+                          ),
                         ),
-                      ),
-                    ],
+                        // ✅ 浅蓝图标
+                        const SizedBox(width: 4),
+                        Text(
+                          "排序",
+                          style: TextStyle(
+                            fontSize: 14,
+                            color: Color(0xFF64A6D9), // ✅ 浅蓝文字
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
                 ),
               ],
@@ -282,9 +307,7 @@ class _HomePageState extends State<HomePage> {
                                   top: 4,
                                   bottom: 4,
                                 ),
-                                child: buildAnniversaryCard(
-                                  anniversaries[index],
-                                ),
+                                child: _buildPreviewCard(anniversaries[index]),
                               ),
                             );
                           },
@@ -557,7 +580,12 @@ class _HomePageState extends State<HomePage> {
               // 编辑按钮
               CustomSlidableAction(
                 onPressed: (context) {
-                  Navigator.push(context, MaterialPageRoute(builder: (_) => AddAnniversaryPage(anniversaryItem: item)));
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) => AddAnniversaryPage(anniversaryItem: item),
+                    ),
+                  );
                 },
                 backgroundColor: Colors.blue.shade50,
                 foregroundColor: primaryColor,
@@ -601,18 +629,28 @@ class _HomePageState extends State<HomePage> {
                   );
 
                   if (confirm == true) {
+                    if (item.id != null) {
+                      setState(() {
+                        anniversaries.removeWhere(
+                          (element) => element.id == item.id,
+                        );
+                      });
+                    } else {
+                      setState(() {
+                        anniversaries.removeWhere(
+                          (element) => element.title == item.title,
+                        );
+                      });
+                    }
                     // 从列表中移除该项
-                    setState(() {
-                      anniversaries.removeWhere(
-                        (element) => element.title == item.title,
-                      );
 
-                    });
                     // 更新本地存储
                     final prefs = await SharedPreferences.getInstance();
                     await prefs.setString(
                       'anniversaries',
-                      json.encode(anniversaries.map((a) => a.toJson()).toList()),
+                      json.encode(
+                        anniversaries.map((a) => a.toJson()).toList(),
+                      ),
                     );
                   }
                 },
@@ -654,11 +692,17 @@ class _HomePageState extends State<HomePage> {
                   highlightColor: cardColors[0].withOpacity(0.1),
                   onTap: () {
                     // TODO: 跳转到详情页
-                    Navigator.push(context, MaterialPageRoute(builder: (_) => AddAnniversaryPage(anniversaryItem: item)));
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder:
+                            (_) => AddAnniversaryPage(anniversaryItem: item),
+                      ),
+                    );
                     print("查看详情");
                   },
                   child: Padding(
-                    padding: const EdgeInsets.all(16),
+                    padding: const EdgeInsets.all(8),
                     child: Row(
                       children: [
                         // 左侧图标 - 使用多样化的颜色
@@ -693,7 +737,7 @@ class _HomePageState extends State<HomePage> {
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
                               Text(
-                                item.title ,
+                                item.title,
                                 style: TextStyle(
                                   fontSize: 17,
                                   fontWeight: FontWeight.w600,
@@ -706,9 +750,8 @@ class _HomePageState extends State<HomePage> {
                               Text(
                                 DateFormat('yyyy年MM月dd日').format(item.date),
                                 style: TextStyle(
-                                  fontSize: 14,
+                                  fontSize: 12,
                                   color: Colors.grey.shade700,
-                                  fontWeight: FontWeight.w500,
                                 ),
                               ),
                             ],
@@ -798,5 +841,137 @@ class _HomePageState extends State<HomePage> {
       subtitle: "你是我最甜的纪念日",
       gradientColors: [Color(0xFFF48FB1), Color(0xFFCE93D8)], // 粉+紫
     );
+  }
+
+  Widget _buildPreviewCard(Anniversary item) {
+    final daysLeft = item.date.difference(DateTime.now()).inDays;
+    final isInFuture = daysLeft >= 0;
+    final daysText = isInFuture ? "还有 ${daysLeft + 1} 天" : "已过去 ${-daysLeft} 天";
+
+    return InkWell(
+      onTap: () {
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (_) => AddAnniversaryPage(anniversaryItem: item),
+          ),
+        );
+      },
+      child: Container(
+        padding: const EdgeInsets.all(20),
+        decoration: BoxDecoration(
+          // 只保留纯色渐变背景
+          gradient: LinearGradient(
+            colors: [item.color.withOpacity(0.7), item.color],
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+          ),
+          borderRadius: BorderRadius.circular(16),
+          boxShadow: [
+            BoxShadow(
+              color: item.color.withOpacity(0.3),
+              blurRadius: 10,
+              offset: const Offset(0, 4),
+            ),
+          ],
+        ),
+        child: Stack(
+          children: [
+            // ✅ 放纹理，盖在背景色之上
+            // Positioned.fill(
+            //   child: ClipRRect(
+            //     borderRadius: BorderRadius.circular(16),
+            //     child: Opacity(
+            //       opacity: 0.06,
+            //       child: Image.asset(
+            //         'lib/assets/images/metal_texture.png',
+            //         fit: BoxFit.cover,
+            //       ),
+            //     ),
+            //   ),
+            // ),
+
+            // ✅ 放内容
+            Column(
+              children: [
+                Row(
+                  children: [
+                    Container(
+                      width: 50,
+                      height: 50,
+                      decoration: BoxDecoration(
+                        color: Colors.white.withOpacity(0.9),
+                        shape: BoxShape.circle,
+                      ),
+                      alignment: Alignment.center,
+                      child: Text(item.icon, style: const TextStyle(fontSize: 24)),
+                    ),
+                    const SizedBox(width: 16),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            item.title,
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontSize: 18,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                          const SizedBox(height: 4),
+                          Text(
+                            DateFormat('yyyy年MM月dd日').format(item.date),
+                            style: TextStyle(
+                              color: Colors.white.withOpacity(0.9),
+                              fontSize: 14,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    Container(
+                      padding:
+                      const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                      decoration: BoxDecoration(
+                        color: Colors.white.withOpacity(0.3),
+                        borderRadius: BorderRadius.circular(20),
+                      ),
+                      child: Text(
+                        daysText,
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontWeight: FontWeight.bold,
+                          fontSize: 14,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+                if (item.description.isNotEmpty) ...[
+                  const SizedBox(height: 16),
+                  Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: Colors.white.withOpacity(0.2),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Text(
+                      item.description,
+                      style: TextStyle(
+                        color: Colors.white.withOpacity(0.9),
+                        fontSize: 14,
+                      ),
+                    ),
+                  ),
+                ],
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+
   }
 }
