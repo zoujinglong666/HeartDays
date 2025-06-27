@@ -1,19 +1,27 @@
 import 'package:flutter/material.dart';
 import 'package:heart_days/pages/main_page.dart';
+import 'package:heart_days/pages/login_page.dart';
 import 'package:flutter/services.dart';
+
 void main() {
-  // 设置沉浸式状态栏和底部导航栏颜色
+  // 沉浸状态栏 + 底部导航栏
   SystemChrome.setSystemUIOverlayStyle(
     const SystemUiOverlayStyle(
-      statusBarColor: Colors.transparent, // 沉浸式状态栏
-      statusBarIconBrightness: Brightness.dark, // 深色图标（适合浅色背景）
-      systemNavigationBarColor: Color(0xFFFCE4EC), // Android 底部导航栏颜色（粉色）
-      systemNavigationBarIconBrightness: Brightness.dark, // 导航栏图标颜色
+      statusBarColor: Colors.transparent,
+      statusBarIconBrightness: Brightness.dark,
+      systemNavigationBarColor: Colors.transparent, // 设置为透明
+      systemNavigationBarIconBrightness: Brightness.dark,
     ),
   );
 
+  // // 延迟设置 UI 模式，避免底部保留白条
+  // SystemChrome.setEnabledSystemUIMode(
+  //   SystemUiMode.edgeToEdge, // 启用沉浸式底部栏
+  // );
+
   runApp(const MyApp());
 }
+
 
 class MyApp extends StatelessWidget {
   const MyApp({super.key});
@@ -28,7 +36,11 @@ class MyApp extends StatelessWidget {
       theme: ThemeData(
         colorScheme: ColorScheme.fromSeed(seedColor: Colors.transparent),
       ),
-      home: MainPage(),
+      initialRoute: '/login',
+      routes: {
+        '/login': (context) => const LoginPage(),
+        '/main': (context) => MainPage(),
+      },
     );
   }
 }

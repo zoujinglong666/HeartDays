@@ -104,11 +104,16 @@ class _SettingsPageState extends State<SettingsPage> {
       child: Column(
         children: List.generate(
           children.length,
-              (index) => Column(
+          (index) => Column(
             children: [
               children[index],
               if (index != children.length - 1)
-                Divider(height: 1, indent: 60, endIndent: 16, color: Colors.grey.shade200),
+                Divider(
+                  height: 1,
+                  indent: 60,
+                  endIndent: 16,
+                  color: Colors.grey.shade200,
+                ),
             ],
           ),
         ),
@@ -135,7 +140,10 @@ class _SettingsPageState extends State<SettingsPage> {
             Expanded(
               child: Text(
                 label,
-                style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w500),
+                style: const TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.w500,
+                ),
               ),
             ),
             const Icon(Icons.arrow_forward_ios, size: 16, color: Colors.grey),
@@ -191,26 +199,32 @@ class _SettingsPageState extends State<SettingsPage> {
   void _confirmLogout(BuildContext context) {
     showDialog(
       context: context,
-      builder: (_) => AlertDialog(
-        title: const Text('确认退出登录？'),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('取消'),
+      builder:
+          (_) => AlertDialog(
+            title: const Text('确认退出登录？'),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(context),
+                child: const Text('取消'),
+              ),
+              TextButton(
+                onPressed: () {
+                  // 登录成功，跳转到主页
+                  Navigator.of(context).pushReplacementNamed('/login');
+                },
+                child: const Text(
+                  '确定',
+                  style: TextStyle(color: Colors.redAccent),
+                ),
+              ),
+            ],
           ),
-          TextButton(
-            onPressed: () {
-              Navigator.pop(context);
-              Navigator.pop(context);
-            },
-            child: const Text('确定', style: TextStyle(color: Colors.redAccent)),
-          ),
-        ],
-      ),
     );
   }
 
   void _showToast(BuildContext context, String message) {
-    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(message)));
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(SnackBar(content: Text(message)));
   }
 }

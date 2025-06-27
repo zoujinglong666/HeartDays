@@ -56,6 +56,7 @@ dependencies:
   # Use with the CupertinoIcons class for iOS style icons.
   cupertino_icons: ^1.0.8
   chinese_lunar_calendar: ^1.0.4  # 检查最新版本
+  flutter_native_splash: ^2.4.6
 flutter_launcher_icons:
     image_path: "lib/assets/images/icon.png"
     image_path_android: "lib/assets/images/icon.png"
@@ -66,7 +67,20 @@ launcher_name:
   es: "甜甜纪念日"
   fr: "甜甜纪念日"
   de: "甜甜纪念日"
+flutter_native_splash:
+  color: "#ffffff"
+  image: lib/assets/images/splash.png
+  branding: lib/assets/images/splash.png # 可选的品牌logo
+  android: true
 
+  android_12:
+    image: lib/assets/images/splash.png
+    icon_background_color: "#ffffff"
+    image_dark: lib/assets/images/splash.png
+    icon_background_color_dark: "#121212"
+
+  ios: true
+  web: false
 
 
 

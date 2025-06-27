@@ -5,6 +5,7 @@ import 'package:flutter/services.dart';
 import 'package:heart_days/http/model/Anniversary.dart';
 import 'package:heart_days/utils/Notifier.dart';
 import 'package:heart_days/utils/ToastUtils.dart';
+import 'package:heart_days/utils/app_theme_controller.dart';
 import 'package:intl/intl.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -238,12 +239,12 @@ class _AddAnniversaryPageState extends State<AddAnniversaryPage> {
         return const Color(0xFFE9F3EC);
     }
   }
-
   @override
   Widget build(BuildContext context) {
+
+
     return Scaffold(
-      backgroundColor: Colors.white,
-      // 设置为true，让Scaffold自动调整大小以避免键盘遮挡
+    extendBody: true, // ✅ 允许背景延伸到导航栏区域
       resizeToAvoidBottomInset: true,
       appBar: AppBar(
         backgroundColor: getAppBarColor(_selectedType),

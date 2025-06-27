@@ -14,26 +14,35 @@ import 'package:record/record.dart';
 // 定义主题颜色 - 语雀风格配色（优化对比度）
 class AppTheme {
   // 主色调
-  static const Color primary = Color(0xFF25B07B);  // 语雀绿（稍微加深）
+  static const Color primary = Color(0xFF25B07B); // 语雀绿（稍微加深）
   static const Color secondary = Color(0xFF5B67CA); // 紫蓝色
 
   // 中性色
   static const Color background = Color(0xFFF7F9FA); // 背景色
   static const Color cardBackground = Color(0xFFFFFFFF); // 卡片背景
-  static const Color divider = Color(0xFFEEF1F4);      // 分割线
+  static const Color divider = Color(0xFFEEF1F4); // 分割线
 
   // 文字颜色（提高对比度）
-  static const Color textPrimary = Color(0xFF222222);   // 主要文字（加深）
+  static const Color textPrimary = Color(0xFF222222); // 主要文字（加深）
   static const Color textSecondary = Color(0xFF555555); // 次要文字（加深）
-  static const Color textHint = Color(0xFF888888);      // 提示文字（加深）
+  static const Color textHint = Color(0xFF888888); // 提示文字（加深）
 
   // 便签主题颜色（优化对比度）
+  // 便签主题颜色（优化对比度 + 增加种类）
   static const Map<String, Color> noteThemes = {
-    'default': Color(0xFFE8F5F0), // 淡绿（加深）
-    'blue': Color(0xFFECF2FC),    // 淡蓝（加深）
-    'purple': Color(0xFFF3ECF8),  // 淡紫（加深）
-    'yellow': Color(0xFFFFF6E0),  // 淡黄（加深）
-    'pink': Color(0xFFFFECF0),    // 淡粉（加深）
+    'default': Color(0xFFE8F5F0), // 淡绿
+    'blue': Color(0xFFECF2FC), // 淡蓝
+    'purple': Color(0xFFF3ECF8), // 淡紫
+    'yellow': Color(0xFFFFF6E0), // 淡黄
+    'pink': Color(0xFFFFECF0), // 淡粉
+    // 新增
+    'teal': Color(0xFFE0F7F9), // 薄荷青
+    'orange': Color(0xFFFFEDE0), // 奶橘
+    'olive': Color(0xFFF2F5E5), // 雅灰绿
+    'gray': Color(0xFFF3F4F6), // 云雾灰（适合作为默认）
+    'indigo': Color(0xFFE8EAFD), // 静谧蓝紫
+    'red': Color(0xFFFDECEC), // 雪白淡红
+    'sky': Color(0xFFE5F6FD), // 天空蓝
   };
 
   // 便签主题名称
@@ -169,9 +178,7 @@ class _NodePageState extends State<NodePage> {
   Future<void> _editNote(Note note, {bool isNew = false}) async {
     final result = await Navigator.push(
       context,
-      MaterialPageRoute(
-        builder: (context) => NoteEditorPage(note: note),
-      ),
+      MaterialPageRoute(builder: (context) => NoteEditorPage(note: note)),
     );
 
     if (result == true) {
@@ -191,35 +198,47 @@ class _NodePageState extends State<NodePage> {
   void _deleteNote(Note note) {
     showDialog(
       context: context,
-      builder: (context) => AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        title: const Text('删除便签', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w500)),
-        content: const Text('确定要删除这个便签吗？', style: TextStyle(color: AppTheme.textSecondary)),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('取消', style: TextStyle(color: AppTheme.textSecondary)),
-          ),
-          TextButton(
-            onPressed: () async {
-              Navigator.pop(context);
-              setState(() {
-                notes.remove(note);
-              });
-              await _saveNotes();
+      builder:
+          (context) => AlertDialog(
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(16),
+            ),
+            title: const Text(
+              '删除便签',
+              style: TextStyle(fontSize: 18, fontWeight: FontWeight.w500),
+            ),
+            content: const Text(
+              '确定要删除这个便签吗？',
+              style: TextStyle(color: AppTheme.textSecondary),
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(context),
+                child: const Text(
+                  '取消',
+                  style: TextStyle(color: AppTheme.textSecondary),
+                ),
+              ),
+              TextButton(
+                onPressed: () async {
+                  Navigator.pop(context);
+                  setState(() {
+                    notes.remove(note);
+                  });
+                  await _saveNotes();
 
-              // 删除相关的音频文件
-              if (note.audioPath != null) {
-                final file = File(note.audioPath!);
-                if (await file.exists()) {
-                  await file.delete();
-                }
-              }
-            },
-            child: const Text('删除', style: TextStyle(color: Colors.red)),
+                  // 删除相关的音频文件
+                  if (note.audioPath != null) {
+                    final file = File(note.audioPath!);
+                    if (await file.exists()) {
+                      await file.delete();
+                    }
+                  }
+                },
+                child: const Text('删除', style: TextStyle(color: Colors.red)),
+              ),
+            ],
           ),
-        ],
-      ),
     );
   }
 
@@ -239,6 +258,13 @@ class _NodePageState extends State<NodePage> {
     }).toList();
   }
 
+  String _getRandomThemeKey() {
+    final keys = AppTheme.noteThemes.keys.toList();
+    keys.remove('default'); // 可选：不随机到默认色
+    keys.shuffle();
+    return keys.first;
+  }
+
   @override
   Widget build(BuildContext context) {
     final filteredNotes = _getFilteredNotes();
@@ -248,29 +274,39 @@ class _NodePageState extends State<NodePage> {
       appBar: AppBar(
         elevation: 0,
         backgroundColor: Colors.white,
-        title: _isSearching
-            ? TextField(
-          controller: _searchController,
-          decoration: InputDecoration(
-            hintText: '搜索便签...',
-            hintStyle: const TextStyle(color: AppTheme.textHint),
-            border: InputBorder.none,
-            prefixIcon: const Icon(Icons.search, color: AppTheme.textHint),
-          ),
-          style: const TextStyle(color: AppTheme.textPrimary),
-          onChanged: (value) {
-            setState(() {
-              _searchQuery = value;
-            });
-          },
-        )
-            : const Text(
-          '我的便签',
-          style: TextStyle(color: AppTheme.textPrimary, fontWeight: FontWeight.w500),
-        ),
+        title:
+            _isSearching
+                ? TextField(
+                  controller: _searchController,
+                  decoration: InputDecoration(
+                    hintText: '搜索便签...',
+                    hintStyle: const TextStyle(color: AppTheme.textHint),
+                    border: InputBorder.none,
+                    prefixIcon: const Icon(
+                      Icons.search,
+                      color: AppTheme.textHint,
+                    ),
+                  ),
+                  style: const TextStyle(color: AppTheme.textPrimary),
+                  onChanged: (value) {
+                    setState(() {
+                      _searchQuery = value;
+                    });
+                  },
+                )
+                : const Text(
+                  '我的便签',
+                  style: TextStyle(
+                    color: AppTheme.textPrimary,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
         actions: [
           IconButton(
-            icon: Icon(_isSearching ? Icons.close : Icons.search, color: AppTheme.textSecondary),
+            icon: Icon(
+              _isSearching ? Icons.close : Icons.search,
+              color: AppTheme.textSecondary,
+            ),
             onPressed: () {
               setState(() {
                 _isSearching = !_isSearching;
@@ -281,75 +317,72 @@ class _NodePageState extends State<NodePage> {
               });
             },
           ),
-          PopupMenuButton<String>(
-            icon: const Icon(Icons.color_lens, color: AppTheme.textSecondary),
-            onSelected: _changeTheme,
-            itemBuilder: (context) => AppTheme.themeNames.entries.map((entry) {
-              return PopupMenuItem(
-                value: entry.key,
-                child: Row(
-                  children: [
-                    Container(
-                      width: 16,
-                      height: 16,
-                      decoration: BoxDecoration(
-                        color: AppTheme.noteThemes[entry.key],
-                        borderRadius: BorderRadius.circular(4),
-                      ),
-                    ),
-                    const SizedBox(width: 8),
-                    Text(entry.value),
-                  ],
-                ),
-              );
-            }).toList(),
-          ),
-          IconButton(
-            icon: const Icon(Icons.backup, color: AppTheme.textSecondary),
-            onPressed: () {
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(
-                  content: Text('数据已备份到本地'),
-                  behavior: SnackBarBehavior.floating,
-                  backgroundColor: AppTheme.primary,
-                ),
-              );
-            },
-          ),
+          // PopupMenuButton<String>(
+          //   icon: const Icon(Icons.color_lens, color: AppTheme.textSecondary),
+          //   onSelected: _changeTheme,
+          //   itemBuilder:
+          //       (context) =>
+          //           AppTheme.themeNames.entries.map((entry) {
+          //             return PopupMenuItem(
+          //               value: entry.key,
+          //               child: Row(
+          //                 children: [
+          //                   Container(
+          //                     width: 16,
+          //                     height: 16,
+          //                     decoration: BoxDecoration(
+          //                       color: AppTheme.noteThemes[entry.key],
+          //                       borderRadius: BorderRadius.circular(4),
+          //                     ),
+          //                   ),
+          //                   const SizedBox(width: 8),
+          //                   Text(entry.value),
+          //                 ],
+          //               ),
+          //             );
+          //           }).toList(),
+          // ),
+
         ],
       ),
-      body: filteredNotes.isEmpty
-          ? Center(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(
-              Icons.note_alt_outlined,
-              size: 64,
-              color: AppTheme.noteThemes[_currentTheme],
-            ),
-            const SizedBox(height: 16),
-            Text(
-              _searchQuery.isEmpty ? '暂无便签，点击右下角添加吧~' : '没有找到匹配的便签',
-              style: const TextStyle(color: AppTheme.textSecondary, fontSize: 16),
-            ),
-          ],
-        ),
-      )
-          : Padding(
-        padding: const EdgeInsets.all(12.0),
-        child: MasonryGridView.count(
-          crossAxisCount: 2,
-          mainAxisSpacing: 12,
-          crossAxisSpacing: 12,
-          itemCount: filteredNotes.length,
-          itemBuilder: (context, index) {
-            final note = filteredNotes[index];
-            return _buildNoteCard(note);
-          },
-        ),
-      ),
+      body:
+          filteredNotes.isEmpty
+              ? Center(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(
+                      Icons.note_alt_outlined,
+                      size: 64,
+                      color: AppTheme.noteThemes[_currentTheme],
+                    ),
+                    const SizedBox(height: 16),
+                    Text(
+                      _searchQuery.isEmpty ? '暂无便签，点击右下角添加吧~' : '没有找到匹配的便签',
+                      style: const TextStyle(
+                        color: AppTheme.textSecondary,
+                        fontSize: 16,
+                      ),
+                    ),
+                  ],
+                ),
+              )
+              : Padding(
+                padding: const EdgeInsets.all(4.0),
+                child: MasonryGridView.count(
+                  crossAxisCount: 2,
+                  mainAxisSpacing: 4,
+                  crossAxisSpacing: 4,
+                  itemCount: filteredNotes.length,
+                  itemBuilder: (context, index) {
+                    final note = filteredNotes[index];
+                    return _buildNoteCard(note);
+                  },
+                ),
+              ),
       floatingActionButton: FloatingActionButton(
+        heroTag: null,
+        // ✅ 关闭默认 Hero tag，避免冲突
         onPressed: _addNote,
         backgroundColor: AppTheme.primary,
         elevation: 2,
@@ -359,11 +392,14 @@ class _NodePageState extends State<NodePage> {
   }
 
   Widget _buildNoteCard(Note note) {
+    final themeKey = note.theme ?? _getRandomThemeKey();
+    final themeColor =
+        AppTheme.noteThemes[themeKey] ?? AppTheme.noteThemes['default'];
     return GestureDetector(
       onTap: () => _editNote(note),
       child: Card(
         elevation: 0,
-        color: AppTheme.noteThemes[note.theme] ?? AppTheme.noteThemes['default'],
+        color: themeColor,
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(16),
           side: const BorderSide(color: AppTheme.divider, width: 0.5),
@@ -409,7 +445,8 @@ class _NodePageState extends State<NodePage> {
                     borderRadius: BorderRadius.circular(8),
                     child: ListView.builder(
                       scrollDirection: Axis.horizontal,
-                      itemCount: note.images.length > 3 ? 3 : note.images.length,
+                      itemCount:
+                          note.images.length > 3 ? 3 : note.images.length,
                       itemBuilder: (context, index) {
                         return GestureDetector(
                           onTap: () {
@@ -427,20 +464,24 @@ class _NodePageState extends State<NodePage> {
                                 fit: BoxFit.cover,
                               ),
                             ),
-                            child: index == 2 && note.images.length > 3
-                                ? Container(
-                              decoration: BoxDecoration(
-                                borderRadius: BorderRadius.circular(8),
-                                color: Colors.black.withOpacity(0.5),
-                              ),
-                              child: Center(
-                                child: Text(
-                                  '+${note.images.length - 3}',
-                                  style: const TextStyle(color: Colors.white, fontSize: 20),
-                                ),
-                              ),
-                            )
-                                : null,
+                            child:
+                                index == 2 && note.images.length > 3
+                                    ? Container(
+                                      decoration: BoxDecoration(
+                                        borderRadius: BorderRadius.circular(8),
+                                        color: Colors.black.withOpacity(0.5),
+                                      ),
+                                      child: Center(
+                                        child: Text(
+                                          '+${note.images.length - 3}',
+                                          style: const TextStyle(
+                                            color: Colors.white,
+                                            fontSize: 20,
+                                          ),
+                                        ),
+                                      ),
+                                    )
+                                    : null,
                           ),
                         );
                       },
@@ -450,18 +491,28 @@ class _NodePageState extends State<NodePage> {
               if (note.audioPath != null)
                 Container(
                   margin: const EdgeInsets.only(bottom: 12.0),
-                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 12,
+                    vertical: 8,
+                  ),
                   decoration: BoxDecoration(
                     color: Colors.white.withOpacity(0.5),
                     borderRadius: BorderRadius.circular(8),
                   ),
                   child: Row(
                     children: [
-                      const Icon(Icons.audiotrack, color: AppTheme.secondary, size: 18),
+                      const Icon(
+                        Icons.audiotrack,
+                        color: AppTheme.secondary,
+                        size: 18,
+                      ),
                       const SizedBox(width: 8),
                       const Text(
                         '语音备忘录',
-                        style: TextStyle(color: AppTheme.textSecondary, fontSize: 13),
+                        style: TextStyle(
+                          color: AppTheme.textSecondary,
+                          fontSize: 13,
+                        ),
                       ),
                     ],
                   ),
@@ -471,10 +522,17 @@ class _NodePageState extends State<NodePage> {
                 children: [
                   Text(
                     '${note.updatedAt.year}/${note.updatedAt.month}/${note.updatedAt.day}',
-                    style: const TextStyle(fontSize: 12, color: AppTheme.textHint),
+                    style: const TextStyle(
+                      fontSize: 12,
+                      color: AppTheme.textHint,
+                    ),
                   ),
                   IconButton(
-                    icon: const Icon(Icons.delete_outline, size: 18, color: AppTheme.textHint),
+                    icon: const Icon(
+                      Icons.delete_outline,
+                      size: 18,
+                      color: AppTheme.textHint,
+                    ),
                     onPressed: () => _deleteNote(note),
                     padding: EdgeInsets.zero,
                     constraints: const BoxConstraints(),
@@ -489,12 +547,17 @@ class _NodePageState extends State<NodePage> {
   }
 
   // 新增：图片预览功能
-  void _showImagePreview(BuildContext context, List<String> images, int initialIndex) {
+  void _showImagePreview(
+    BuildContext context,
+    List<String> images,
+    int initialIndex,
+  ) {
     showDialog(
       context: context,
-      builder: (context) => Dialog.fullscreen(
-        child: ImagePreviewPage(images: images, initialIndex: initialIndex),
-      ),
+      builder:
+          (context) => Dialog.fullscreen(
+            child: ImagePreviewPage(images: images, initialIndex: initialIndex),
+          ),
     );
   }
 }
@@ -632,11 +695,13 @@ class _NoteEditorPageState extends State<NoteEditorPage> {
     _titleController.text = widget.note.title;
     _contentController.text = widget.note.content;
     _initAudioPlayer();
-    _recordingTimer = RecordingTimer(onTick: (seconds) {
-      setState(() {
-        _recordingTime = _recordingTimer.formattedTime;
-      });
-    });
+    _recordingTimer = RecordingTimer(
+      onTick: (seconds) {
+        setState(() {
+          _recordingTime = _recordingTimer.formattedTime;
+        });
+      },
+    );
   }
 
   @override
@@ -685,7 +750,8 @@ class _NoteEditorPageState extends State<NoteEditorPage> {
     try {
       if (await Permission.microphone.request().isGranted) {
         final directory = await getApplicationDocumentsDirectory();
-        _currentRecordingPath = '${directory.path}/audio_${DateTime.now().millisecondsSinceEpoch}.m4a';
+        _currentRecordingPath =
+            '${directory.path}/audio_${DateTime.now().millisecondsSinceEpoch}.m4a';
 
         // 配置录音参数 - 兼容 record 6.0.0
         // await _audioRecorder.start(
@@ -752,8 +818,24 @@ class _NoteEditorPageState extends State<NoteEditorPage> {
   }
 
   void _saveNote() {
-    widget.note.title = _titleController.text;
-    widget.note.content = _contentController.text;
+    final title = _titleController.text.trim();
+    final content = _contentController.text.trim();
+
+    if (title.isEmpty && content.isEmpty) {
+      // 标题和内容不能都为空
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('请输入标题或内容'),
+          duration: Duration(seconds: 1),
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+      return;
+    }
+
+    widget.note.title = title;
+    widget.note.content = content;
+
     Navigator.pop(context, true);
   }
 
@@ -767,7 +849,10 @@ class _NoteEditorPageState extends State<NoteEditorPage> {
         backgroundColor: Colors.white,
         title: const Text(
           '编辑便签',
-          style: TextStyle(color: AppTheme.textPrimary, fontWeight: FontWeight.w500),
+          style: TextStyle(
+            color: AppTheme.textPrimary,
+            fontWeight: FontWeight.w500,
+          ),
         ),
         leading: IconButton(
           icon: const Icon(Icons.arrow_back, color: AppTheme.textSecondary),
@@ -786,11 +871,11 @@ class _NoteEditorPageState extends State<NoteEditorPage> {
       resizeToAvoidBottomInset: true,
       body: SafeArea(
         child: SingleChildScrollView(
-          padding: const EdgeInsets.all(16.0),
+          padding: const EdgeInsets.all(12.0),
           // 添加额外的底部 padding，确保内容不被底部工具栏遮挡
           child: Padding(
             padding: EdgeInsets.only(
-              bottom: MediaQuery.of(context).viewInsets.bottom + 80,
+              bottom: MediaQuery.of(context).viewInsets.bottom,
             ),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -799,9 +884,14 @@ class _NoteEditorPageState extends State<NoteEditorPage> {
                 Card(
                   elevation: 0,
                   color: Colors.white,
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
                   child: Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 16,
+                      vertical: 8,
+                    ),
                     child: TextField(
                       controller: _titleController,
                       decoration: const InputDecoration(
@@ -824,9 +914,14 @@ class _NoteEditorPageState extends State<NoteEditorPage> {
                 Card(
                   elevation: 0,
                   color: Colors.white,
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
                   child: Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 16,
+                      vertical: 8,
+                    ),
                     child: TextField(
                       controller: _contentController,
                       decoration: const InputDecoration(
@@ -861,7 +956,9 @@ class _NoteEditorPageState extends State<NoteEditorPage> {
                   Card(
                     elevation: 0,
                     color: Colors.white,
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
                     child: Padding(
                       padding: const EdgeInsets.all(12),
                       child: SizedBox(
@@ -879,10 +976,11 @@ class _NoteEditorPageState extends State<NoteEditorPage> {
                                     Navigator.push(
                                       context,
                                       MaterialPageRoute(
-                                        builder: (context) => ImagePreviewPage(
-                                          images: widget.note.images,
-                                          initialIndex: index,
-                                        ),
+                                        builder:
+                                            (context) => ImagePreviewPage(
+                                              images: widget.note.images,
+                                              initialIndex: index,
+                                            ),
                                       ),
                                     );
                                   },
@@ -893,7 +991,9 @@ class _NoteEditorPageState extends State<NoteEditorPage> {
                                     decoration: BoxDecoration(
                                       borderRadius: BorderRadius.circular(8),
                                       image: DecorationImage(
-                                        image: FileImage(File(widget.note.images[index])),
+                                        image: FileImage(
+                                          File(widget.note.images[index]),
+                                        ),
                                         fit: BoxFit.cover,
                                       ),
                                     ),
@@ -911,7 +1011,11 @@ class _NoteEditorPageState extends State<NoteEditorPage> {
                                       shape: BoxShape.circle,
                                     ),
                                     child: IconButton(
-                                      icon: const Icon(Icons.close, color: Colors.white, size: 12),
+                                      icon: const Icon(
+                                        Icons.close,
+                                        color: Colors.white,
+                                        size: 12,
+                                      ),
                                       padding: EdgeInsets.zero,
                                       constraints: const BoxConstraints(),
                                       onPressed: () {
@@ -948,37 +1052,54 @@ class _NoteEditorPageState extends State<NoteEditorPage> {
                   Card(
                     elevation: 0,
                     color: Colors.white,
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
                     child: Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                      child: _isRecording
-                          ? _buildRecordingIndicator()
-                          : Row(
-                        children: [
-                          IconButton(
-                            icon: Icon(_isPlaying ? Icons.stop : Icons.play_arrow, color: AppTheme.primary),
-                            onPressed: _playAudio,
-                          ),
-                          const Text(
-                            '语音备忘录',
-                            style: TextStyle(color: AppTheme.textSecondary),
-                          ),
-                          const Spacer(),
-                          IconButton(
-                            icon: const Icon(Icons.delete, color: Colors.red, size: 20),
-                            onPressed: () {
-                              setState(() {
-                                widget.note.audioPath = null;
-                              });
-                            },
-                          ),
-                        ],
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 16,
+                        vertical: 12,
                       ),
+                      child:
+                          _isRecording
+                              ? _buildRecordingIndicator()
+                              : Row(
+                                children: [
+                                  IconButton(
+                                    icon: Icon(
+                                      _isPlaying
+                                          ? Icons.stop
+                                          : Icons.play_arrow,
+                                      color: AppTheme.primary,
+                                    ),
+                                    onPressed: _playAudio,
+                                  ),
+                                  const Text(
+                                    '语音备忘录',
+                                    style: TextStyle(
+                                      color: AppTheme.textSecondary,
+                                    ),
+                                  ),
+                                  const Spacer(),
+                                  IconButton(
+                                    icon: const Icon(
+                                      Icons.delete,
+                                      color: Colors.red,
+                                      size: 20,
+                                    ),
+                                    onPressed: () {
+                                      setState(() {
+                                        widget.note.audioPath = null;
+                                      });
+                                    },
+                                  ),
+                                ],
+                              ),
                     ),
                   ),
-                  const SizedBox(height: 16),
                 ],
 
+                const SizedBox(height: 16),
                 // 主题选择区域
                 const Padding(
                   padding: EdgeInsets.only(left: 4, bottom: 8),
@@ -994,38 +1115,57 @@ class _NoteEditorPageState extends State<NoteEditorPage> {
                 Card(
                   elevation: 0,
                   color: Colors.white,
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
                   child: Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceAround,
-                      children: AppTheme.noteThemes.entries.map((entry) {
-                        final isSelected = widget.note.theme == entry.key;
-                        return GestureDetector(
-                          onTap: () {
-                            setState(() {
-                              widget.note.theme = entry.key;
-                            });
-                          },
-                          child: Container(
-                            width: 40,
-                            height: 40,
-                            decoration: BoxDecoration(
-                              color: entry.value,
-                              shape: BoxShape.circle,
-                              border: Border.all(
-                                color: isSelected ? AppTheme.primary : Colors.transparent,
-                                width: 2,
-                              ),
-                            ),
-                            child: isSelected
-                                ? const Center(
-                              child: Icon(Icons.check, color: AppTheme.primary, size: 20),
-                            )
-                                : null,
-                          ),
-                        );
-                      }).toList(),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 16,
+                      vertical: 12,
+                    ),
+                    child: SingleChildScrollView(
+                      scrollDirection: Axis.horizontal,
+                      child: Row(
+                        children:
+                            AppTheme.noteThemes.entries.map((entry) {
+                              final isSelected = widget.note.theme == entry.key;
+                              return Padding(
+                                padding: const EdgeInsets.only(right: 12),
+                                child: GestureDetector(
+                                  onTap: () {
+                                    setState(() {
+                                      widget.note.theme = entry.key;
+                                    });
+                                  },
+                                  child: Container(
+                                    width: 40,
+                                    height: 40,
+                                    decoration: BoxDecoration(
+                                      color: entry.value,
+                                      shape: BoxShape.circle,
+                                      border: Border.all(
+                                        color:
+                                            isSelected
+                                                ? AppTheme.primary
+                                                : Colors.transparent,
+                                        width: 2,
+                                      ),
+                                    ),
+                                    child:
+                                        isSelected
+                                            ? const Center(
+                                              child: Icon(
+                                                Icons.check,
+                                                color: AppTheme.primary,
+                                                size: 20,
+                                              ),
+                                            )
+                                            : null,
+                                  ),
+                                ),
+                              );
+                            }).toList(),
+                      ),
                     ),
                   ),
                 ),
@@ -1038,7 +1178,7 @@ class _NoteEditorPageState extends State<NoteEditorPage> {
         elevation: 0,
         color: Colors.white,
         child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+          padding: const EdgeInsets.symmetric(horizontal: 0, vertical: 0),
           child: Row(
             mainAxisAlignment: MainAxisAlignment.spaceAround,
             children: [
@@ -1066,10 +1206,7 @@ class _NoteEditorPageState extends State<NoteEditorPage> {
       children: [
         const Icon(Icons.mic, color: Colors.red),
         const SizedBox(width: 8),
-        Text(
-          '录音中 $_recordingTime',
-          style: const TextStyle(color: Colors.red),
-        ),
+        Text('录音中 $_recordingTime', style: const TextStyle(color: Colors.red)),
         const SizedBox(width: 16),
         // 波形动画
         Expanded(
@@ -1078,7 +1215,8 @@ class _NoteEditorPageState extends State<NoteEditorPage> {
             child: Row(
               mainAxisAlignment: MainAxisAlignment.center,
               children: List.generate(7, (index) {
-                final waveIndex = (index + _waveformIndex) % _waveformValues.length;
+                final waveIndex =
+                    (index + _waveformIndex) % _waveformValues.length;
                 return Container(
                   margin: const EdgeInsets.symmetric(horizontal: 2),
                   width: 3,
@@ -1103,28 +1241,29 @@ class _NoteEditorPageState extends State<NoteEditorPage> {
     required VoidCallback onPressed,
     bool isHighlighted = false,
   }) {
-    return InkWell(
-      onTap: onPressed,
-      borderRadius: BorderRadius.circular(8),
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(
-              icon,
-              color: isHighlighted ? Colors.red : AppTheme.primary,
-              size: 24,
-            ),
-            const SizedBox(height: 4),
-            Text(
-              label,
-              style: TextStyle(
-                fontSize: 12,
-                color: isHighlighted ? Colors.red : AppTheme.textSecondary,
+    return SizedBox(
+      height: 60, // 固定按钮总高度
+      child: InkWell(
+        onTap: onPressed,
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(
+                icon,
+                color: isHighlighted ? Colors.red : AppTheme.primary,
+                size: 16,
               ),
-            ),
-          ],
+              Text(
+                label,
+                style: TextStyle(
+                  fontSize: 12,
+                  color: isHighlighted ? Colors.red : AppTheme.textSecondary,
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     );
