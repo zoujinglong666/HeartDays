@@ -291,39 +291,54 @@ class _TodayHistoryPageState extends State<TodayHistoryPage> with SingleTickerPr
   // 构建历史事件列表
   Widget _buildHistoryEventsList() {
     if (filteredEvents.isEmpty) {
-      return Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
+      return RefreshIndicator(
+        onRefresh: _refreshHistoryData,
+        child: ListView(
           children: [
-            Icon(Icons.history, size: 64, color: Colors.grey.shade400),
-            const SizedBox(height: 16),
-            Text(
-              "暂无${_selectedCategory}类历史事件",
-              style: TextStyle(color: Colors.grey.shade600, fontSize: 16),
+            SizedBox(
+              height: MediaQuery.of(context).size.height * 0.3,
+            ),
+            Center(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(Icons.history, size: 64, color: Colors.grey.shade400),
+                  const SizedBox(height: 16),
+                  Text(
+                    "暂无${_selectedCategory}类历史事件",
+                    style: TextStyle(color: Colors.grey.shade600, fontSize: 16),
+                  ),
+                ],
+              ),
             ),
           ],
         ),
       );
     }
 
-    if (filteredEvents.isEmpty) {
-      return const Center(
-        child: Text('暂无历史记录', style: TextStyle(fontSize: 16)),
-      );
-    }
-
-    return ListView.builder(
-      padding: const EdgeInsets.only(top: 16, bottom: 24),
-      itemCount: filteredEvents.length,
-      itemBuilder: (context, index) {
-        final event = filteredEvents[index];
-        return KeyedSubtree(
-          key: ValueKey(event.hashCode), // 假设每个event有一个唯一的id属性
-          child: _buildHistoryEventCard(event, index),
-        );
-      },
+    return RefreshIndicator(
+      onRefresh: _refreshHistoryData,
+      child: ListView.builder(
+        padding: const EdgeInsets.only(top: 16, bottom: 24),
+        itemCount: filteredEvents.length,
+        itemBuilder: (context, index) {
+          final event = filteredEvents[index];
+          return KeyedSubtree(
+            key: ValueKey(event.hashCode), // 假设每个event有一个唯一的id属性
+            child: _buildHistoryEventCard(event, index),
+          );
+        },
+      ),
     );
+  }
 
+  // 刷新历史数据
+  Future<void> _refreshHistoryData() async {
+    // 模拟网络请求延迟
+    await Future.delayed(const Duration(milliseconds: 1000));
+    setState(() {
+      // 这里可以重新加载历史数据
+    });
   }
 
   // 构建单个历史事件卡片

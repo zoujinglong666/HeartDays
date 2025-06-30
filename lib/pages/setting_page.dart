@@ -209,8 +209,11 @@ class _SettingsPageState extends State<SettingsPage> {
               ),
               TextButton(
                 onPressed: () {
-                  // 登录成功，跳转到主页
-                  Navigator.of(context).pushReplacementNamed('/login');
+                  // 退出登录，清除导航栈并跳转到登录页面
+                  Navigator.of(context).pushNamedAndRemoveUntil(
+                    '/login',
+                    (route) => false, // 清除所有路由
+                  );
                 },
                 child: const Text(
                   '确定',

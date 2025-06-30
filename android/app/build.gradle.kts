@@ -4,7 +4,12 @@ plugins {
     // The Flutter Gradle Plugin must be applied after the Android and Kotlin Gradle plugins.
     id("dev.flutter.flutter-gradle-plugin")
 }
+dependencies {
+    implementation("androidx.core:core-ktx:1.12.0")
 
+    // ✅ Kotlin DSL 添加 desugar 依赖
+    coreLibraryDesugaring("com.android.tools:desugar_jdk_libs:2.0.4")
+}
 android {
     namespace = "com.heartDays.heart_days"
     compileSdk = flutter.compileSdkVersion
@@ -13,6 +18,7 @@ android {
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_11
         targetCompatibility = JavaVersion.VERSION_11
+        isCoreLibraryDesugaringEnabled = true
     }
 
     kotlinOptions {
@@ -37,6 +43,8 @@ android {
             signingConfig = signingConfigs.getByName("debug")
         }
     }
+
+
 }
 
 flutter {

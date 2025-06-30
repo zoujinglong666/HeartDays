@@ -266,28 +266,39 @@ class _HomePageState extends State<HomePage> {
             ),
           ),
 
-          // 纪念日列表 - 添加动画效果
+          // 纪念日列表 - 添加下拉刷新功能
           Expanded(
-            child:
-                anniversaries.isEmpty
-                    ? Center(
-                      child: Column(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Icon(
-                            Icons.celebration_outlined,
-                            size: 64,
-                            color: Colors.pink.shade200,
+            child: anniversaries.isEmpty
+                ? RefreshIndicator(
+                    onRefresh: _loadData,
+                    child: ListView(
+                      children: [
+                        SizedBox(
+                          height: MediaQuery.of(context).size.height * 0.3,
+                        ),
+                        Center(
+                          child: Column(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Icon(
+                                Icons.celebration_outlined,
+                                size: 64,
+                                color: Colors.pink.shade200,
+                              ),
+                              const SizedBox(height: 16),
+                              const Text(
+                                '暂无纪念日，点击右下角添加吧~',
+                                style: TextStyle(color: Colors.grey, fontSize: 16),
+                              ),
+                            ],
                           ),
-                          const SizedBox(height: 16),
-                          const Text(
-                            '暂无纪念日，点击右下角添加吧~',
-                            style: TextStyle(color: Colors.grey, fontSize: 16),
-                          ),
-                        ],
-                      ),
-                    )
-                    : ListView.builder(
+                        ),
+                      ],
+                    ),
+                  )
+                : RefreshIndicator(
+                    onRefresh: _loadData,
+                    child: ListView.builder(
                       padding: const EdgeInsets.symmetric(horizontal: 16),
                       itemBuilder: (context, index) {
                         // 添加列表项动画
@@ -315,6 +326,7 @@ class _HomePageState extends State<HomePage> {
                       },
                       itemCount: anniversaries.length,
                     ),
+                  ),
           ),
         ],
       ),

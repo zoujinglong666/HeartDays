@@ -367,19 +367,22 @@ class _NodePageState extends State<NodePage> {
                   ],
                 ),
               )
-              : Padding(
-                padding: const EdgeInsets.all(4.0),
-                child: MasonryGridView.count(
-                  crossAxisCount: 2,
-                  mainAxisSpacing: 4,
-                  crossAxisSpacing: 4,
-                  itemCount: filteredNotes.length,
-                  itemBuilder: (context, index) {
-                    final note = filteredNotes[index];
-                    return _buildNoteCard(note);
-                  },
+              : RefreshIndicator(
+                  onRefresh: _loadNotes,
+                  child: Padding(
+                    padding: const EdgeInsets.all(4.0),
+                    child: MasonryGridView.count(
+                      crossAxisCount: 2,
+                      mainAxisSpacing: 4,
+                      crossAxisSpacing: 4,
+                      itemCount: filteredNotes.length,
+                      itemBuilder: (context, index) {
+                        final note = filteredNotes[index];
+                        return _buildNoteCard(note);
+                      },
+                    ),
+                  ),
                 ),
-              ),
       floatingActionButton: FloatingActionButton(
         heroTag: null,
         // ✅ 关闭默认 Hero tag，避免冲突
