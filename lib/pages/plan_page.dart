@@ -344,14 +344,48 @@ class _PlanPageState extends State<PlanPage> {
       onPageChanged: (focusedDay) => _focusedDay = focusedDay,
       calendarStyle: CalendarStyle(
         todayDecoration: BoxDecoration(
-          color: morandiPink.withOpacity(1),
+          gradient: const LinearGradient(
+            colors: [Color(0xFFF48FB1), Color(0xFFCE93D8)],
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+          ),
           shape: BoxShape.circle,
+          boxShadow: [
+            BoxShadow(
+              color: const Color(0xFFF48FB1).withOpacity(0.3),
+              blurRadius: 8,
+              offset: const Offset(0, 2),
+            ),
+          ],
         ),
         selectedDecoration: BoxDecoration(
-          color: morandiBlue,
+          gradient: const LinearGradient(
+            colors: [Color(0xFF64B5F6), Color(0xFF5C6BC0)],
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+          ),
           shape: BoxShape.circle,
+          boxShadow: [
+            BoxShadow(
+              color: const Color(0xFF64B5F6).withOpacity(0.4),
+              blurRadius: 10,
+              offset: const Offset(0, 3),
+            ),
+          ],
+        ),
+        todayTextStyle: const TextStyle(
+          color: Colors.white,
+          fontWeight: FontWeight.bold,
+        ),
+        selectedTextStyle: const TextStyle(
+          color: Colors.white,
+          fontWeight: FontWeight.bold,
         ),
         markersMaxCount: 3,
+        markerDecoration: BoxDecoration(
+          color: const Color(0xFFE8C4C4),
+          shape: BoxShape.circle,
+        ),
       ),
       headerStyle: const HeaderStyle(
         titleCentered: true,

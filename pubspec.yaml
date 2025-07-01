@@ -47,10 +47,10 @@ dependencies:
   event_bus: ^2.0.1
   flutter_slidable: ^4.0.0
   flutter_staggered_grid_view: ^0.7.0
-  image_picker: ^1.1.2
+  image_picker: ^1.0.7
   record: ^6.0.0
   flutter_sound: ^9.28.0
-  permission_handler: ^11.0.1
+  permission_handler: ^11.3.1
   fluttertoast: ^8.2.4  # toast
   flutter_local_notifications: ^17.2.2  # 本地通知
   # The following adds the Cupertino Icons font to your application.
@@ -58,6 +58,7 @@ dependencies:
   cupertino_icons: ^1.0.8
   chinese_lunar_calendar: ^1.0.4  # 检查最新版本
   flutter_native_splash: ^2.4.6
+  flutter_riverpod: ^2.6.1
 flutter_launcher_icons:
     image_path: "lib/assets/images/icon.png"
     image_path_android: "lib/assets/images/icon.png"

@@ -1,0 +1,158 @@
+import 'package:heart_days/http/http_manager.dart';
+import 'package:heart_days/http/model/base_response.dart';
+
+class UserRegisterDto {
+  final String userAccount;
+  final String password;
+  final String confirmPassword;
+
+  UserRegisterDto({
+    required this.userAccount,
+    required this.password,
+    required this.confirmPassword,
+  });
+
+
+  factory UserRegisterDto.fromJson(Map<String, dynamic> json) {
+    return UserRegisterDto(
+      userAccount: json['userAccount'],
+      password: json['password'],
+      confirmPassword: json['confirmPassword'],
+    );
+  }
+
+}
+Future<BaseResponse<UserRegisterDto>> userRegister(Map<String, dynamic> data) async {
+  return await HttpManager.post<UserRegisterDto>(
+    "/auth/register",
+    data: data,
+    fromJson: (json) => UserRegisterDto.fromJson(json),
+  );
+}
+
+class UserDto {
+  final String? id;
+  final String? name;
+  final String? userAccount;
+  final String? email; // 定义为可空类型
+  final String? password;
+  final String? avatar;
+  final List<String>? roles;
+  final bool? isActive;
+  final DateTime? createdAt;
+  final DateTime? updatedAt;
+
+  UserDto({
+    this.id,
+    this.name = '无名', // 提供默认值
+    this.userAccount,
+    this.email = '', // 空字符串默认值
+    this.password,
+    this.avatar,
+    this.roles = const ['user'],
+    this.isActive = true,
+    this.createdAt,
+    this.updatedAt,
+  });
+
+  // 从 JSON 解析的工厂构造函数
+  factory UserDto.fromJson(Map<String, dynamic> json) {
+    return UserDto(
+      id: json['id'],
+      name: json['name'] ?? '无名',
+      userAccount: json['userAccount'],
+      email: json['email'] ?? '', // 处理 null 值，默认空字符串
+      password: json['password'],
+      avatar: json['avatar'],
+      roles: List<String>.from(json['roles'] ?? []),
+      isActive: json['isActive'],
+      createdAt: json['createdAt'] != null
+          ? DateTime.parse(json['createdAt'])
+          : null,
+      updatedAt: json['updatedAt'] != null
+          ? DateTime.parse(json['updatedAt'])
+          : null,
+    );
+  }
+}
+
+class LoginResponse {
+  final String accessToken;
+  final User user;
+
+  LoginResponse({
+    required this.accessToken,
+    required this.user,
+  });
+
+  factory LoginResponse.fromJson(Map<String, dynamic> json) {
+    return LoginResponse(
+      accessToken: json['access_token'],
+      user: User.fromJson(json['user']),
+    );
+  }
+
+  Map<String, dynamic> toJson() {
+    return {
+      'access_token': accessToken,
+      'user': user.toJson(),
+    };
+  }
+}
+
+class User {
+  final String id; // ✅ 改为 String 类型
+  final String name;
+  final String userAccount;
+  final String email;
+  final List<String> roles;
+
+  User({
+    required this.id,
+    required this.name,
+    required this.userAccount,
+    required this.email,
+    required this.roles,
+  });
+
+  factory User.fromJson(Map<String, dynamic> json) {
+    return User(
+      id: json['id'],
+      name: json['name'],
+      userAccount: json['userAccount'],
+      email: json['email'],
+      roles: List<String>.from(json['roles']),
+    );
+  }
+
+  Map<String, dynamic> toJson() {
+    return {
+      'id': id,
+      'name': name,
+      'userAccount': userAccount,
+      'email': email,
+      'roles': roles,
+    };
+  }
+}
+
+
+Future<BaseResponse<LoginResponse>> userLogin(Map<String, dynamic> data) async {
+  return await HttpManager.post<LoginResponse>( // ✅ 改成 LoginResponse
+    "/auth/login",
+    data: data,
+    fromJson: (json) => LoginResponse.fromJson(json), // ✅ 保持一致
+  );
+}
+
+
+Future<BaseResponse<User>> updateUser(Map<String, dynamic> data) async {
+  return await HttpManager.post<User>( // ✅ 改成 LoginResponse
+    "/users/update",
+    data: data,
+    fromJson: (json) => User.fromJson(json), // ✅ 保持一致
+  );
+}
+
+
+

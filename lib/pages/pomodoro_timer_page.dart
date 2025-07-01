@@ -55,6 +55,8 @@ class _PomodoroTimerPageState extends State<PomodoroTimerPage>
     _animationController.dispose();
     WidgetsBinding.instance.removeObserver(this);
     _stopNotification();
+    // 清理完成通知
+    _notifications.cancel(1);
     super.dispose();
   }
 
@@ -82,6 +84,27 @@ class _PomodoroTimerPageState extends State<PomodoroTimerPage>
         InitializationSettings(android: initializationSettingsAndroid);
     
     await _notifications.initialize(initializationSettings);
+    
+    // 确保通知通道存在（Android 8.0+需要）
+    await _notifications.resolvePlatformSpecificImplementation<
+        AndroidFlutterLocalNotificationsPlugin>()?.createNotificationChannel(
+      const AndroidNotificationChannel(
+        'pomodoro_timer',
+        '番茄钟计时器',
+        description: '显示番茄钟倒计时状态',
+        importance: Importance.low,
+      ),
+    );
+    
+    await _notifications.resolvePlatformSpecificImplementation<
+        AndroidFlutterLocalNotificationsPlugin>()?.createNotificationChannel(
+      const AndroidNotificationChannel(
+        'pomodoro_completion',
+        '番茄钟完成提醒',
+        description: '专注时间或休息时间完成时的提醒',
+        importance: Importance.high,
+      ),
+    );
   }
 
   // 显示通知
@@ -222,8 +245,11 @@ class _PomodoroTimerPageState extends State<PomodoroTimerPage>
       _isRunning = false;
     });
 
-    // 停止通知
+    // 停止计时通知
     _stopNotification();
+
+    // 显示完成通知
+    _showCompletionNotification();
 
     // 播放声音和震动
     if (_soundEnabled) {
@@ -235,6 +261,46 @@ class _PomodoroTimerPageState extends State<PomodoroTimerPage>
 
     // 显示完成对话框
     _showTimerCompleteDialog();
+  }
+
+  // 显示完成通知
+  Future<void> _showCompletionNotification() async {
+    try {
+      AndroidNotificationDetails androidPlatformChannelSpecifics =
+          AndroidNotificationDetails(
+        'pomodoro_completion',
+        '番茄钟完成提醒',
+        channelDescription: '专注时间或休息时间完成时的提醒',
+        importance: Importance.high, // 高重要性，确保用户能看到
+        priority: Priority.high,
+        ongoing: false, // 非常驻通知
+        autoCancel: true,
+        showWhen: true,
+        enableVibration: _vibrationEnabled,
+        playSound: _soundEnabled,
+        silent: false, // 允许声音
+        onlyAlertOnce: false, // 允许重复提醒
+        category: AndroidNotificationCategory.reminder,
+        visibility: NotificationVisibility.public,
+      );
+      
+      NotificationDetails platformChannelSpecifics =
+          NotificationDetails(android: androidPlatformChannelSpecifics);
+      
+      String title = _isBreak ? '休息时间结束！' : '专注时间结束！';
+      String body = _isBreak 
+          ? '休息时间已结束，准备开始下一轮专注吧！'
+          : '恭喜完成一个专注周期！现在休息一下吧。';
+      
+      await _notifications.show(
+        1, // 使用不同的ID，避免与计时通知冲突
+        title,
+        body,
+        platformChannelSpecifics,
+      );
+    } catch (e) {
+      print('显示完成通知失败: $e');
+    }
   }
 
   void _showTimerCompleteDialog() {

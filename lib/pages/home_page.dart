@@ -318,7 +318,7 @@ class _HomePageState extends State<HomePage> {
                                   top: 4,
                                   bottom: 4,
                                 ),
-                                child: _buildPreviewCard(anniversaries[index]),
+                                child: buildAnniversaryCard(anniversaries[index]),
                               ),
                             );
                           },

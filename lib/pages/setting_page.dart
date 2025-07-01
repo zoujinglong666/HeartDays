@@ -1,19 +1,19 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:heart_days/provider/auth_provider.dart';
 
-class SettingsPage extends StatefulWidget {
+class SettingsPage extends ConsumerStatefulWidget {
   const SettingsPage({super.key});
 
   @override
-  State<SettingsPage> createState() => _SettingsPageState();
+  ConsumerState<SettingsPage> createState() => _SettingsPageState();
 }
 
-class _SettingsPageState extends State<SettingsPage> {
+class _SettingsPageState extends ConsumerState<SettingsPage> {
   bool notificationEnabled = true;
 
   @override
   Widget build(BuildContext context) {
-    const primaryColor = Color(0xFF5C6BC0);
-
     return Scaffold(
       backgroundColor: const Color(0xFFF5F6F8),
       appBar: AppBar(
@@ -208,7 +208,8 @@ class _SettingsPageState extends State<SettingsPage> {
                 child: const Text('取消'),
               ),
               TextButton(
-                onPressed: () {
+                onPressed: () async {
+                  await ref.read(authProvider.notifier).logout();
                   // 退出登录，清除导航栈并跳转到登录页面
                   Navigator.of(context).pushNamedAndRemoveUntil(
                     '/login',

@@ -1,27 +1,35 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:heart_days/pages/about_page.dart';
 import 'package:heart_days/pages/setting_page.dart';
+import 'package:heart_days/provider/auth_provider.dart';
+import 'package:heart_days/pages/user_edit_page.dart';
 
-class MinePage extends StatelessWidget {
+class MinePage extends ConsumerStatefulWidget {
   const MinePage({super.key});
 
   @override
+  ConsumerState<MinePage> createState() => _MinePageState();
+}
+
+class _MinePageState extends ConsumerState<MinePage> {
+  @override
   Widget build(BuildContext context) {
     // ✅ 保证每次进入时设置系统 UI 样式
-    SystemChrome.setSystemUIOverlayStyle(const SystemUiOverlayStyle(
-      statusBarColor: Colors.transparent,
-      statusBarIconBrightness: Brightness.dark,
-      systemNavigationBarColor: Colors.transparent,
-      systemNavigationBarIconBrightness: Brightness.dark,
-    ));
-
-    const Color primaryColor = Color(0xFF5C6BC0);
-    const Color backgroundColor = Color(0xFFF8F9FA);
-    const Color cardColor = Colors.white;
-
-    final nickname = '糖糖宝';
+    SystemChrome.setSystemUIOverlayStyle(
+      const SystemUiOverlayStyle(
+        statusBarColor: Colors.transparent,
+        statusBarIconBrightness: Brightness.dark,
+        systemNavigationBarColor: Colors.transparent,
+        systemNavigationBarIconBrightness: Brightness.dark,
+      ),
+    );
     final signature = '你是我最甜的纪念日';
+    // 定义高级感配色
+    const Color primaryColor = Color(0xFF5C6BC0); // 主色调：靛蓝色
+    const Color backgroundColor = Color(0xFFF8F9FA); // 背景色：浅灰色
+    const Color cardColor = Colors.white; // 卡片色：纯白色
 
     final List<Map<String, dynamic>> shortcuts = [
       {
@@ -30,10 +38,24 @@ class MinePage extends StatelessWidget {
         'color': Color(0xFF42A5F5),
       },
       {'icon': Icons.favorite, 'label': '心愿单', 'color': Color(0xFFEC407A)},
-      {'icon': Icons.photo_library, 'label': '相册', 'color': Color(0xFF66BB6A)},
+      {
+        'icon': Icons.photo_library,
+        'label': '相册',
+        'color': Color(0xFF66BB6A)
+      },
       {'icon': Icons.chat, 'label': '聊天', 'color': Color(0xFFFF7043)},
     ];
-
+    // ❌ 错误示例（你目前的写法）：
+    // 这段代码会导致 Dart 把箭头函数返回的 {} 当成一个 Set，不是一个真正的函数体：
+    // 这就是导致 child == child 报错的关键原因之一。
+    // ✅ 正确示例（标准匿名函数）：
+    // 你应该使用花括号包裹 函数体，而不是作为返回值的 Set：
+    // dart
+    // 'onTap': () {
+    // Navigator.push(
+    // context,
+    // MaterialPageRoute(builder: (_) => const AboutPage()),
+    // );
     final List<Map<String, dynamic>> cells = [
       {
         'icon': Icons.star,
@@ -65,97 +87,122 @@ class MinePage extends StatelessWidget {
     ];
 
     return Scaffold(
-      extendBody: true, // ✅ 允许背景延伸到导航栏区域
       backgroundColor: backgroundColor,
-      body: SafeArea(
-        bottom: false, // ✅ 允许内容绘制到底部导航栏区域
-        child: CustomScrollView(
-          slivers: [
-            // 顶部弹性头部
-            SliverAppBar(
-              expandedHeight: 120,
-              pinned: true,
-              backgroundColor: primaryColor,
-              flexibleSpace: FlexibleSpaceBar(
-                title: const Text(
-                  '个人中心',
-                  style: TextStyle(
-                    color: Colors.white,
-                    fontSize: 18,
-                    fontWeight: FontWeight.w600,
-                  ),
+      extendBody: true,
+      // 使用自定义滚动视图
+      body: CustomScrollView(
+        slivers: [
+          // 顶部弹性头部
+          SliverAppBar(
+            expandedHeight: 120,
+            pinned: true,
+            backgroundColor: primaryColor,
+            flexibleSpace: FlexibleSpaceBar(
+              title: Text(
+                '个人中心',
+                style: TextStyle(
+                  color: Colors.white,
+                  fontSize: 18,
+                  fontWeight: FontWeight.w600,
                 ),
-                background: Container(
-                  decoration: const BoxDecoration(
-                    gradient: LinearGradient(
-                      colors: [Color(0xFFF48FB1), Color(0xFFCE93D8)],
-                      begin: Alignment.topLeft,
-                      end: Alignment.bottomRight,
-                    ),
+              ),
+              background: Container(
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    colors: [
+                      const Color(0xFFF48FB1), // 浅粉色
+                      const Color(0xFFCE93D8), // 浅紫色
+                    ],
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
                   ),
                 ),
               ),
-              actions: [
-                IconButton(
-                  icon: const Icon(Icons.settings, color: Colors.white),
-                  onPressed: () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(builder: (_) => const SettingsPage()),
-                    );
-                  },
-                ),
-              ],
-              systemOverlayStyle: SystemUiOverlayStyle.light,
             ),
+            actions: [
+              IconButton(
+                icon: Icon(Icons.settings, color: Colors.white),
+                onPressed: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (_) => const SettingsPage()),
+                  );
+                },
+              ),
+            ],
+            systemOverlayStyle: SystemUiOverlayStyle.light,
+          ),
 
-            // 内容区域
-            SliverToBoxAdapter(
-              child: Padding(
-                padding: const EdgeInsets.all(16.0),
-                child: Column(
-                  children: [
-                    buildProfileCard(nickname, signature, cardColor),
-                    const SizedBox(height: 24),
-                    buildSectionTitle('快捷功能', primaryColor),
-                    buildShortcutsGrid(shortcuts, context),
-                    const SizedBox(height: 24),
-                    buildSectionTitle('更多功能', primaryColor),
-                    ...buildCells(cells),
-                    const SizedBox(height: 24),
-                    const Center(
-                      child: Text(
-                        'Heart Days v1.0.0',
-                        style: TextStyle(fontSize: 12, color: Colors.grey),
+          // 内容区域
+          SliverToBoxAdapter(
+            child: Padding(
+              padding: const EdgeInsets.all(16.0),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // 个人资料卡片 - 高级设计
+                  buildProfileCard(signature, cardColor),
+
+                  const SizedBox(height: 24),
+
+                  // 分类标题
+                  Padding(
+                    padding: const EdgeInsets.only(left: 8, bottom: 0),
+                    child: Text(
+                      '快捷功能',
+                      style: TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                        color: primaryColor,
                       ),
                     ),
-                    const SizedBox(height: 40),
-                  ],
-                ),
+                  ),
+
+                  // 快捷功能区 - 高级设计
+                  buildShortcutsGrid(shortcuts, context),
+
+                  const SizedBox(height: 24),
+
+                  // 分类标题
+                  Padding(
+                    padding: const EdgeInsets.only(left: 8, bottom: 16),
+                    child: Text(
+                      '更多功能',
+                      style: TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                        color: primaryColor,
+                      ),
+                    ),
+                  ),
+
+                  // 功能列表 - 高级设计
+                  ...buildCells(cells),
+
+                  const SizedBox(height: 24),
+
+                  // 版本信息
+                  Center(
+                    child: Text(
+                      'Heart Days v1.0.0',
+                      style: TextStyle(fontSize: 12, color: Colors.grey),
+                    ),
+                  ),
+                  const SizedBox(height: 40),
+
+                ],
               ),
             ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }
 
-  Widget buildSectionTitle(String title, Color color) {
-    return Padding(
-      padding: const EdgeInsets.only(left: 8, bottom: 12),
-      child: Text(
-        title,
-        style: TextStyle(
-          fontSize: 18,
-          fontWeight: FontWeight.bold,
-          color: color,
-        ),
-      ),
-    );
-  }
-
-  // 个人资料卡片（保留原写法）
-  Widget buildProfileCard(String nickname, String signature, Color cardColor) {
+  // 个人资料卡片
+  Widget buildProfileCard(String signature, Color cardColor) {
+    final authState = ref.watch(authProvider);
+    final user = authState.user;
     return Container(
       margin: const EdgeInsets.only(top: 8),
       padding: const EdgeInsets.all(12),
@@ -172,11 +219,12 @@ class MinePage extends StatelessWidget {
       ),
       child: Row(
         children: [
+          // 头像区域
           Container(
             padding: const EdgeInsets.all(3),
             decoration: BoxDecoration(
               shape: BoxShape.circle,
-              gradient: const LinearGradient(
+              gradient: LinearGradient(
                 colors: [Color(0xFF64B5F6), Color(0xFF5C6BC0)],
                 begin: Alignment.topLeft,
                 end: Alignment.bottomRight,
@@ -189,19 +237,21 @@ class MinePage extends StatelessWidget {
                 ),
               ],
             ),
-            child: const CircleAvatar(
+            child: CircleAvatar(
               radius: 32,
               backgroundColor: Colors.white,
-              child: Text('🐻‍', style: TextStyle(fontSize: 28)),
+              child: const Text('🐻‍', style: TextStyle(fontSize: 28)),
             ),
           ),
           const SizedBox(width: 8),
+
+          // 个人信息
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  nickname,
+                  user!.name,
                   style: const TextStyle(
                     fontSize: 16,
                     fontWeight: FontWeight.bold,
@@ -220,17 +270,22 @@ class MinePage extends StatelessWidget {
               ],
             ),
           ),
+
+          // 编辑按钮
           Container(
             decoration: BoxDecoration(
-              color: const Color(0xFF5C6BC0).withOpacity(0.1),
+              color: Color(0xFF5C6BC0).withOpacity(0.1),
               borderRadius: BorderRadius.circular(12),
             ),
             child: TextButton.icon(
               onPressed: () {
-                print('编辑资料');
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (_) => const UserEditPage()),
+                );
               },
-              icon: const Icon(Icons.edit, size: 16, color: Color(0xFF5C6BC0)),
-              label: const Text(
+              icon: Icon(Icons.edit, size: 16, color: Color(0xFF5C6BC0)),
+              label: Text(
                 '编辑',
                 style: TextStyle(
                   color: Color(0xFF5C6BC0),
@@ -238,7 +293,7 @@ class MinePage extends StatelessWidget {
                 ),
               ),
               style: TextButton.styleFrom(
-                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                padding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                 minimumSize: Size.zero,
                 tapTargetSize: MaterialTapTargetSize.shrinkWrap,
               ),
@@ -249,14 +304,24 @@ class MinePage extends StatelessWidget {
     );
   }
 
-  Widget buildShortcutsGrid(List<Map<String, dynamic>> shortcuts, BuildContext context) {
+  Widget buildShortcutsGrid(List<Map<String, dynamic>> shortcuts,
+      BuildContext context,) {
     return Wrap(
       spacing: 8,
       runSpacing: 8,
-      children: shortcuts.map((item) {
-        final double itemWidth = (MediaQuery.of(context).size.width - 16 * 2 - 8 * 3) / 4;
+      children:
+      shortcuts.map((item) {
         return SizedBox(
-          width: itemWidth > 0 ? itemWidth : 0,
+          width:
+          (MediaQuery
+              .of(context)
+              .size
+              .width - 16 * 2 - 8 * 3) / 4 > 0
+              ? (MediaQuery
+              .of(context)
+              .size
+              .width - 16 * 2 - 8 * 3) / 4
+              : 0,
           height: 80,
           child: Material(
             color: Colors.transparent,
@@ -288,9 +353,11 @@ class MinePage extends StatelessWidget {
     );
   }
 
+  // 功能列表项
   List<Widget> buildCells(List<Map<String, dynamic>> cells) {
     return List.generate(cells.length, (index) {
       final item = cells[index];
+
       return Container(
         margin: const EdgeInsets.only(bottom: 16),
         decoration: BoxDecoration(
@@ -313,11 +380,12 @@ class MinePage extends StatelessWidget {
             child: Padding(
               padding: const EdgeInsets.symmetric(vertical: 4),
               child: ListTile(
-                contentPadding: const EdgeInsets.symmetric(horizontal: 16),
+                contentPadding: EdgeInsets.symmetric(horizontal: 16), // 统一内边距
                 leading: Container(
                   width: 40,
                   height: 40,
                   alignment: Alignment.center,
+                  // 确保图标居中
                   decoration: BoxDecoration(
                     color: (item['color'] as Color).withOpacity(0.1),
                     borderRadius: BorderRadius.circular(12),
