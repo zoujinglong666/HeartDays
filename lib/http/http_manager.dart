@@ -10,7 +10,7 @@ class HttpManager {
       String path, {
         Map<String, dynamic>? queryParameters,
         Options? options,
-        Function(Map<String, dynamic>)? fromJson,
+        Function(dynamic)? fromJson,
       }) async {
     final res = await _dio.get(path, queryParameters: queryParameters, options: options);
     return BaseResponse<T>.fromJson(res.data, fromJson);
@@ -20,7 +20,7 @@ class HttpManager {
       String path, {
         dynamic data,
         Options? options,
-        Function(Map<String, dynamic>)? fromJson,
+        Function(dynamic)? fromJson,
       }) async {
     final res = await _dio.post(path, data: data, options: options);
     return BaseResponse<T>.fromJson(res.data, fromJson);
@@ -30,7 +30,7 @@ class HttpManager {
       String path, {
         Map<String, dynamic>? data,
         Options? options,
-        Function(Map<String, dynamic>)? fromJson,
+        Function(dynamic)? fromJson,
       }) async {
     final res = await _dio.post(
       path,
@@ -44,7 +44,7 @@ class HttpManager {
       String path, {
         Map<String, dynamic>? data,
         Options? options,
-        Function(Map<String, dynamic>)? fromJson,
+        Function(dynamic)? fromJson,
       }) async {
     final res = await _dio.delete(
       path,
@@ -58,7 +58,7 @@ class HttpManager {
       String path, {
         dynamic data,
         Options? options,
-        Function(Map<String, dynamic>)? fromJson,
+        Function(dynamic)? fromJson,
       }) async {
     final res = await _dio.put(
       path,
@@ -72,7 +72,7 @@ class HttpManager {
       String path, {
         dynamic data,
         Options? options,
-        Function(Map<String, dynamic>)? fromJson,
+        Function(dynamic)? fromJson,
       }) async {
     final res = await _dio.patch(
       path,

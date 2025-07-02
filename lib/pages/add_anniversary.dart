@@ -2,10 +2,9 @@ import 'dart:convert';
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:heart_days/http/model/Anniversary.dart';
+import 'package:heart_days/apis/anniversary.dart';
 import 'package:heart_days/utils/Notifier.dart';
 import 'package:heart_days/utils/ToastUtils.dart';
-import 'package:heart_days/utils/app_theme_controller.dart';
 import 'package:intl/intl.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -34,13 +33,7 @@ class _AddAnniversaryPageState extends State<AddAnniversaryPage> {
   Color _selectedColor = const Color(0xFF90CAF9);
 
   // 预设类型列表
-  final List<String> _typeOptions = [
-    "纪念日",
-    "倒数日",
-    "生活",
-    "工作",
-    "学习"
-  ];
+  final List<String> _typeOptions = ["纪念日", "倒数日", "生活", "工作", "学习"];
 
   // 预设图标列表 - 按分类组织
   final Map<String, List<String>> _categorizedIcons = {
@@ -57,13 +50,57 @@ class _AddAnniversaryPageState extends State<AddAnniversaryPage> {
 
     // ✅ 新增：人物
     "人物": [
-      "😀", "👶", "🧒", "👦", "👧", "🧑", "👨", "👩", "🧓", "👴", "👵",
-      "👨‍⚕️", "👩‍⚕️", "👨‍🏫", "👩‍🏫", "👨‍💻", "👩‍💻", "👨‍🔧", "👩‍🔧", "👨‍🍳", "👩‍🍳",
-      "🕵️", "👮", "🧑‍🚀", "🧑‍🎨", "🧑‍🚒", "🧑‍🔬",
-      "💃", "🕺", "🧍", "🧎", "🙋", "🙆", "🙇", "🤷", "🤦", "🙌"
+      "😀",
+      "👶",
+      "🧒",
+      "👦",
+      "👧",
+      "🧑",
+      "👨",
+      "👩",
+      "🧓",
+      "👴",
+      "👵",
+      "👨‍⚕️",
+      "👩‍⚕️",
+      "👨‍🏫",
+      "👩‍🏫",
+      "👨‍💻",
+      "👩‍💻",
+      "👨‍🔧",
+      "👩‍🔧",
+      "👨‍🍳",
+      "👩‍🍳",
+      "🕵️",
+      "👮",
+      "🧑‍🚀",
+      "🧑‍🎨",
+      "🧑‍🚒",
+      "🧑‍🔬",
+      "💃",
+      "🕺",
+      "🧍",
+      "🧎",
+      "🙋",
+      "🙆",
+      "🙇",
+      "🤷",
+      "🤦",
+      "🙌",
     ],
     "台球": [
-      "🎱", "🏑", "🏓", "🟢", "🔴", "🟡", "⚫", "👁️", "🎯", "🧍", "🎽", "🥇"
+      "🎱",
+      "🏑",
+      "🏓",
+      "🟢",
+      "🔴",
+      "🟡",
+      "⚫",
+      "👁️",
+      "🎯",
+      "🧍",
+      "🎽",
+      "🥇",
     ],
   };
 
@@ -82,7 +119,6 @@ class _AddAnniversaryPageState extends State<AddAnniversaryPage> {
 
     return colorValue;
   }
-
 
   // 获取当前分类的图标列表
   List<String> get _currentCategoryIcons =>
@@ -127,7 +163,8 @@ class _AddAnniversaryPageState extends State<AddAnniversaryPage> {
   ];
 
   Future<void> saveAnniversaryToLocal(
-      Map<String, dynamic> newAnniversary,) async {
+    Map<String, dynamic> newAnniversary,
+  ) async {
     final prefs = await SharedPreferences.getInstance();
     final key = 'anniversaries';
 
@@ -218,6 +255,10 @@ class _AddAnniversaryPageState extends State<AddAnniversaryPage> {
     }
   }
 
+  String colorToHex(Color color) {
+    return '#${color.value.toRadixString(16).padLeft(8, '0').substring(2)}';
+  }
+
   String get _pageTitle {
     final isEditing = widget.anniversaryItem != null;
     final type = _selectedType == "倒数日" ? "倒数日" : "纪念日";
@@ -239,12 +280,11 @@ class _AddAnniversaryPageState extends State<AddAnniversaryPage> {
         return const Color(0xFFE9F3EC);
     }
   }
+
   @override
   Widget build(BuildContext context) {
-
-
     return Scaffold(
-    extendBody: true, // ✅ 允许背景延伸到导航栏区域
+      extendBody: true, // ✅ 允许背景延伸到导航栏区域
       resizeToAvoidBottomInset: true,
       appBar: AppBar(
         backgroundColor: getAppBarColor(_selectedType),
@@ -278,53 +318,67 @@ class _AddAnniversaryPageState extends State<AddAnniversaryPage> {
 
               if (_formKey.currentState!.validate()) {
                 final newAnniversary = Anniversary(
-                  id:
-                  widget.anniversaryItem?.id ??
-                      DateTime
-                          .now()
-                          .millisecondsSinceEpoch
-                          .toString(),
                   // ✅ 若为编辑，则保留原 id
                   title: _titleController.text,
                   date: _selectedDate,
                   icon: _selectedIcon,
                   description: _descriptionController.text,
-                  color: _selectedColor,
                   type: _selectedType,
                   isPinned: _isPinned,
                   isHighlighted: _isHighlighted,
-                  repetitiveType: "",
+                  repetitiveType: "daily",
+                  color: null,
                 );
-
-                final prefs = await SharedPreferences.getInstance();
-                final raw = prefs.getString('anniversaries');
-                List<Map<String, dynamic>> list = [];
-
-                if (raw != null) {
-                  final decoded = json.decode(raw) as List;
-                  list =
-                      decoded.map((e) => Map<String, dynamic>.from(e)).toList();
+                // 新增：直接添加
+                // 定义一个函数，用于过滤掉不需要的字段
+                Map<String, dynamic> filterFields(
+                  Map<String, dynamic> jsonMap,
+                ) {
+                  // 定义要剔除的字段列表
+                  List<String> fieldsToRemove = ['created_at', 'updated_at'];
+                  // 遍历要剔除的字段列表，从jsonMap中删除对应字段
+                  fieldsToRemove.forEach((field) => jsonMap.remove(field));
+                  return jsonMap;
                 }
 
                 // ✅ 判断是新增还是编辑
                 if (widget.anniversaryItem != null) {
                   // 编辑：找到并替换原数据
-                  final index = list.indexWhere(
-                        (e) => e['id'] == widget.anniversaryItem!.id,
-                  );
-                  if (index != -1) {
-                    list[index] = newAnniversary.toJson();
+                  try {
+                    await updateAnniversary({
+                      ...filterFields(newAnniversary.toJson()),
+                      "id": widget.anniversaryItem?.id,
+                      'color': colorToHex(_selectedColor),
+                    });
+
+                    ToastUtils.showToast("编辑成功");
+                    Navigator.of(context).pop();
+
+                    notifier.value = 'anniversary_added';
+                  } catch (e, stack) {
+                    print("❌ 编辑出错: $e\n$stack");
+                    ToastUtils.showToast("编辑失败，请稍后重试");
                   }
                 } else {
-                  // 新增：直接添加
-                  list.add(newAnniversary.toJson());
+                  try {
+                    await createAnniversary({
+                      ...filterFields(newAnniversary.toJson()),
+                      'color': colorToHex(_selectedColor),
+                    });
+
+                    ToastUtils.showToast("保存成功");
+
+                    // ✅ 页面跳转
+                    print("✅ 调用 Navigator.pop");
+                    Navigator.of(context).pop();
+
+                    // ✅ 通知外部刷新
+                    notifier.value = 'anniversary_added';
+                  } catch (e, stack) {
+                    print("❌ 保存出错: $e\n$stack");
+                    ToastUtils.showToast("保存失败，请稍后重试");
+                  }
                 }
-
-                await prefs.setString('anniversaries', json.encode(list));
-
-                ToastUtils.showToast("保存成功");
-                notifier.value = 'anniversary_added';
-                Navigator.of(context).pop();
               }
             },
             label: Text(
@@ -362,9 +416,9 @@ class _AddAnniversaryPageState extends State<AddAnniversaryPage> {
                   _buildTextField(
                     controller: _titleController,
                     hintText:
-                    _selectedType == "倒数日"
-                        ? " 例如：距离考试还有、距离生日还有"
-                        : "例如：恋爱纪念日、结婚纪念日 ",
+                        _selectedType == "倒数日"
+                            ? " 例如：距离考试还有、距离生日还有"
+                            : "例如：恋爱纪念日、结婚纪念日 ",
                     prefixIcon: Icons.title,
                     validator: (value) {
                       if (value == null || value.isEmpty) {
@@ -433,18 +487,6 @@ class _AddAnniversaryPageState extends State<AddAnniversaryPage> {
                   const SizedBox(height: 80), // 为底部按钮留出空间
                 ],
               ),
-
-              // 固定在底部的保存按钮
-              // Positioned(
-              //   left: 0,
-              //   right: 0,
-              //   bottom: 20,
-              //   child: Container(
-              //     decoration: BoxDecoration(color: Colors.white),
-              //     padding: const EdgeInsets.symmetric(vertical: 10),
-              //     child: _buildSaveButton(),
-              //   ),
-              // ),
             ],
           ),
         ),
@@ -454,13 +496,9 @@ class _AddAnniversaryPageState extends State<AddAnniversaryPage> {
 
   // 预览卡片
   Widget _buildPreviewCard() {
-    final daysLeft = _selectedDate
-        .difference(DateTime.now())
-        .inDays;
+    final daysLeft = _selectedDate.difference(DateTime.now()).inDays;
     final isInFuture = daysLeft >= 0;
-    final daysText = isInFuture
-        ? "还有 ${daysLeft + 1} 天"
-        : "已过去 ${-daysLeft} 天";
+    final daysText = isInFuture ? "还有 ${daysLeft + 1} 天" : "已过去 ${-daysLeft} 天";
 
     return Container(
       padding: const EdgeInsets.all(20),
@@ -688,17 +726,17 @@ class _AddAnniversaryPageState extends State<AddAnniversaryPage> {
                 color: isSelected ? _selectedColor : Colors.white,
                 borderRadius: BorderRadius.circular(20),
                 boxShadow:
-                isSelected
-                    ? [
-                  BoxShadow(
-                    color: _selectedColor.withOpacity(0.3),
-                    blurRadius: 8,
-                    offset: const Offset(0, 2),
-                  ),
-                ]
-                    : null,
+                    isSelected
+                        ? [
+                          BoxShadow(
+                            color: _selectedColor.withOpacity(0.3),
+                            blurRadius: 8,
+                            offset: const Offset(0, 2),
+                          ),
+                        ]
+                        : null,
                 border:
-                isSelected ? null : Border.all(color: Colors.grey.shade200),
+                    isSelected ? null : Border.all(color: Colors.grey.shade200),
               ),
               alignment: Alignment.center,
               child: Text(
@@ -776,17 +814,17 @@ class _AddAnniversaryPageState extends State<AddAnniversaryPage> {
                 color: isSelected ? _selectedColor : Colors.white,
                 borderRadius: BorderRadius.circular(16),
                 boxShadow:
-                isSelected
-                    ? [
-                  BoxShadow(
-                    color: _selectedColor.withOpacity(0.3),
-                    blurRadius: 4,
-                    offset: const Offset(0, 2),
-                  ),
-                ]
-                    : null,
+                    isSelected
+                        ? [
+                          BoxShadow(
+                            color: _selectedColor.withOpacity(0.3),
+                            blurRadius: 4,
+                            offset: const Offset(0, 2),
+                          ),
+                        ]
+                        : null,
                 border:
-                isSelected ? null : Border.all(color: Colors.grey.shade200),
+                    isSelected ? null : Border.all(color: Colors.grey.shade200),
               ),
               alignment: Alignment.center,
               child: Text(
@@ -834,17 +872,17 @@ class _AddAnniversaryPageState extends State<AddAnniversaryPage> {
                 color: isSelected ? _selectedColor : Colors.white,
                 shape: BoxShape.circle,
                 boxShadow:
-                isSelected
-                    ? [
-                  BoxShadow(
-                    color: _selectedColor.withOpacity(0.3),
-                    blurRadius: 8,
-                    offset: const Offset(0, 2),
-                  ),
-                ]
-                    : null,
+                    isSelected
+                        ? [
+                          BoxShadow(
+                            color: _selectedColor.withOpacity(0.3),
+                            blurRadius: 8,
+                            offset: const Offset(0, 2),
+                          ),
+                        ]
+                        : null,
                 border:
-                isSelected ? null : Border.all(color: Colors.grey.shade200),
+                    isSelected ? null : Border.all(color: Colors.grey.shade200),
               ),
               alignment: Alignment.center,
               child: Text(icon, style: TextStyle(fontSize: 24)),
@@ -892,9 +930,9 @@ class _AddAnniversaryPageState extends State<AddAnniversaryPage> {
                   ),
                 ],
                 border:
-                isSelected
-                    ? Border.all(color: Colors.white, width: 3)
-                    : null,
+                    isSelected
+                        ? Border.all(color: Colors.white, width: 3)
+                        : null,
               ),
             ),
           );
@@ -998,9 +1036,11 @@ class _AddAnniversaryPageState extends State<AddAnniversaryPage> {
   }
 
   // 单个重复选项
-  Widget _buildRepeatOption(String title,
-      bool value,
-      Function(bool) onChanged,) {
+  Widget _buildRepeatOption(
+    String title,
+    bool value,
+    Function(bool) onChanged,
+  ) {
     return Row(
       children: [
         Icon(Icons.repeat, color: _selectedColor),
@@ -1015,47 +1055,47 @@ class _AddAnniversaryPageState extends State<AddAnniversaryPage> {
     );
   }
 
-// 保存按钮
-// Widget _buildSaveButton() {
-//   return ElevatedButton(
-//     onPressed: () async {
-//       if (_formKey.currentState!.validate()) {
-//         final newAnniversary = Anniversary(
-//           id: DateTime.now().millisecondsSinceEpoch.toString(),
-//           title: _titleController.text,
-//           date: _selectedDate,
-//           icon: _selectedIcon,
-//           description: _descriptionController.text,
-//           color: _selectedColor,
-//           type: _selectedType,
-//           isPinned: _isPinned,
-//           isHighlighted: _isHighlighted,
-//           repetitiveType: "",
-//         );
-//
-//         // 🔸 保存到本地
-//         await saveAnniversaryToLocal(newAnniversary.toJson());
-//
-//         // 添加成功后发出事件
-//         notifier.value = 'anniversary_added';
-//         // 返回上一页
-//         ToastUtils.showToast("保存成功");
-//
-//         Navigator.of(context).pop();
-//       }
-//     },
-//     style: ElevatedButton.styleFrom(
-//       backgroundColor: _selectedColor,
-//       foregroundColor: Colors.white,
-//       padding: const EdgeInsets.symmetric(vertical: 16),
-//       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-//       elevation: 0,
-//       minimumSize: const Size(double.infinity, 56), // 确保按钮足够高
-//     ),
-//     child: const Text(
-//       "保存",
-//       style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-//     ),
-//   );
-// }
+  // 保存按钮
+  // Widget _buildSaveButton() {
+  //   return ElevatedButton(
+  //     onPressed: () async {
+  //       if (_formKey.currentState!.validate()) {
+  //         final newAnniversary = Anniversary(
+  //           id: DateTime.now().millisecondsSinceEpoch.toString(),
+  //           title: _titleController.text,
+  //           date: _selectedDate,
+  //           icon: _selectedIcon,
+  //           description: _descriptionController.text,
+  //           color: _selectedColor,
+  //           type: _selectedType,
+  //           isPinned: _isPinned,
+  //           isHighlighted: _isHighlighted,
+  //           repetitiveType: "",
+  //         );
+  //
+  //         // 🔸 保存到本地
+  //         await saveAnniversaryToLocal(newAnniversary.toJson());
+  //
+  //         // 添加成功后发出事件
+  //         notifier.value = 'anniversary_added';
+  //         // 返回上一页
+  //         ToastUtils.showToast("保存成功");
+  //
+  //         Navigator.of(context).pop();
+  //       }
+  //     },
+  //     style: ElevatedButton.styleFrom(
+  //       backgroundColor: _selectedColor,
+  //       foregroundColor: Colors.white,
+  //       padding: const EdgeInsets.symmetric(vertical: 16),
+  //       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+  //       elevation: 0,
+  //       minimumSize: const Size(double.infinity, 56), // 确保按钮足够高
+  //     ),
+  //     child: const Text(
+  //       "保存",
+  //       style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+  //     ),
+  //   );
+  // }
 }

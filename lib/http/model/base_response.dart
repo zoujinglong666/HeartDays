@@ -11,7 +11,7 @@ class BaseResponse<T> {
 
   factory BaseResponse.fromJson(
       Map<String, dynamic> json,
-      Function(Map<String, dynamic>)? fromJson,
+      Function(dynamic)? fromJson,
       ) {
     return BaseResponse<T>(
       code: json['code'] ?? -1,

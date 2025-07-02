@@ -22,13 +22,7 @@ class UserRegisterDto {
   }
 
 }
-Future<BaseResponse<UserRegisterDto>> userRegister(Map<String, dynamic> data) async {
-  return await HttpManager.post<UserRegisterDto>(
-    "/auth/register",
-    data: data,
-    fromJson: (json) => UserRegisterDto.fromJson(json),
-  );
-}
+
 
 class UserDto {
   final String? id;
@@ -58,22 +52,25 @@ class UserDto {
   // 从 JSON 解析的工厂构造函数
   factory UserDto.fromJson(Map<String, dynamic> json) {
     return UserDto(
-      id: json['id'],
+      id: json['id']?.toString(),
       name: json['name'] ?? '无名',
-      userAccount: json['userAccount'],
-      email: json['email'] ?? '', // 处理 null 值，默认空字符串
-      password: json['password'],
+      userAccount: json['userAccount'] ?? '',
+      email: json['email'] ?? '',
+      password: json['password'] ?? '',
       avatar: json['avatar'],
-      roles: List<String>.from(json['roles'] ?? []),
-      isActive: json['isActive'],
+      roles: (json['roles'] is List)
+          ? List<String>.from(json['roles'])
+          : const ['user'],
+      isActive: json['isActive'] ?? true,
       createdAt: json['createdAt'] != null
-          ? DateTime.parse(json['createdAt'])
+          ? DateTime.tryParse(json['createdAt'])
           : null,
       updatedAt: json['updatedAt'] != null
-          ? DateTime.parse(json['updatedAt'])
+          ? DateTime.tryParse(json['updatedAt'])
           : null,
     );
   }
+
 }
 
 class LoginResponse {
@@ -136,7 +133,13 @@ class User {
   }
 }
 
-
+Future<BaseResponse<UserDto>> userRegister(Map<String, dynamic> data) async {
+  return await HttpManager.post<UserDto>(
+    "/auth/register",
+    data: data,
+    fromJson: (json) => UserDto.fromJson(json),
+  );
+}
 Future<BaseResponse<LoginResponse>> userLogin(Map<String, dynamic> data) async {
   return await HttpManager.post<LoginResponse>( // ✅ 改成 LoginResponse
     "/auth/login",

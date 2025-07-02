@@ -5,22 +5,17 @@ import 'package:dio/dio.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_slidable/flutter_slidable.dart';
+import 'package:heart_days/apis/anniversary.dart';
 import 'package:heart_days/components/AnimatedCardWrapper.dart';
 import 'package:heart_days/components/SwiperCardView.dart';
-import 'package:heart_days/http/model/Anniversary.dart';
 import 'package:heart_days/pages/add_anniversary.dart';
 import 'package:heart_days/pages/today_history_page.dart';
+import 'package:heart_days/provider/auth_provider.dart';
 import 'package:heart_days/utils/Notifier.dart';
 import 'package:heart_days/utils/SafeNavigator.dart';
 import 'package:intl/intl.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../components/BaseInfoCard.dart';
-
-class AnniversaryAddedEvent {
-  final Map<String, dynamic> data;
-
-  AnniversaryAddedEvent(this.data);
-}
 
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
@@ -90,13 +85,39 @@ class _HomePageState extends State<HomePage> {
     });
   }
 
-  Future<List<Anniversary>> loadAnniversariesFromLocal() async {
-    final prefs = await SharedPreferences.getInstance();
-    final raw = prefs.getString('anniversaries');
-    if (raw == null) return [];
-    final List<dynamic> decoded = json.decode(raw);
-    return decoded.map((item) => Anniversary.fromJson(item)).toList();
+  Future<void> loadAnniversariesFromLocal() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final authDataString = prefs.getString('auth_data');
+
+      if (authDataString == null) {
+        print("⚠️ auth_data 不存在");
+        setState(() => anniversaries = []);
+        return;
+      }
+
+      final Map<String, dynamic> authMap = jsonDecode(authDataString);
+      final authState = AuthState.fromJson(authMap);
+      if (authState.user?.id == null) {
+        print("⚠️ 用户 ID 缺失");
+        setState(() => anniversaries = []);
+        return;
+      }
+
+      final response = await fetchByUserId(authState.user!.id!);
+
+      if (response.code == 200 && response.data != null) {
+        print("✅ 成功加载纪念日数量: ${response.data!.length}");
+        setState(() => anniversaries = response.data!);
+      } else {
+        setState(() => anniversaries = []);
+      }
+    } catch (e) {
+      print("❌ JSON 解析失败或加载出错: $e");
+      setState(() => anniversaries = []);
+    }
   }
+
 
   // 定义应用配色方案
   static const Color primaryColor = Color(0xFF5C6BC0); // 靛蓝色作为主色调
@@ -151,11 +172,11 @@ class _HomePageState extends State<HomePage> {
   Future<String> getOneSentencePerDay() async {
     try {
       final response = await Dio().get(
-        'https://api.xygeng.cn/openapi/one',
+        'https://apis.xygeng.cn/openapi/one',
         options: Options(
           headers: {
-            'Referer': 'https://api.codelife.cc/',
-            'Origin': 'https://api.codelife.cc/',
+            'Referer': 'https://apis.codelife.cc/',
+            'Origin': 'https://apis.codelife.cc/',
             'Accept': 'application/json',
           },
           sendTimeout: Duration(seconds: 10),
@@ -176,12 +197,9 @@ class _HomePageState extends State<HomePage> {
   }
 
   Future<void> _loadData() async {
-    final list = await loadAnniversariesFromLocal();
-
     if (!mounted) return; // 避免 setState 报错
     final oneSentenceStr = await getOneSentencePerDay();
-
-    setState(() => {anniversaries = list});
+    await loadAnniversariesFromLocal();
     setState(() => {oneSentenceContent = oneSentenceStr});
   }
 
@@ -268,65 +286,71 @@ class _HomePageState extends State<HomePage> {
 
           // 纪念日列表 - 添加下拉刷新功能
           Expanded(
-            child: anniversaries.isEmpty
-                ? RefreshIndicator(
-                    onRefresh: _loadData,
-                    child: ListView(
-                      children: [
-                        SizedBox(
-                          height: MediaQuery.of(context).size.height * 0.3,
-                        ),
-                        Center(
-                          child: Column(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              Icon(
-                                Icons.celebration_outlined,
-                                size: 64,
-                                color: Colors.pink.shade200,
-                              ),
-                              const SizedBox(height: 16),
-                              const Text(
-                                '暂无纪念日，点击右下角添加吧~',
-                                style: TextStyle(color: Colors.grey, fontSize: 16),
-                              ),
-                            ],
+            child:
+                anniversaries.isEmpty
+                    ? RefreshIndicator(
+                      onRefresh: _loadData,
+                      child: ListView(
+                        children: [
+                          SizedBox(
+                            height: MediaQuery.of(context).size.height * 0.3,
                           ),
-                        ),
-                      ],
-                    ),
-                  )
-                : RefreshIndicator(
-                    onRefresh: _loadData,
-                    child: ListView.builder(
-                      padding: const EdgeInsets.symmetric(horizontal: 16),
-                      itemBuilder: (context, index) {
-                        // 添加列表项动画
-                        return AnimatedBuilder(
-                          animation: Listenable.merge([
-                            // 如果有滚动控制器，可以在这里添加
-                          ]),
-                          builder: (context, child) {
-                            return AnimatedOpacity(
-                              opacity: 1.0,
-                              duration: Duration(
-                                milliseconds: 500 + (index * 100),
-                              ),
-                              child: AnimatedPadding(
-                                duration: const Duration(milliseconds: 300),
-                                padding: const EdgeInsets.only(
-                                  top: 4,
-                                  bottom: 4,
+                          Center(
+                            child: Column(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Icon(
+                                  Icons.celebration_outlined,
+                                  size: 64,
+                                  color: Colors.pink.shade200,
                                 ),
-                                child: buildAnniversaryCard(anniversaries[index]),
-                              ),
-                            );
-                          },
-                        );
-                      },
-                      itemCount: anniversaries.length,
+                                const SizedBox(height: 16),
+                                const Text(
+                                  '暂无纪念日，点击右下角添加吧~',
+                                  style: TextStyle(
+                                    color: Colors.grey,
+                                    fontSize: 16,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
+                      ),
+                    )
+                    : RefreshIndicator(
+                      onRefresh: _loadData,
+                      child: ListView.builder(
+                        padding: const EdgeInsets.symmetric(horizontal: 16),
+                        itemBuilder: (context, index) {
+                          // 添加列表项动画
+                          return AnimatedBuilder(
+                            animation: Listenable.merge([
+                              // 如果有滚动控制器，可以在这里添加
+                            ]),
+                            builder: (context, child) {
+                              return AnimatedOpacity(
+                                opacity: 1.0,
+                                duration: Duration(
+                                  milliseconds: 500 + (index * 100),
+                                ),
+                                child: AnimatedPadding(
+                                  duration: const Duration(milliseconds: 300),
+                                  padding: const EdgeInsets.only(
+                                    top: 4,
+                                    bottom: 4,
+                                  ),
+                                  child: buildAnniversaryCard(
+                                    anniversaries[index],
+                                  ),
+                                ),
+                              );
+                            },
+                          );
+                        },
+                        itemCount: anniversaries.length,
+                      ),
                     ),
-                  ),
           ),
         ],
       ),
@@ -647,23 +671,8 @@ class _HomePageState extends State<HomePage> {
                           (element) => element.id == item.id,
                         );
                       });
-                    } else {
-                      setState(() {
-                        anniversaries.removeWhere(
-                          (element) => element.title == item.title,
-                        );
-                      });
+                      await anniversaryDeleteById(int.parse(item.id as String));
                     }
-                    // 从列表中移除该项
-
-                    // 更新本地存储
-                    final prefs = await SharedPreferences.getInstance();
-                    await prefs.setString(
-                      'anniversaries',
-                      json.encode(
-                        anniversaries.map((a) => a.toJson()).toList(),
-                      ),
-                    );
                   }
                 },
                 backgroundColor: Colors.red.shade50,
@@ -859,7 +868,7 @@ class _HomePageState extends State<HomePage> {
     final daysLeft = item.date.difference(DateTime.now()).inDays;
     final isInFuture = daysLeft >= 0;
     final daysText = isInFuture ? "还有 ${daysLeft + 1} 天" : "已过去 ${-daysLeft} 天";
-
+    final color = (item.color ?? Colors.black);
     return InkWell(
       onTap: () {
         Navigator.push(
@@ -874,14 +883,14 @@ class _HomePageState extends State<HomePage> {
         decoration: BoxDecoration(
           // 只保留纯色渐变背景
           gradient: LinearGradient(
-            colors: [item.color.withOpacity(0.7), item.color],
+            colors: [color.withOpacity(0.7), color],
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
           ),
           borderRadius: BorderRadius.circular(16),
           boxShadow: [
             BoxShadow(
-              color: item.color.withOpacity(0.3),
+              color: color.withOpacity(0.3),
               blurRadius: 10,
               offset: const Offset(0, 4),
             ),
@@ -916,7 +925,10 @@ class _HomePageState extends State<HomePage> {
                         shape: BoxShape.circle,
                       ),
                       alignment: Alignment.center,
-                      child: Text(item.icon, style: const TextStyle(fontSize: 24)),
+                      child: Text(
+                        item.icon,
+                        style: const TextStyle(fontSize: 24),
+                      ),
                     ),
                     const SizedBox(width: 16),
                     Expanded(
@@ -943,8 +955,10 @@ class _HomePageState extends State<HomePage> {
                       ),
                     ),
                     Container(
-                      padding:
-                      const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 12,
+                        vertical: 6,
+                      ),
                       decoration: BoxDecoration(
                         color: Colors.white.withOpacity(0.3),
                         borderRadius: BorderRadius.circular(20),
@@ -960,7 +974,7 @@ class _HomePageState extends State<HomePage> {
                     ),
                   ],
                 ),
-                if (item.description.isNotEmpty) ...[
+                if (item.description!.isNotEmpty) ...[
                   const SizedBox(height: 16),
                   Container(
                     width: double.infinity,
@@ -984,6 +998,5 @@ class _HomePageState extends State<HomePage> {
         ),
       ),
     );
-
   }
 }

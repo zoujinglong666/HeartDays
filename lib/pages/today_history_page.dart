@@ -116,7 +116,7 @@ class _TodayHistoryPageState extends State<TodayHistoryPage> with SingleTickerPr
 
   Future<List<Map<String, dynamic>>> getHistoryToDay() async {
     final response = await Dio().get(
-      'https://jkapi.com/api/history',
+      'https://jkapi.com/apis/history',
       options: Options(
         responseType: ResponseType.plain,
         headers: {'Accept': 'text/plain'},

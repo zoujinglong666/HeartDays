@@ -6,7 +6,7 @@ import 'package:heart_days/pages/register_page.dart';
 import 'package:heart_days/provider/auth_provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../utils/app_theme_controller.dart';
-import 'package:heart_days/api/user.dart';
+import 'package:heart_days/apis/user.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 class LoginPage extends ConsumerStatefulWidget {

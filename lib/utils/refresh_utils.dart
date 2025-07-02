@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 
 /// 下拉刷新工具类
@@ -137,13 +139,14 @@ class LoadingRefreshIndicator extends StatefulWidget {
   final Widget child;
   final Widget? loadingWidget;
   final Duration loadingDuration;
-
+  final dynamic timeoutDuration;
   const LoadingRefreshIndicator({
     super.key,
     required this.onRefresh,
     required this.child,
     this.loadingWidget,
     this.loadingDuration = const Duration(milliseconds: 500),
+  this.timeoutDuration = const Duration(seconds: 10), // ✅ 新增参数
   });
 
   @override
@@ -159,7 +162,17 @@ class _LoadingRefreshIndicatorState extends State<LoadingRefreshIndicator> {
     });
 
     try {
-      await widget.onRefresh();
+      // ✅ 设置超时 30 秒（可配置）
+      await widget.onRefresh().timeout(
+        widget.timeoutDuration,
+        onTimeout: () => throw TimeoutException('刷新超时'),
+      );
+    } catch (e) {
+      debugPrint('刷新出错: $e');
+      // 可选：你可以在这里显示 SnackBar 或 Toast 提示用户
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(e is TimeoutException ? '刷新超时' : '刷新失败')),
+      );
     } finally {
       await Future.delayed(widget.loadingDuration);
       if (mounted) {
@@ -169,6 +182,7 @@ class _LoadingRefreshIndicatorState extends State<LoadingRefreshIndicator> {
       }
     }
   }
+
 
   @override
   Widget build(BuildContext context) {
