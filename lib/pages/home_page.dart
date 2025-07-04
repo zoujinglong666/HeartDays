@@ -89,6 +89,7 @@ class _HomePageState extends State<HomePage> {
     try {
       final prefs = await SharedPreferences.getInstance();
       final authDataString = prefs.getString('auth_data');
+      print(authDataString);
 
       if (authDataString == null) {
         print("⚠️ auth_data 不存在");
@@ -117,7 +118,6 @@ class _HomePageState extends State<HomePage> {
       setState(() => anniversaries = []);
     }
   }
-
 
   // 定义应用配色方案
   static const Color primaryColor = Color(0xFF5C6BC0); // 靛蓝色作为主色调
@@ -183,6 +183,7 @@ class _HomePageState extends State<HomePage> {
           receiveTimeout: Duration(seconds: 10),
         ),
       );
+      print(response);
 
       if (response.statusCode == 200 &&
           response.data is Map &&
@@ -198,8 +199,8 @@ class _HomePageState extends State<HomePage> {
 
   Future<void> _loadData() async {
     if (!mounted) return; // 避免 setState 报错
-    final oneSentenceStr = await getOneSentencePerDay();
     await loadAnniversariesFromLocal();
+    final oneSentenceStr = await getOneSentencePerDay();
     setState(() => {oneSentenceContent = oneSentenceStr});
   }
 

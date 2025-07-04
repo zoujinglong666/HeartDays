@@ -80,6 +80,7 @@ class AuthNotifier extends StateNotifier<AuthState> {
     state = AuthState(isInitialized: true);
     final prefs = await SharedPreferences.getInstance();
     await prefs.remove(_storageKey);
+    await prefs.remove('token');
   }
 //   final auth = ref.read(authProvider.notifier);
 //
