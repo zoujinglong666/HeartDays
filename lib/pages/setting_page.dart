@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:heart_days/provider/auth_provider.dart';
+import 'package:heart_days/utils/ToastUtils.dart';
 
 class SettingsPage extends ConsumerStatefulWidget {
   const SettingsPage({super.key});
@@ -227,8 +228,6 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
   }
 
   void _showToast(BuildContext context, String message) {
-    ScaffoldMessenger.of(
-      context,
-    ).showSnackBar(SnackBar(content: Text(message)));
+    ToastUtils.showToast(message);
   }
 }

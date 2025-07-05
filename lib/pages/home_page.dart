@@ -105,8 +105,8 @@ class _HomePageState extends State<HomePage> {
         return;
       }
 
-      final response = await fetchByUserId(authState.user!.id!);
-
+      final response = await fetchAnniversaryListByUserId(authState.user!.id!);
+      print("✅ 成功加载纪念日数量: ${response.data}");
       if (response.code == 200 && response.data != null) {
         print("✅ 成功加载纪念日数量: ${response.data!.length}");
         setState(() => anniversaries = response.data!);
@@ -201,9 +201,8 @@ class _HomePageState extends State<HomePage> {
     if (!mounted) return; // 避免 setState 报错
     await loadAnniversariesFromLocal();
     final oneSentenceStr = await getOneSentencePerDay();
-    setState(() => {oneSentenceContent = oneSentenceStr});
+    setState(() {oneSentenceContent = oneSentenceStr;});
   }
-
   @override
   Widget build(BuildContext context) {
     final container = Theme.of(context).colorScheme.primaryContainer;
@@ -583,7 +582,7 @@ class _HomePageState extends State<HomePage> {
 
     // 侧滑删除和编辑功能
     return Dismissible(
-      key: Key(item.date?.toString() ?? DateTime.now().toString()),
+      key: Key(item.date.toString() ?? DateTime.now().toString()),
       // 确保每个卡片有唯一的key
       direction: DismissDirection.endToStart,
       // 从右向左滑动

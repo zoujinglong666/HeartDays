@@ -341,44 +341,32 @@ class _AddAnniversaryPageState extends State<AddAnniversaryPage> {
                   return jsonMap;
                 }
 
-                // ✅ 判断是新增还是编辑
-                if (widget.anniversaryItem != null) {
-                  // 编辑：找到并替换原数据
+                Future<void> _handleSave() async {
+                  final isEdit = widget.anniversaryItem != null;
+                  final payload = {
+                    ...filterFields(newAnniversary.toJson()),
+                    if (isEdit) "id": widget.anniversaryItem!.id,
+                    'color': colorToHex(_selectedColor),
+                  };
+
                   try {
-                    await updateAnniversary({
-                      ...filterFields(newAnniversary.toJson()),
-                      "id": widget.anniversaryItem?.id,
-                      'color': colorToHex(_selectedColor),
-                    });
+                    if (isEdit) {
+                      await updateAnniversary(payload);
+                      ToastUtils.showToast("编辑成功");
+                    } else {
+                      await createAnniversary(payload);
+                      ToastUtils.showToast("保存成功");
+                    }
 
-                    ToastUtils.showToast("编辑成功");
                     Navigator.of(context).pop();
-
                     notifier.value = 'anniversary_added';
                   } catch (e, stack) {
-                    print("❌ 编辑出错: $e\n$stack");
-                    ToastUtils.showToast("编辑失败，请稍后重试");
-                  }
-                } else {
-                  try {
-                    await createAnniversary({
-                      ...filterFields(newAnniversary.toJson()),
-                      'color': colorToHex(_selectedColor),
-                    });
-
-                    ToastUtils.showToast("保存成功");
-
-                    // ✅ 页面跳转
-                    print("✅ 调用 Navigator.pop");
-                    Navigator.of(context).pop();
-
-                    // ✅ 通知外部刷新
-                    notifier.value = 'anniversary_added';
-                  } catch (e, stack) {
-                    print("❌ 保存出错: $e\n$stack");
-                    ToastUtils.showToast("保存失败，请稍后重试");
+                    print("❌ ${isEdit ? '编辑' : '保存'}出错: $e\n$stack");
+                    ToastUtils.showToast("${isEdit ? '编辑' : '保存'}失败，请稍后重试");
                   }
                 }
+
+                _handleSave();
               }
             },
             label: Text(

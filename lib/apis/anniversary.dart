@@ -1,7 +1,7 @@
 import 'dart:ui';
 
 import 'package:heart_days/http/http_manager.dart';
-import 'package:heart_days/http/model/base_response.dart';
+import 'package:heart_days/http/model/api_response.dart';
 
 class Anniversary {
   final String? id;
@@ -116,7 +116,7 @@ Future<Anniversary> fetchById(int id) async {
   return Anniversary.fromJson(res.data);
 }
 
-Future<BaseResponse<Anniversary>> createAnniversary(
+Future<ApiResponse<Anniversary>> createAnniversary(
   Map<String, dynamic> data,
 ) async {
   return await HttpManager.post<Anniversary>(
@@ -127,9 +127,9 @@ Future<BaseResponse<Anniversary>> createAnniversary(
 }
 
 /// 更新纪念日
-Future<BaseResponse<Anniversary>> updateAnniversary(
-    Map<String, dynamic> data,
-    ) async {
+Future<ApiResponse<Anniversary>> updateAnniversary(
+  Map<String, dynamic> data,
+) async {
   // 从 data 中提取 id，然后创建一个不包含 id 的新 Map
   final id = data['id'];
   final dataWithoutId = Map<String, dynamic>.from(data)..remove('id');
@@ -141,41 +141,30 @@ Future<BaseResponse<Anniversary>> updateAnniversary(
   );
 }
 
-
 /// 删除纪念日
-Future<BaseResponse> anniversaryDeleteById(int id) async {
+Future<ApiResponse> anniversaryDeleteById(int id) async {
   return await HttpManager.delete('/anniversaries/$id');
 }
 
 /// 获取指定用户的纪念日列表
-Future<BaseResponse<List<Anniversary>>> fetchByUserId(String userId) async {
+Future<ApiResponse<List<Anniversary>>> fetchAnniversaryListByUserId(String userId) async {
   try {
     final res = await HttpManager.get<List<Anniversary>>(
       "/anniversaries/user/$userId",
-      fromJson: (json) {
-        // 处理不同的数据格式
-        if (json is List) {
-          return json.map((e) => Anniversary.fromJson(e)).toList();
-        } else if (json is Map<String, dynamic> && json.containsKey('data')) {
-          // 如果后端返回的是包装在data字段中的列表
-          final data = json['data'];
-          if (data is List) {
-            return data.map((e) => Anniversary.fromJson(e)).toList();
-          }
-        }
-        return <Anniversary>[];
-      },
+      fromJson: (json) => (json as List)
+          .map((e) => Anniversary.fromJson(e as Map<String, dynamic>))
+          .toList(),
     );
     return res;
   } catch (e) {
-    // 返回一个空的响应
-    return BaseResponse<List<Anniversary>>(
+    return ApiResponse<List<Anniversary>>(
       code: 500,
       message: "获取数据失败: $e",
-      data: <Anniversary>[],
+      data: [],
     );
   }
 }
+
 
 /// 获取当前登录用户的纪念日
 Future<List<Anniversary>> fetchMyAnniversaries() async {

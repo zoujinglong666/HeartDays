@@ -1,4 +1,6 @@
 import 'package:dio/dio.dart';
+import 'package:heart_days/common/event_bus.dart';
+import 'package:heart_days/utils/ToastUtils.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 class TokenInterceptorHandler extends Interceptor {
@@ -11,9 +13,9 @@ class TokenInterceptorHandler extends Interceptor {
 
   @override
   void onRequest(
-      RequestOptions options,
-      RequestInterceptorHandler handler,
-      ) async {
+    RequestOptions options,
+    RequestInterceptorHandler handler,
+  ) async {
     try {
       final p = await prefs;
       final token = p.getString('token');
@@ -34,17 +36,22 @@ class TokenInterceptorHandler extends Interceptor {
 
   @override
   void onError(DioError err, ErrorInterceptorHandler handler) async {
-    if (err.response?.statusCode == 401) {
-      print('🔁 Token 过期，处理退出逻辑...');
+    const authWhitelist = [
+      '/login',
+      '/register',
+    ];
 
+    bool isWhitelisted(String path) {
+      return authWhitelist.any((api) => path.contains(api));
+    }
+    if (!isWhitelisted(err.requestOptions.path) && err.response?.statusCode == 401) {
+      print('🔁 Token 过期，处理退出逻辑...');
       final p = await prefs;
       await p.remove('token');
-
-      // 可选：通知 UI 侧跳转登录页（依你框架而定）
-      // 比如使用 navigatorKey 或 eventBus
-      // navigatorKey.currentState?.pushNamedAndRemoveUntil('/login', (_) => false);
+      await p.remove('auth_data');
+      ToastUtils.showToast("身份过期，请重新登录");
+      eventBus.fire(TokenExpiredEvent());
     }
-
     handler.next(err); // 继续传递错误
   }
 }

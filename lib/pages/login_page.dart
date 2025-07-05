@@ -1,5 +1,4 @@
 import 'dart:async';
-import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:heart_days/pages/register_page.dart';
@@ -197,7 +196,7 @@ class _LoginPageState extends ConsumerState<LoginPage>
           final token = response.data?.accessToken;
           if (user != null && token != null) {
             _showToast('登录成功');
-            await ref.read(authProvider.notifier).login(user as User, token);
+            await ref.read(authProvider.notifier).login(user, token);
 
             final prefs = await SharedPreferences.getInstance();
             await prefs.setString('token', token);
@@ -209,9 +208,6 @@ class _LoginPageState extends ConsumerState<LoginPage>
         }
       } catch (e) {
         print("网络或解析异常: $e");
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text('登录错误: $e')));
       } finally {
         if (mounted) {
           setState(() {
@@ -220,7 +216,6 @@ class _LoginPageState extends ConsumerState<LoginPage>
         }
       }
     }
-
     handleLogin();
   }
 

@@ -38,11 +38,7 @@ class _MinePageState extends ConsumerState<MinePage> {
         'color': Color(0xFF42A5F5),
       },
       {'icon': Icons.favorite, 'label': '心愿单', 'color': Color(0xFFEC407A)},
-      {
-        'icon': Icons.photo_library,
-        'label': '相册',
-        'color': Color(0xFF66BB6A)
-      },
+      {'icon': Icons.photo_library, 'label': '相册', 'color': Color(0xFF66BB6A)},
       {'icon': Icons.chat, 'label': '聊天', 'color': Color(0xFFFF7043)},
     ];
     // ❌ 错误示例（你目前的写法）：
@@ -189,7 +185,6 @@ class _MinePageState extends ConsumerState<MinePage> {
                     ),
                   ),
                   const SizedBox(height: 40),
-
                 ],
               ),
             ),
@@ -240,7 +235,7 @@ class _MinePageState extends ConsumerState<MinePage> {
             child: CircleAvatar(
               radius: 32,
               backgroundColor: Colors.white,
-              child: const Text('🐻‍', style: TextStyle(fontSize: 28)),
+              child: user!.avatar.isNotEmpty ? Image.network(user!.avatar) : null,
             ),
           ),
           const SizedBox(width: 8),
@@ -304,52 +299,48 @@ class _MinePageState extends ConsumerState<MinePage> {
     );
   }
 
-  Widget buildShortcutsGrid(List<Map<String, dynamic>> shortcuts,
-      BuildContext context,) {
+  Widget buildShortcutsGrid(
+    List<Map<String, dynamic>> shortcuts,
+    BuildContext context,
+  ) {
     return Wrap(
       spacing: 8,
       runSpacing: 8,
       children:
-      shortcuts.map((item) {
-        return SizedBox(
-          width:
-          (MediaQuery
-              .of(context)
-              .size
-              .width - 16 * 2 - 8 * 3) / 4 > 0
-              ? (MediaQuery
-              .of(context)
-              .size
-              .width - 16 * 2 - 8 * 3) / 4
-              : 0,
-          height: 80,
-          child: Material(
-            color: Colors.transparent,
-            child: InkWell(
-              onTap: () => print('跳转到 ${item['label']}'),
-              borderRadius: BorderRadius.circular(16),
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Icon(
-                    item['icon'] as IconData,
-                    color: item['color'] as Color,
-                    size: 24,
+          shortcuts.map((item) {
+            return SizedBox(
+              width:
+                  (MediaQuery.of(context).size.width - 16 * 2 - 8 * 3) / 4 > 0
+                      ? (MediaQuery.of(context).size.width - 16 * 2 - 8 * 3) / 4
+                      : 0,
+              height: 80,
+              child: Material(
+                color: Colors.transparent,
+                child: InkWell(
+                  onTap: () => print('跳转到 ${item['label']}'),
+                  borderRadius: BorderRadius.circular(16),
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Icon(
+                        item['icon'] as IconData,
+                        color: item['color'] as Color,
+                        size: 24,
+                      ),
+                      const SizedBox(height: 8),
+                      Text(
+                        item['label'] as String,
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: Colors.grey.shade800,
+                        ),
+                      ),
+                    ],
                   ),
-                  const SizedBox(height: 8),
-                  Text(
-                    item['label'] as String,
-                    style: TextStyle(
-                      fontSize: 12,
-                      color: Colors.grey.shade800,
-                    ),
-                  ),
-                ],
+                ),
               ),
-            ),
-          ),
-        );
-      }).toList(),
+            );
+          }).toList(),
     );
   }
 

@@ -1,19 +1,19 @@
-class BaseResponse<T> {
+class ApiResponse<T> {
   final int code;
   final String message;
   final T? data;
 
-  BaseResponse({
+  ApiResponse({
     required this.code,
     required this.message,
     this.data,
   });
 
-  factory BaseResponse.fromJson(
+  factory ApiResponse.fromJson(
       Map<String, dynamic> json,
       Function(dynamic)? fromJson,
       ) {
-    return BaseResponse<T>(
+    return ApiResponse<T>(
       code: json['code'] ?? -1,
       message: json['message'] ?? '',
       data: fromJson != null && json['data'] != null
@@ -21,7 +21,18 @@ class BaseResponse<T> {
           : null,
     );
   }
+
+
+
+
+  @override
+  String toString() {
+    return 'ApiResponse(code: $code, message: $message, data: $data)';
+  }
 }
+
+
+
 
 
 

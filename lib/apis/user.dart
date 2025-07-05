@@ -1,5 +1,5 @@
 import 'package:heart_days/http/http_manager.dart';
-import 'package:heart_days/http/model/base_response.dart';
+import 'package:heart_days/http/model/api_response.dart';
 
 class UserRegisterDto {
   final String userAccount;
@@ -98,27 +98,32 @@ class LoginResponse {
 }
 
 class User {
-  final String id; // ✅ 改为 String 类型
+  final String id;
   final String name;
   final String userAccount;
   final String email;
+  final String avatar;
   final List<String> roles;
 
   User({
-    required this.id,
-    required this.name,
-    required this.userAccount,
-    required this.email,
-    required this.roles,
+    this.id = '',
+    this.name = '无名',
+    this.userAccount = '',
+    this.email = '',
+    this.avatar = '',
+    this.roles = const ['user'],
   });
 
   factory User.fromJson(Map<String, dynamic> json) {
     return User(
-      id: json['id'],
-      name: json['name'],
-      userAccount: json['userAccount'],
-      email: json['email'],
-      roles: List<String>.from(json['roles']),
+      id: json['id']?.toString() ?? '',
+      name: json['name'] ?? '无名',
+      userAccount: json['userAccount'] ?? '',
+      email: json['email'] ?? '',
+      avatar: json['avatar'] ?? '',
+      roles: (json['roles'] is List)
+          ? List<String>.from(json['roles'])
+          : ['user'],
     );
   }
 
@@ -128,19 +133,21 @@ class User {
       'name': name,
       'userAccount': userAccount,
       'email': email,
+      'avatar': avatar,
       'roles': roles,
     };
   }
 }
 
-Future<BaseResponse<UserDto>> userRegister(Map<String, dynamic> data) async {
+
+Future<ApiResponse<UserDto>> userRegister(Map<String, dynamic> data) async {
   return await HttpManager.post<UserDto>(
     "/auth/register",
     data: data,
     fromJson: (json) => UserDto.fromJson(json),
   );
 }
-Future<BaseResponse<LoginResponse>> userLogin(Map<String, dynamic> data) async {
+Future<ApiResponse<LoginResponse>> userLogin(Map<String, dynamic> data) async {
   return await HttpManager.post<LoginResponse>( // ✅ 改成 LoginResponse
     "/auth/login",
     data: data,
@@ -149,7 +156,7 @@ Future<BaseResponse<LoginResponse>> userLogin(Map<String, dynamic> data) async {
 }
 
 
-Future<BaseResponse<User>> updateUser(Map<String, dynamic> data) async {
+Future<ApiResponse<User>> updateUser(Map<String, dynamic> data) async {
   return await HttpManager.post<User>( // ✅ 改成 LoginResponse
     "/users/update",
     data: data,
