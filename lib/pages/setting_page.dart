@@ -28,25 +28,6 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
         padding: const EdgeInsets.all(16),
         children: [
           _buildSectionCard([
-            _buildTile(
-              icon: Icons.person_outline,
-              label: '修改昵称',
-              onTap: () {
-                _showToast(context, '跳转到修改昵称页面');
-              },
-            ),
-            _buildTile(
-              icon: Icons.image_outlined,
-              label: '修改头像',
-              onTap: () {
-                _showToast(context, '跳转到头像设置页面');
-              },
-            ),
-          ]),
-
-          const SizedBox(height: 20),
-
-          _buildSectionCard([
             _buildSwitchTile(
               icon: Icons.notifications_active_outlined,
               label: '开启纪念日提醒',

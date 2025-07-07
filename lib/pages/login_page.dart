@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:heart_days/pages/register_page.dart';
 import 'package:heart_days/provider/auth_provider.dart';
+import 'package:heart_days/utils/ToastUtils.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../utils/app_theme_controller.dart';
 import 'package:heart_days/apis/user.dart';
@@ -29,10 +30,9 @@ class _LoginPageState extends ConsumerState<LoginPage>
   final ScrollController _scrollController = ScrollController();
 
   bool _isPasswordMode = false;
+  bool _showConfirmPassword = false;
   bool _isLoading = false;
   bool _isAgreed = false;
-  int _countdown = 0;
-  int _currentTabIndex = 0; // 0: 手机登录, 1: 账号登录
   late AnimationController _animationController;
   late AnimationController _tabAnimationController;
   late AnimationController _contentAnimationController;
@@ -88,6 +88,12 @@ class _LoginPageState extends ConsumerState<LoginPage>
     _animationController.forward();
   }
 
+  void _toggleShowConfirmPassword() {
+    setState(() {
+      _showConfirmPassword = !_showConfirmPassword;
+    });
+  }
+
   @override
   void dispose() {
     _phoneController.dispose();
@@ -105,39 +111,11 @@ class _LoginPageState extends ConsumerState<LoginPage>
     super.dispose();
   }
 
-  void _startCountdown() {
-    setState(() {
-      _countdown = 60;
-    });
-
-    Timer.periodic(const Duration(seconds: 1), (timer) {
-      if (_countdown > 0) {
-        setState(() {
-          _countdown--;
-        });
-      } else {
-        timer.cancel();
-      }
-    });
-  }
-
   void _toggleLoginMode() {
     setState(() {
       _isPasswordMode = !_isPasswordMode;
       _codeController.clear();
     });
-  }
-
-  void _toggleTab(int index) {
-    if (_currentTabIndex != index) {
-      setState(() {
-        _currentTabIndex = index;
-      });
-      _tabAnimationController.reset();
-      _tabAnimationController.forward();
-      _contentAnimationController.reset();
-      _contentAnimationController.forward();
-    }
   }
 
   void _toggleAgreement() {
@@ -152,39 +130,21 @@ class _LoginPageState extends ConsumerState<LoginPage>
       return;
     }
 
-    if (_currentTabIndex == 0) {
-      // 手机登录
-      if (_phoneController.text.isEmpty) {
-        _showToast('请输入手机号');
-        return;
-      }
-
-      if (_codeController.text.isEmpty) {
-        _showToast(_isPasswordMode ? '请输入密码' : '请输入验证码');
-        return;
-      }
-    } else {
-      // 账号登录
-      if (_usernameController.text.isEmpty) {
-        _showToast('请输入用户名');
-        return;
-      }
-
-      if (_passwordController.text.isEmpty) {
-        _showToast('请输入密码');
-        return;
-      }
+    // 账号登录
+    if (_usernameController.text.isEmpty) {
+      _showToast('请输入用户名');
+      return;
     }
 
-    setState(() {
-      _isLoading = true;
-    });
+    if (_passwordController.text.isEmpty) {
+      _showToast('请输入密码');
+      return;
+    }
 
     void handleLogin() async {
       setState(() {
         _isLoading = true;
       });
-
       try {
         final response = await userLogin({
           "userAccount": _usernameController.text,
@@ -216,18 +176,12 @@ class _LoginPageState extends ConsumerState<LoginPage>
         }
       }
     }
+
     handleLogin();
   }
 
   void _showToast(String message) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(message),
-        backgroundColor: primaryColor,
-        behavior: SnackBarBehavior.floating,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-      ),
-    );
+    ToastUtils.showToast(message);
   }
 
   @override
@@ -255,8 +209,7 @@ class _LoginPageState extends ConsumerState<LoginPage>
                         _buildHeader(),
                         const SizedBox(height: 24), // 减少间距
                         // Tab切换
-                        _buildTabBar(),
-
+                        // _buildTabBar(),
                         const SizedBox(height: 16), // 减少间距
                         // 登录卡片
                         _buildLoginCard(),
@@ -330,164 +283,10 @@ class _LoginPageState extends ConsumerState<LoginPage>
     );
   }
 
-  Widget _buildTabBar() {
-    return Container(
-      padding: const EdgeInsets.all(4),
-      decoration: BoxDecoration(
-        color: cardColor,
-        borderRadius: BorderRadius.circular(16),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.05),
-            blurRadius: 10,
-            offset: const Offset(0, 4),
-          ),
-        ],
-      ),
-      child: Row(
-        children: [
-          Expanded(
-            child: GestureDetector(
-              onTap: () => _toggleTab(0),
-              child: AnimatedContainer(
-                duration: const Duration(milliseconds: 300),
-                // 减少动画时长
-                curve: Curves.easeOut,
-                // 使用更温和的曲线
-                padding: const EdgeInsets.symmetric(vertical: 12),
-                decoration: BoxDecoration(
-                  gradient:
-                      _currentTabIndex == 0
-                          ? const LinearGradient(
-                            colors: [primaryColor, secondaryColor],
-                            begin: Alignment.centerLeft,
-                            end: Alignment.centerRight,
-                          )
-                          : null,
-                  color: _currentTabIndex == 0 ? null : Colors.transparent,
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: AnimatedDefaultTextStyle(
-                  duration: const Duration(milliseconds: 200), // 减少文字动画时长
-                  style: TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.w600,
-                    color: _currentTabIndex == 0 ? Colors.white : textSecondary,
-                  ),
-                  child: const Text('手机登录', textAlign: TextAlign.center),
-                ),
-              ),
-            ),
-          ),
-          Expanded(
-            child: GestureDetector(
-              onTap: () => _toggleTab(1),
-              child: AnimatedContainer(
-                duration: const Duration(milliseconds: 300),
-                // 减少动画时长
-                curve: Curves.easeOut,
-                // 使用更温和的曲线
-                padding: const EdgeInsets.symmetric(vertical: 12),
-                decoration: BoxDecoration(
-                  gradient:
-                      _currentTabIndex == 1
-                          ? const LinearGradient(
-                            colors: [primaryColor, secondaryColor],
-                            begin: Alignment.centerLeft,
-                            end: Alignment.centerRight,
-                          )
-                          : null,
-                  color: _currentTabIndex == 1 ? null : Colors.transparent,
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: AnimatedDefaultTextStyle(
-                  duration: const Duration(milliseconds: 200), // 减少文字动画时长
-                  style: TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.w600,
-                    color: _currentTabIndex == 1 ? Colors.white : textSecondary,
-                  ),
-                  child: const Text('账号登录', textAlign: TextAlign.center),
-                ),
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
   Widget _buildLoginCard() {
     return AnimatedSwitcher(
       duration: const Duration(milliseconds: 300), // 更短的动画时长
-      transitionBuilder: (Widget child, Animation<double> animation) {
-        // 只使用淡入淡出效果，更简单温和
-        return FadeTransition(opacity: animation, child: child);
-      },
-      child:
-          _currentTabIndex == 0
-              ? _buildPhoneLoginCard()
-              : _buildAccountLoginCard(),
-    );
-  }
-
-  Widget _buildPhoneLoginCard() {
-    return Container(
-      key: const ValueKey('phone'),
-      width: double.infinity,
-      padding: const EdgeInsets.all(20),
-      // 稍微增加内边距
-      decoration: BoxDecoration(
-        color: cardColor,
-        borderRadius: BorderRadius.circular(20), // 稍微减小圆角
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.05),
-            blurRadius: 16, // 减少阴影模糊
-            offset: const Offset(0, 6), // 减少阴影偏移
-          ),
-        ],
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          // 标题
-          const Text(
-            '手机号登录',
-            style: TextStyle(
-              fontSize: 22, // 稍微减小字体
-              fontWeight: FontWeight.w600,
-              color: textPrimary,
-            ),
-          ),
-
-          const SizedBox(height: 6), // 减少间距
-
-          Text(
-            '使用手机号快速登录',
-            style: TextStyle(
-              fontSize: 13, // 稍微减小字体
-              color: textSecondary,
-            ),
-          ),
-
-          const SizedBox(height: 24), // 减少间距
-          // 手机号输入框
-          _buildPhoneInput(),
-
-          const SizedBox(height: 16), // 减少间距
-          // 验证码/密码输入框
-          _buildCodeInput(),
-
-          const SizedBox(height: 24), // 减少间距
-          // 登录按钮
-          _buildLoginButton(),
-
-          const SizedBox(height: 16), // 减少间距
-          // 切换登录方式
-          _buildToggleMode(),
-        ],
-      ),
+      child: _buildAccountLoginCard(),
     );
   }
 
@@ -551,113 +350,6 @@ class _LoginPageState extends ConsumerState<LoginPage>
     );
   }
 
-  Widget _buildPhoneInput() {
-    return Container(
-      decoration: BoxDecoration(
-        color: backgroundColor,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(
-          color: _phoneFocusNode.hasFocus ? primaryColor : Colors.transparent,
-          width: 2,
-        ),
-      ),
-      child: TextField(
-        controller: _phoneController,
-        focusNode: _phoneFocusNode,
-        keyboardType: TextInputType.phone,
-        textInputAction: TextInputAction.next,
-        inputFormatters: [
-          FilteringTextInputFormatter.digitsOnly,
-          LengthLimitingTextInputFormatter(11),
-        ],
-        style: const TextStyle(fontSize: 16, color: textPrimary),
-        decoration: const InputDecoration(
-          hintText: '请输入手机号',
-          hintStyle: TextStyle(color: textLight),
-          prefixIcon: Icon(Icons.phone_android, color: textSecondary),
-          border: InputBorder.none,
-          contentPadding: EdgeInsets.symmetric(horizontal: 20, vertical: 16),
-        ),
-        onSubmitted: (value) {
-          if (_isPasswordMode) {
-            _passwordFocusNode.requestFocus();
-          } else {
-            _codeFocusNode.requestFocus();
-          }
-        },
-      ),
-    );
-  }
-
-  Widget _buildCodeInput() {
-    return Container(
-      decoration: BoxDecoration(
-        color: backgroundColor,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(
-          color: _codeFocusNode.hasFocus ? primaryColor : Colors.transparent,
-          width: 2,
-        ),
-      ),
-      child: Row(
-        children: [
-          Expanded(
-            child: TextField(
-              controller: _codeController,
-              focusNode: _codeFocusNode,
-              obscureText: _isPasswordMode,
-              keyboardType:
-                  _isPasswordMode ? TextInputType.text : TextInputType.number,
-              textInputAction: TextInputAction.done,
-              inputFormatters:
-                  _isPasswordMode
-                      ? null
-                      : [
-                        FilteringTextInputFormatter.digitsOnly,
-                        LengthLimitingTextInputFormatter(6),
-                      ],
-              style: const TextStyle(fontSize: 16, color: textPrimary),
-              decoration: InputDecoration(
-                hintText: _isPasswordMode ? '请输入密码' : '请输入验证码',
-                hintStyle: const TextStyle(color: textLight),
-                prefixIcon: Icon(
-                  _isPasswordMode ? Icons.lock : Icons.verified_user,
-                  color: textSecondary,
-                ),
-                border: InputBorder.none,
-                contentPadding: const EdgeInsets.symmetric(
-                  horizontal: 20,
-                  vertical: 16,
-                ),
-              ),
-              onSubmitted: (value) {
-                _codeFocusNode.unfocus();
-              },
-            ),
-          ),
-
-          if (!_isPasswordMode) ...[
-            Container(height: 40, width: 1, color: textLight.withOpacity(0.3)),
-            GestureDetector(
-              onTap: _countdown > 0 ? null : _startCountdown,
-              child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 16),
-                child: Text(
-                  _countdown > 0 ? '${_countdown}s' : '获取验证码',
-                  style: TextStyle(
-                    fontSize: 14,
-                    color: _countdown > 0 ? textLight : primaryColor,
-                    fontWeight: FontWeight.w500,
-                  ),
-                ),
-              ),
-            ),
-          ],
-        ],
-      ),
-    );
-  }
-
   Widget _buildUsernameInput() {
     return Container(
       decoration: BoxDecoration(
@@ -703,16 +395,26 @@ class _LoginPageState extends ConsumerState<LoginPage>
       child: TextField(
         controller: _passwordController,
         focusNode: _passwordFocusNode,
-        obscureText: true,
+        obscureText: !_showConfirmPassword,
         keyboardType: TextInputType.text,
         textInputAction: TextInputAction.done,
         style: const TextStyle(fontSize: 16, color: textPrimary),
-        decoration: const InputDecoration(
+        decoration: InputDecoration(
           hintText: '请输入密码',
-          hintStyle: TextStyle(color: textLight),
-          prefixIcon: Icon(Icons.lock, color: textSecondary),
+          hintStyle: const TextStyle(color: textLight),
+          prefixIcon: const Icon(Icons.lock, color: textSecondary),
+          suffixIcon: IconButton(
+            icon: Icon(
+              _showConfirmPassword ? Icons.visibility : Icons.visibility_off,
+              color: textSecondary,
+            ),
+            onPressed: _toggleShowConfirmPassword,
+          ),
           border: InputBorder.none,
-          contentPadding: EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+          contentPadding: const EdgeInsets.symmetric(
+            horizontal: 20,
+            vertical: 16,
+          ),
         ),
         onSubmitted: (value) {
           _passwordFocusNode.unfocus();
@@ -771,22 +473,6 @@ class _LoginPageState extends ConsumerState<LoginPage>
     );
   }
 
-  Widget _buildToggleMode() {
-    return Center(
-      child: GestureDetector(
-        onTap: _toggleLoginMode,
-        child: Text(
-          _isPasswordMode ? '使用验证码登录' : '使用密码登录',
-          style: const TextStyle(
-            fontSize: 14,
-            color: primaryColor,
-            fontWeight: FontWeight.w500,
-          ),
-        ),
-      ),
-    );
-  }
-
   Widget _buildForgotPassword() {
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -795,7 +481,7 @@ class _LoginPageState extends ConsumerState<LoginPage>
           onPressed: () {
             // 忘记密码逻辑
           },
-          child: Text('忘记密码？'),
+          child: Text('忘记密码？', style: TextStyle(color: primaryColor)),
         ),
         TextButton(
           onPressed: () {
@@ -803,53 +489,72 @@ class _LoginPageState extends ConsumerState<LoginPage>
               MaterialPageRoute(builder: (context) => const RegisterPage()),
             );
           },
-          child: Text('注册账号'),
+          child: Text('注册账号', style: TextStyle(color: primaryColor)),
         ),
       ],
     );
   }
 
   Widget _buildAgreementSection() {
-    return Center(
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
-        child: Row(
+    return Column(
+      children: [
+        Row(
+          mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            SizedBox(
-              width: 24,
-              height: 24,
-              child: Checkbox(
-                value: _isAgreed,
-                onChanged: (val) => _toggleAgreement(),
-                activeColor: primaryColor,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(4),
+            GestureDetector(
+              onTap: _toggleAgreement,
+              child: Container(
+                width: 16, // 稍微减小复选框尺寸
+                height: 16,
+                decoration: BoxDecoration(
+                  color: _isAgreed ? primaryColor : Colors.transparent,
+                  border: Border.all(
+                    color: _isAgreed ? primaryColor : textLight,
+                    width: 1,
+                  ),
+                  borderRadius: BorderRadius.circular(3), // 稍微减小圆角
                 ),
+                child:
+                    _isAgreed
+                        ? const Icon(
+                          Icons.check,
+                          size: 14, // 稍微减小勾选图标尺寸
+                          color: Colors.white,
+                        )
+                        : null,
               ),
             ),
-            const SizedBox(width: 8),
-            Expanded(
-              child: RichText(
-                text: TextSpan(
-                  style: TextStyle(fontSize: 14, color: textSecondary),
-                  children: [
-                    const TextSpan(text: '我已阅读并同意'),
-                    TextSpan(
-                      text: '《用户协议》',
-                      style: TextStyle(color: primaryColor),
-                    ),
-                    const TextSpan(text: '和'),
-                    TextSpan(
-                      text: '《隐私政策》',
-                      style: TextStyle(color: primaryColor),
-                    ),
-                  ],
+            const SizedBox(width: 4), // 减少间距
+            RichText(
+              text: TextSpan(
+                style: const TextStyle(
+                  fontSize: 14, // 稍微减小字体
+                  color: textSecondary,
                 ),
+                children: [
+                  const TextSpan(text: '我已阅读并同意'),
+                  TextSpan(
+                    text: '《用户协议》',
+                    style: const TextStyle(
+                      color: primaryColor,
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                  const TextSpan(text: '和'),
+                  TextSpan(
+                    text: '《隐私政策》',
+                    style: const TextStyle(
+                      color: primaryColor,
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                ],
               ),
             ),
           ],
         ),
-      ),
+        const SizedBox(height: 16), // 减少两行文字之间的间距
+      ],
     );
   }
 }
