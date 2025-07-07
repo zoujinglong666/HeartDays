@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:heart_days/apis/plan.dart';
 import 'package:heart_days/pages/todo_page.dart';
 import 'package:heart_days/provider/auth_provider.dart';
+import 'package:heart_days/utils/ToastUtils.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:table_calendar/table_calendar.dart';
 import 'plan_detail_page.dart';
@@ -176,16 +177,7 @@ class _PlanPageState extends State<PlanPage> {
       if (result != null && result is Map<String, dynamic>) {
         if (result['action'] == 'delete') {
           _deletePlan(result['planId']);
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text('已删除"${plan.title}"'),
-              backgroundColor: const Color(0xFF34C759),
-              behavior: SnackBarBehavior.floating,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(12),
-              ),
-            ),
-          );
+          ToastUtils.showToast('已删除"${plan.title}"');
         }
       }
     });
@@ -204,10 +196,11 @@ class _PlanPageState extends State<PlanPage> {
   }
 
   // 删除计划
-  void _deletePlan(int planId) {
+  Future<void> _deletePlan(int planId) async {
     setState(() {
       _plans.removeWhere((plan) => plan.id == planId);
     });
+    await planDeleteById(planId);
   }
 
   // 获取分类计划数量
@@ -245,13 +238,12 @@ class _PlanPageState extends State<PlanPage> {
                 children: [
                   const SizedBox(height: 16),
                   _buildHeader(),
-                  MaterialButton(onPressed: _loadData, child: Text('text')),
                   const SizedBox(height: 12),
                   _buildGlassCard(child: _buildCalendar()),
                   const SizedBox(height: 16),
                   _buildGlassCard(child: _buildQuickTools()),
                   const SizedBox(height: 16),
-                  _buildGlassCard(child: _buildPlanCategories()),
+                  // _buildGlassCard(child: _buildPlanCategories()),
                   const SizedBox(height: 16),
                   _buildGlassCard(child: _buildPlanList()),
                 ],
@@ -469,101 +461,101 @@ class _PlanPageState extends State<PlanPage> {
     );
   }
 
-  Widget _buildPlanCategories() {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        const Text(
-          '计划分类',
-          style: TextStyle(
-            fontSize: 18,
-            fontWeight: FontWeight.bold,
-            color: Colors.black87,
-          ),
-        ),
-        const SizedBox(height: 8),
-        GridView.builder(
-          physics: const NeverScrollableScrollPhysics(),
-          shrinkWrap: true,
-          gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-            crossAxisCount: 2,
-            crossAxisSpacing: 12,
-            mainAxisSpacing: 12,
-          ),
-          itemCount: _planCategories.length,
-          itemBuilder: (context, index) {
-            final category = _planCategories[index];
-            final categoryCount = _getCategoryCount(category['label']);
-
-            return Container(
-              decoration: BoxDecoration(
-                color: category['bgColor'],
-                borderRadius: BorderRadius.circular(16),
-                border: Border.all(
-                  color: category['color'].withOpacity(0.2),
-                  width: 1,
-                ),
-                boxShadow: [
-                  BoxShadow(
-                    color: category['color'].withOpacity(0.1),
-                    blurRadius: 8,
-                    offset: const Offset(0, 2),
-                  ),
-                ],
-              ),
-              child: Material(
-                color: Colors.transparent,
-                child: InkWell(
-                  onTap: () {
-                    // 可以添加分类筛选功能
-                  },
-                  borderRadius: BorderRadius.circular(16),
-                  child: Padding(
-                    padding: const EdgeInsets.all(16),
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Container(
-                          padding: const EdgeInsets.all(8),
-                          decoration: BoxDecoration(
-                            color: category['color'].withOpacity(0.1),
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                          child: Icon(
-                            category['icon'],
-                            color: category['color'],
-                            size: 24,
-                          ),
-                        ),
-                        const SizedBox(height: 8),
-                        Text(
-                          category['label'],
-                          style: TextStyle(
-                            fontSize: 14,
-                            fontWeight: FontWeight.w600,
-                            color: category['color'],
-                          ),
-                        ),
-                        const SizedBox(height: 4),
-                        Text(
-                          '$categoryCount 个计划',
-                          style: TextStyle(
-                            fontSize: 12,
-                            color: category['color'].withOpacity(0.7),
-                            fontWeight: FontWeight.w500,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-              ),
-            );
-          },
-        ),
-      ],
-    );
-  }
+  // Widget _buildPlanCategories() {
+  //   return Column(
+  //     crossAxisAlignment: CrossAxisAlignment.start,
+  //     children: [
+  //       const Text(
+  //         '计划分类',
+  //         style: TextStyle(
+  //           fontSize: 18,
+  //           fontWeight: FontWeight.bold,
+  //           color: Colors.black87,
+  //         ),
+  //       ),
+  //       const SizedBox(height: 8),
+  //       GridView.builder(
+  //         physics: const NeverScrollableScrollPhysics(),
+  //         shrinkWrap: true,
+  //         gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+  //           crossAxisCount: 2,
+  //           crossAxisSpacing: 12,
+  //           mainAxisSpacing: 12,
+  //         ),
+  //         itemCount: _planCategories.length,
+  //         itemBuilder: (context, index) {
+  //           final category = _planCategories[index];
+  //           final categoryCount = _getCategoryCount(category['label']);
+  //
+  //           return Container(
+  //             decoration: BoxDecoration(
+  //               color: category['bgColor'],
+  //               borderRadius: BorderRadius.circular(16),
+  //               border: Border.all(
+  //                 color: category['color'].withOpacity(0.2),
+  //                 width: 1,
+  //               ),
+  //               boxShadow: [
+  //                 BoxShadow(
+  //                   color: category['color'].withOpacity(0.1),
+  //                   blurRadius: 8,
+  //                   offset: const Offset(0, 2),
+  //                 ),
+  //               ],
+  //             ),
+  //             child: Material(
+  //               color: Colors.transparent,
+  //               child: InkWell(
+  //                 onTap: () {
+  //                   // 可以添加分类筛选功能
+  //                 },
+  //                 borderRadius: BorderRadius.circular(16),
+  //                 child: Padding(
+  //                   padding: const EdgeInsets.all(16),
+  //                   child: Column(
+  //                     mainAxisAlignment: MainAxisAlignment.center,
+  //                     children: [
+  //                       Container(
+  //                         padding: const EdgeInsets.all(8),
+  //                         decoration: BoxDecoration(
+  //                           color: category['color'].withOpacity(0.1),
+  //                           borderRadius: BorderRadius.circular(12),
+  //                         ),
+  //                         child: Icon(
+  //                           category['icon'],
+  //                           color: category['color'],
+  //                           size: 24,
+  //                         ),
+  //                       ),
+  //                       const SizedBox(height: 8),
+  //                       Text(
+  //                         category['label'],
+  //                         style: TextStyle(
+  //                           fontSize: 14,
+  //                           fontWeight: FontWeight.w600,
+  //                           color: category['color'],
+  //                         ),
+  //                       ),
+  //                       const SizedBox(height: 4),
+  //                       Text(
+  //                         '$categoryCount 个计划',
+  //                         style: TextStyle(
+  //                           fontSize: 12,
+  //                           color: category['color'].withOpacity(0.7),
+  //                           fontWeight: FontWeight.w500,
+  //                         ),
+  //                       ),
+  //                     ],
+  //                   ),
+  //                 ),
+  //               ),
+  //             ),
+  //           );
+  //         },
+  //       ),
+  //     ],
+  //   );
+  // }
 
   Widget _buildPlanList() {
     return Column(
@@ -694,16 +686,7 @@ class _PlanPageState extends State<PlanPage> {
                   },
                   onDismissed: (direction) {
                     _deletePlan(plan.id);
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(
-                        content: Text('已删除"${plan.title}"'),
-                        backgroundColor: const Color(0xFF34C759),
-                        behavior: SnackBarBehavior.floating,
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                      ),
-                    );
+                    ToastUtils.showToast('已删除"${plan.title}"');
                   },
                   child: Container(
                     margin: const EdgeInsets.only(bottom: 12),

@@ -32,7 +32,11 @@ class _PlanEditPageState extends State<PlanEditPage> {
     },
     {'name': '生活', 'icon': Icons.favorite, 'color': const Color(0xFFFF2D92)},
     {'name': '娱乐', 'icon': Icons.games, 'color': const Color(0xFFFF9500)},
-    {'name': '购物', 'icon': Icons.shopping_cart, 'color': const Color(0xFF5856D6)},
+    {
+      'name': '购物',
+      'icon': Icons.shopping_cart,
+      'color': const Color(0xFF5856D6),
+    },
     {'name': '旅行', 'icon': Icons.flight, 'color': const Color(0xFF32D74B)},
     {'name': '其他', 'icon': Icons.more_horiz, 'color': const Color(0xFF8E8E93)},
   ];
@@ -102,7 +106,10 @@ class _PlanEditPageState extends State<PlanEditPage> {
     }
   }
 
-  Future<void> _selectDateTime(BuildContext context, {required bool isReminder}) async {
+  Future<void> _selectDateTime(
+    BuildContext context, {
+    required bool isReminder,
+  }) async {
     final DateTime? pickedDate = await showDatePicker(
       context: context,
       initialDate: DateTime.now(),
@@ -172,22 +179,51 @@ class _PlanEditPageState extends State<PlanEditPage> {
     });
   }
 
-  void _savePlan() {
-    if (_formKey.currentState!.validate()) {
-      final planData = {
-        'title': _titleController.text.trim(),
-        'description': _descriptionController.text.trim(),
-        'category': _selectedCategory,
-        'priority': _selectedPriority,
-        'status': _selectedStatus,
-        'date': _selectedDate,
-        'reminder_at': _selectedReminderTime,
-        'completed_at': _selectedCompletedTime,
-        'remarks': _remarksController.text.trim(),
-      };
-      Navigator.pop(context, planData);
+  Future<void> _savePlan() async {
+    if (!_formKey.currentState!.validate()) return;
+
+    final planData = {
+      'title': _titleController.text.trim(),
+      'description': _descriptionController.text.trim(),
+      'category': _selectedCategory,
+      'priority': _selectedPriority,
+      'status': _selectedStatus,
+      'date': _selectedDate?.toIso8601String(),
+      'reminder_at': _selectedReminderTime?.toIso8601String(),
+      'completed_at': _selectedCompletedTime?.toIso8601String(),
+      'remarks': _remarksController.text.trim(),
+    };
+
+    try {
+      dynamic res;
+      if (widget.plan != null) {
+        // 更新计划，带上 id 和 user_id
+        res = await updatePlan({
+          ...planData,
+          'id': widget.plan!.id,
+          'user_id': widget.plan!.userId,
+        });
+      } else {
+        // 新增计划
+        res = await addPlan(planData);
+      }
+
+      if (res != null) {
+        // 成功后关闭页面并返回服务器响应的数据
+        Navigator.pop(context, res);
+      } else {
+        // 返回为空，可视需要做处理
+        // 例如弹toast提示失败
+      }
+    } catch (e) {
+      // 捕获异常，给用户友好提示
+      print('保存计划失败: $e');
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('保存失败，请稍后重试')),
+      );
     }
   }
+
 
   @override
   Widget build(BuildContext context) {
@@ -459,13 +495,13 @@ class _PlanEditPageState extends State<PlanEditPage> {
                   child: Container(
                     decoration: BoxDecoration(
                       color:
-                      isSelected
-                          ? category['color'].withOpacity(0.1)
-                          : const Color(0xFFF2F2F7),
+                          isSelected
+                              ? category['color'].withOpacity(0.1)
+                              : const Color(0xFFF2F2F7),
                       borderRadius: BorderRadius.circular(12),
                       border: Border.all(
                         color:
-                        isSelected ? category['color'] : Colors.transparent,
+                            isSelected ? category['color'] : Colors.transparent,
                         width: 2,
                       ),
                     ),
@@ -475,9 +511,9 @@ class _PlanEditPageState extends State<PlanEditPage> {
                         Icon(
                           category['icon'],
                           color:
-                          isSelected
-                              ? category['color']
-                              : const Color(0xFF8E8E93),
+                              isSelected
+                                  ? category['color']
+                                  : const Color(0xFF8E8E93),
                           size: 20,
                         ),
                         const SizedBox(width: 8),
@@ -487,9 +523,9 @@ class _PlanEditPageState extends State<PlanEditPage> {
                             fontSize: 14,
                             fontWeight: FontWeight.w600,
                             color:
-                            isSelected
-                                ? category['color']
-                                : const Color(0xFF1A1A1A),
+                                isSelected
+                                    ? category['color']
+                                    : const Color(0xFF1A1A1A),
                           ),
                         ),
                       ],
@@ -532,7 +568,7 @@ class _PlanEditPageState extends State<PlanEditPage> {
           ),
           const SizedBox(height: 20),
           ..._priorities.map(
-                (priority) => _buildSelectionItem(
+            (priority) => _buildSelectionItem(
               title: priority['name'],
               isSelected: _selectedPriority == priority['value'],
               color: priority['color'],
@@ -576,7 +612,7 @@ class _PlanEditPageState extends State<PlanEditPage> {
           ),
           const SizedBox(height: 20),
           ..._statuses.map(
-                (status) => _buildSelectionItem(
+            (status) => _buildSelectionItem(
               title: status['name'],
               isSelected: _selectedStatus == status['value'],
               color: status['color'],
@@ -671,11 +707,7 @@ class _PlanEditPageState extends State<PlanEditPage> {
               ),
               child: Row(
                 children: [
-                  Icon(
-                    icon,
-                    color: const Color(0xFF007AFF),
-                    size: 20,
-                  ),
+                  Icon(icon, color: const Color(0xFF007AFF), size: 20),
                   const SizedBox(width: 12),
                   Expanded(
                     child: Text(
@@ -684,9 +716,10 @@ class _PlanEditPageState extends State<PlanEditPage> {
                           : '点击设置$label',
                       style: TextStyle(
                         fontSize: 16,
-                        color: selectedDateTime != null
-                            ? const Color(0xFF1A1A1A)
-                            : const Color(0xFF8E8E93),
+                        color:
+                            selectedDateTime != null
+                                ? const Color(0xFF1A1A1A)
+                                : const Color(0xFF8E8E93),
                       ),
                     ),
                   ),
@@ -768,7 +801,7 @@ class _PlanEditPageState extends State<PlanEditPage> {
           padding: const EdgeInsets.all(16),
           decoration: BoxDecoration(
             color:
-            isSelected ? color.withOpacity(0.1) : const Color(0xFFF2F2F7),
+                isSelected ? color.withOpacity(0.1) : const Color(0xFFF2F2F7),
             borderRadius: BorderRadius.circular(12),
             border: Border.all(
               color: isSelected ? color : Colors.transparent,
@@ -789,9 +822,9 @@ class _PlanEditPageState extends State<PlanEditPage> {
                   ),
                 ),
                 child:
-                isSelected
-                    ? const Icon(Icons.check, color: Colors.white, size: 14)
-                    : null,
+                    isSelected
+                        ? const Icon(Icons.check, color: Colors.white, size: 14)
+                        : null,
               ),
               const SizedBox(width: 16),
               Text(

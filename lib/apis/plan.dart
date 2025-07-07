@@ -3,7 +3,7 @@ import 'dart:core';
 import 'package:heart_days/http/http_manager.dart';
 import 'package:heart_days/http/model/api_response.dart';
 
-enum PlanStatus { pending, inProgress, completed }
+enum PlanStatus { pending, inProgress, completed, cancelled }
 
 enum PlanPriority { low, medium, high }
 
@@ -112,8 +112,33 @@ Future<ApiResponse<Plan>> updatePlanStatus(Map<String, dynamic> data) async {
   );
 }
 
+Future<ApiResponse<Plan>> addPlan(Map<String, dynamic> data) async {
+  return await HttpManager.post<Plan>(
+    "/plans/create",
+    data: data,
+    fromJson: (json) => Plan.fromJson(json), // ✅ 保持一致
+  );
+}
+
+Future<ApiResponse<Plan>> updatePlan(
+    Map<String, dynamic> data,
+    ) async {
+  // 从 data 中提取 id，然后创建一个不包含 id 的新 Map
+  final id = data['id'];
+  final dataWithoutId = Map<String, dynamic>.from(data)..remove('id');
+  return await HttpManager.patch<Plan>(
+    "/plans/update/$id",
+    data: dataWithoutId, // ✅ 不包含 id
+    fromJson: (json) => Plan.fromJson(json),
+  );
+}
+
+Future<ApiResponse> planDeleteById(int id) async {
+  return await HttpManager.delete('/plans/delete/$id');
+}
+
 class Plan {
-  final int id;
+  int id;
   final String userId;
   final String title;
   final String description;

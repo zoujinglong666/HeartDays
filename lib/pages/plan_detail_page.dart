@@ -50,6 +50,14 @@ class PlanDetailPage extends StatelessWidget {
             const SizedBox(height: 16),
             _buildInfoCard(),
             const SizedBox(height: 16),
+            if (plan.reminderAt != null || plan.completedAt != null)
+              _buildTimeCard(),
+            if (plan.reminderAt != null || plan.completedAt != null)
+              const SizedBox(height: 16),
+            if (plan.remarks != null && plan.remarks!.isNotEmpty)
+              _buildRemarksCard(),
+            if (plan.remarks != null && plan.remarks!.isNotEmpty)
+              const SizedBox(height: 16),
             _buildActionCard(context),
           ],
         ),
@@ -99,12 +107,34 @@ class PlanDetailPage extends StatelessWidget {
                   ),
                 ),
               ),
+              Container(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 12,
+                  vertical: 6,
+                ),
+                decoration: BoxDecoration(
+                  color: _getStatusColor(
+                    intToStatus(plan.status) as PlanStatus,
+                  ).withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(20),
+                ),
+                child: Text(
+                  _getStatusText(intToStatus(plan.status) as PlanStatus),
+                  style: TextStyle(
+                    fontSize: 12,
+                    fontWeight: FontWeight.w600,
+                    color: _getStatusColor(
+                      intToStatus(plan.status) as PlanStatus,
+                    ),
+                  ),
+                ),
+              ),
             ],
           ),
           const SizedBox(height: 16),
           if (plan.description != null && plan.description!.isNotEmpty)
             Text(
-              plan.description,
+              plan.description!,
               style: const TextStyle(
                 fontSize: 16,
                 color: Color(0xFF666666),
@@ -157,8 +187,8 @@ class PlanDetailPage extends StatelessWidget {
           const SizedBox(height: 16),
           _buildInfoRow(
             '分类',
-            plan.category.toString(),
-            const Color(0xFF007AFF),
+            plan.category as String,
+            _getCategoryColor(plan.category as String),
           ),
           const SizedBox(height: 16),
           _buildInfoRow(
@@ -169,8 +199,111 @@ class PlanDetailPage extends StatelessWidget {
           const SizedBox(height: 16),
           _buildInfoRow(
             '创建时间',
-            _formatDate(plan!.createdAt),
+            _formatDateTime(plan.createdAt),
             const Color(0xFF8E8E93),
+          ),
+          ...[
+          const SizedBox(height: 16),
+          _buildInfoRow(
+            '更新时间',
+            _formatDateTime(plan.updatedAt!),
+            const Color(0xFF8E8E93),
+          ),
+        ],
+        ],
+      ),
+    );
+  }
+
+  Widget _buildTimeCard() {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(24),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.04),
+            blurRadius: 20,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text(
+            '时间设置',
+            style: TextStyle(
+              fontSize: 18,
+              fontWeight: FontWeight.w600,
+              color: Color(0xFF1A1A1A),
+            ),
+          ),
+          const SizedBox(height: 20),
+          if (plan.reminderAt != null) ...[
+            _buildInfoRow(
+              '提醒时间',
+              _formatDateTime(plan.reminderAt!),
+              const Color(0xFFFF9500),
+            ),
+            if (plan.completedAt != null) const SizedBox(height: 16),
+          ],
+          if (plan.completedAt != null)
+            _buildInfoRow(
+              '完成时间',
+              _formatDateTime(plan.completedAt!),
+              const Color(0xFF34C759),
+            ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildRemarksCard() {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(24),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.04),
+            blurRadius: 20,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text(
+            '备注信息',
+            style: TextStyle(
+              fontSize: 18,
+              fontWeight: FontWeight.w600,
+              color: Color(0xFF1A1A1A),
+            ),
+          ),
+          const SizedBox(height: 16),
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: const Color(0xFFF8F9FA),
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: const Color(0xFFE5E5EA), width: 1),
+            ),
+            child: Text(
+              plan.remarks!,
+              style: const TextStyle(
+                fontSize: 16,
+                color: Color(0xFF666666),
+                height: 1.5,
+              ),
+            ),
           ),
         ],
       ),
@@ -340,26 +473,38 @@ class PlanDetailPage extends StatelessWidget {
 
   Color _getStatusColor(PlanStatus status) {
     switch (status) {
-      case 'pending':
+      case PlanStatus.pending:
         return const Color(0xFFFF9500);
-      case 'in_progress':
+      case PlanStatus.inProgress:
         return const Color(0xFF007AFF);
-      case 'completed':
-        return const Color(0xFF34C759);
-      case 'cancelled':
+      case PlanStatus.completed:
         return const Color(0xFFFF3B30);
       default:
         return const Color(0xFF8E8E93);
     }
   }
 
+  Color _getCategoryColor(String category) {
+    final categoryMap = {
+      '工作': const Color(0xFFFF3B30),
+      '学习': const Color(0xFF007AFF),
+      '健身': const Color(0xFF34C759),
+      '生活': const Color(0xFFFF2D92),
+      '娱乐': const Color(0xFFFF9500),
+      '购物': const Color(0xFF5856D6),
+      '旅行': const Color(0xFF32D74B),
+      '其他': const Color(0xFF8E8E93),
+    };
+    return categoryMap[category] ?? const Color(0xFF8E8E93);
+  }
+
   String _getPriorityText(PlanPriority priority) {
     switch (priority) {
-      case 'high':
+      case PlanPriority.high:
         return '高优先级';
-      case 'medium':
+      case PlanPriority.medium:
         return '中优先级';
-      case 'low':
+      case PlanPriority.low:
         return '低优先级';
       default:
         return '未知';
@@ -368,14 +513,12 @@ class PlanDetailPage extends StatelessWidget {
 
   String _getStatusText(PlanStatus status) {
     switch (status) {
-      case 'pending':
+      case PlanStatus.pending:
         return '待开始';
-      case 'in_progress':
+      case PlanStatus.inProgress:
         return '进行中';
-      case 'completed':
+      case PlanStatus.completed:
         return '已完成';
-      case 'cancelled':
-        return '已取消';
       default:
         return '未知';
     }
@@ -383,6 +526,10 @@ class PlanDetailPage extends StatelessWidget {
 
   String _formatDate(DateTime date) {
     return '${date.year}年${date.month}月${date.day}日';
+  }
+
+  String _formatDateTime(DateTime dateTime) {
+    return '${dateTime.year}年${dateTime.month}月${dateTime.day}日 ${dateTime.hour.toString().padLeft(2, '0')}:${dateTime.minute.toString().padLeft(2, '0')}';
   }
 
   void _showDeleteDialog(BuildContext context) {
