@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:heart_days/apis/plan.dart';
+import 'package:heart_days/utils/dateUtils.dart';
+import 'package:intl/intl.dart';
 import 'plan_edit_page.dart';
 
 class PlanDetailPage extends StatelessWidget {
@@ -199,17 +201,17 @@ class PlanDetailPage extends StatelessWidget {
           const SizedBox(height: 16),
           _buildInfoRow(
             '创建时间',
-            _formatDateTime(plan.createdAt),
+            formatDateTime(plan.createdAt),
             const Color(0xFF8E8E93),
           ),
           ...[
-          const SizedBox(height: 16),
-          _buildInfoRow(
-            '更新时间',
-            _formatDateTime(plan.updatedAt!),
-            const Color(0xFF8E8E93),
-          ),
-        ],
+            const SizedBox(height: 16),
+            _buildInfoRow(
+              '更新时间',
+              formatDateTime(plan.updatedAt!),
+              const Color(0xFF8E8E93),
+            ),
+          ],
         ],
       ),
     );
@@ -245,7 +247,7 @@ class PlanDetailPage extends StatelessWidget {
           if (plan.reminderAt != null) ...[
             _buildInfoRow(
               '提醒时间',
-              _formatDateTime(plan.reminderAt!),
+              formatDateTime(plan.reminderAt!),
               const Color(0xFFFF9500),
             ),
             if (plan.completedAt != null) const SizedBox(height: 16),
@@ -253,7 +255,7 @@ class PlanDetailPage extends StatelessWidget {
           if (plan.completedAt != null)
             _buildInfoRow(
               '完成时间',
-              _formatDateTime(plan.completedAt!),
+              formatDateTime(plan.completedAt!),
               const Color(0xFF34C759),
             ),
         ],
@@ -528,9 +530,7 @@ class PlanDetailPage extends StatelessWidget {
     return '${date.year}年${date.month}月${date.day}日';
   }
 
-  String _formatDateTime(DateTime dateTime) {
-    return '${dateTime.year}年${dateTime.month}月${dateTime.day}日 ${dateTime.hour.toString().padLeft(2, '0')}:${dateTime.minute.toString().padLeft(2, '0')}';
-  }
+
 
   void _showDeleteDialog(BuildContext context) {
     showDialog(

@@ -6,7 +6,6 @@ import 'package:heart_days/pages/main_page.dart';
 import 'package:heart_days/pages/login_page.dart';
 import 'package:flutter/services.dart';
 import 'package:heart_days/utils/navigation_service.dart';
-final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
 void main() {
   // 沉浸状态栏 + 底部导航栏
   SystemChrome.setSystemUIOverlayStyle(
@@ -27,7 +26,7 @@ void main() {
   // ✅ 监听 Token 过期事件
   eventBus.on<TokenExpiredEvent>().listen((event) {
     print("📢 Token 过期事件触发，跳转登录页");
-    navigatorKey.currentState?.pushNamedAndRemoveUntil(
+    NavigationService.navigatorKey.currentState?.pushNamedAndRemoveUntil(
       '/login',
           (route) => false,
     );

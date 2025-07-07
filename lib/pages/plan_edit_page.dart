@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:heart_days/apis/plan.dart';
+import 'package:heart_days/utils/dateUtils.dart';
 
 class PlanEditPage extends StatefulWidget {
   final Plan? plan;
@@ -65,12 +66,15 @@ class _PlanEditPageState extends State<PlanEditPage> {
     );
     _selectedDate = widget.plan?.date ?? DateTime.now();
     _selectedReminderTime = widget.plan?.reminderAt;
+    print(widget.plan?.completedAt);
     _selectedCompletedTime = widget.plan?.completedAt;
     _selectedCategory = widget.plan?.category ?? '工作';
     _selectedPriority = widget.plan?.priority ?? 1;
     _selectedStatus = widget.plan?.status ?? 0;
   }
 
+
+  
   @override
   void dispose() {
     _titleController.dispose();
@@ -218,12 +222,11 @@ class _PlanEditPageState extends State<PlanEditPage> {
     } catch (e) {
       // 捕获异常，给用户友好提示
       print('保存计划失败: $e');
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('保存失败，请稍后重试')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('保存失败，请稍后重试')));
     }
   }
-
 
   @override
   Widget build(BuildContext context) {
@@ -712,7 +715,7 @@ class _PlanEditPageState extends State<PlanEditPage> {
                   Expanded(
                     child: Text(
                       selectedDateTime != null
-                          ? '${selectedDateTime.year}年${selectedDateTime.month}月${selectedDateTime.day}日 ${selectedDateTime.hour.toString().padLeft(2, '0')}:${selectedDateTime.minute.toString().padLeft(2, '0')}'
+                          ? formatDateTime(selectedDateTime)
                           : '点击设置$label',
                       style: TextStyle(
                         fontSize: 16,
@@ -776,9 +779,8 @@ class _PlanEditPageState extends State<PlanEditPage> {
           const SizedBox(height: 20),
           _buildTextField(
             controller: _remarksController,
-            label: '备注',
             hint: '请输入备注信息（可选）',
-            maxLines: 4,
+            maxLines: 4, label: '',
           ),
         ],
       ),

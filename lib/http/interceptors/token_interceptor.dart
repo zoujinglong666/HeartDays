@@ -1,6 +1,6 @@
 import 'package:dio/dio.dart';
 import 'package:heart_days/common/event_bus.dart';
-import 'package:heart_days/utils/ToastUtils.dart';
+import 'package:heart_days/utils/navigation_service.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 class TokenInterceptorHandler extends Interceptor {
@@ -49,8 +49,9 @@ class TokenInterceptorHandler extends Interceptor {
       final p = await prefs;
       await p.remove('token');
       await p.remove('auth_data');
-      ToastUtils.showToast("身份过期，请重新登录");
       eventBus.fire(TokenExpiredEvent());
+      NavigationService.navigatorKey.currentState?.pushNamedAndRemoveUntil('/login', (_) => false);
+
     }
     handler.next(err); // 继续传递错误
   }
