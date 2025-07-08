@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:heart_days/apis/user.dart';
+import 'package:heart_days/enums/genderEnums.dart';
 import 'package:heart_days/provider/auth_provider.dart';
+import 'package:heart_days/utils/ToastUtils.dart';
 import 'package:image_picker/image_picker.dart';
 import 'dart:io';
 import 'package:permission_handler/permission_handler.dart';
@@ -18,19 +20,12 @@ class _UserEditPageState extends ConsumerState<UserEditPage> {
   final _usernameController = TextEditingController();
   final _emailController = TextEditingController(); // 新增邮箱控制器
   final _avatarUrlController = TextEditingController(); // 新增头像链接控制器
-  String? _selectedGender;
+  late int _selectedGender;
   File? _selectedImage;
   final ImagePicker _picker = ImagePicker();
   bool _isLoading = false;
   bool _isInitialized = false; // 添加初始化标志
   bool _useAvatarUrl = false; // 控制是否使用链接作为头像
-
-  // 性别选项
-  final List<Map<String, String>> _genderOptions = [
-    {'value': 'male', 'label': '男'},
-    {'value': 'female', 'label': '女'},
-    {'value': 'other', 'label': '其他'},
-  ];
 
   // 定义与"我的"页面一致的配色方案
   static const Color primaryColor = Color(0xFF5C6BC0); // 主色调：靛蓝色
@@ -60,8 +55,7 @@ class _UserEditPageState extends ConsumerState<UserEditPage> {
     if (user != null) {
       _usernameController.text = user.name;
       _emailController.text = user.email; // 加载邮箱
-      // 如果有性别信息，也设置性别
-      // _selectedGender = user.gender; // 假设用户模型有性别字段
+      _selectedGender = user.gender; // 假设用户模型有性别字段
     }
   }
 
@@ -114,58 +108,55 @@ class _UserEditPageState extends ConsumerState<UserEditPage> {
       backgroundColor: Colors.transparent,
       builder:
           (context) => Container(
-        decoration: const BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-        ),
-        child: SafeArea(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Container(
-                width: 40,
-                height: 4,
-                margin: const EdgeInsets.symmetric(vertical: 8),
-                decoration: BoxDecoration(
-                  color: Colors.grey[300],
-                  borderRadius: BorderRadius.circular(2),
-                ),
+            decoration: const BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+            ),
+            child: SafeArea(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Container(
+                    width: 40,
+                    height: 4,
+                    margin: const EdgeInsets.symmetric(vertical: 8),
+                    decoration: BoxDecoration(
+                      color: Colors.grey[300],
+                      borderRadius: BorderRadius.circular(2),
+                    ),
+                  ),
+                  ListTile(
+                    leading: const Icon(Icons.camera_alt, color: primaryColor),
+                    title: const Text('拍照'),
+                    onTap: () {
+                      Navigator.pop(context);
+                      _pickImage(ImageSource.camera);
+                    },
+                  ),
+                  ListTile(
+                    leading: const Icon(
+                      Icons.photo_library,
+                      color: secondaryColor,
+                    ),
+                    title: const Text('从相册选择'),
+                    onTap: () {
+                      Navigator.pop(context);
+                      _pickImage(ImageSource.gallery);
+                    },
+                  ),
+                  ListTile(
+                    leading: const Icon(Icons.link, color: primaryColor),
+                    title: const Text('使用链接'),
+                    onTap: () {
+                      Navigator.pop(context);
+                      _showAvatarUrlDialog();
+                    },
+                  ),
+                  const SizedBox(height: 20),
+                ],
               ),
-              ListTile(
-                leading: const Icon(Icons.camera_alt, color: primaryColor),
-                title: const Text('拍照'),
-                onTap: () {
-                  Navigator.pop(context);
-                  _pickImage(ImageSource.camera);
-                },
-              ),
-              ListTile(
-                leading: const Icon(
-                  Icons.photo_library,
-                  color: secondaryColor,
-                ),
-                title: const Text('从相册选择'),
-                onTap: () {
-                  Navigator.pop(context);
-                  _pickImage(ImageSource.gallery);
-                },
-              ),
-              ListTile(
-                leading: const Icon(
-                  Icons.link,
-                  color: primaryColor,
-                ),
-                title: const Text('使用链接'),
-                onTap: () {
-                  Navigator.pop(context);
-                  _showAvatarUrlDialog();
-                },
-              ),
-              const SizedBox(height: 20),
-            ],
+            ),
           ),
-        ),
-      ),
     );
   }
 
@@ -173,34 +164,35 @@ class _UserEditPageState extends ConsumerState<UserEditPage> {
   void _showAvatarUrlDialog() {
     showDialog(
       context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('输入头像链接'),
-        content: TextField(
-          controller: _avatarUrlController,
-          decoration: const InputDecoration(
-            hintText: '请输入有效的图片URL',
-            prefixIcon: Icon(Icons.link),
+      builder:
+          (context) => AlertDialog(
+            title: const Text('输入头像链接'),
+            content: TextField(
+              controller: _avatarUrlController,
+              decoration: const InputDecoration(
+                hintText: '请输入有效的图片URL',
+                prefixIcon: Icon(Icons.link),
+              ),
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(context),
+                child: const Text('取消'),
+              ),
+              TextButton(
+                onPressed: () {
+                  if (_avatarUrlController.text.isNotEmpty) {
+                    setState(() {
+                      _useAvatarUrl = true;
+                      _selectedImage = null; // 清除本地图片
+                    });
+                  }
+                  Navigator.pop(context);
+                },
+                child: const Text('确定'),
+              ),
+            ],
           ),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('取消'),
-          ),
-          TextButton(
-            onPressed: () {
-              if (_avatarUrlController.text.isNotEmpty) {
-                setState(() {
-                  _useAvatarUrl = true;
-                  _selectedImage = null; // 清除本地图片
-                });
-              }
-              Navigator.pop(context);
-            },
-            child: const Text('确定'),
-          ),
-        ],
-      ),
     );
   }
 
@@ -209,25 +201,25 @@ class _UserEditPageState extends ConsumerState<UserEditPage> {
       context: context,
       builder:
           (context) => AlertDialog(
-        title: const Text('权限请求'),
-        content: Text('需要$permission权限才能继续操作'),
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(16),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('取消', style: TextStyle(color: Colors.grey)),
+            title: const Text('权限请求'),
+            content: Text('需要$permission权限才能继续操作'),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(16),
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(context),
+                child: const Text('取消', style: TextStyle(color: Colors.grey)),
+              ),
+              TextButton(
+                onPressed: () {
+                  Navigator.pop(context);
+                  openAppSettings();
+                },
+                child: const Text('去设置', style: TextStyle(color: primaryColor)),
+              ),
+            ],
           ),
-          TextButton(
-            onPressed: () {
-              Navigator.pop(context);
-              openAppSettings();
-            },
-            child: const Text('去设置', style: TextStyle(color: primaryColor)),
-          ),
-        ],
-      ),
     );
   }
 
@@ -236,18 +228,18 @@ class _UserEditPageState extends ConsumerState<UserEditPage> {
       context: context,
       builder:
           (context) => AlertDialog(
-        title: const Text('错误', style: TextStyle(color: primaryColor)),
-        content: Text(message),
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(16),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('确定', style: TextStyle(color: primaryColor)),
+            title: const Text('错误', style: TextStyle(color: primaryColor)),
+            content: Text(message),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(16),
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(context),
+                child: const Text('确定', style: TextStyle(color: primaryColor)),
+              ),
+            ],
           ),
-        ],
-      ),
     );
   }
 
@@ -267,50 +259,47 @@ class _UserEditPageState extends ConsumerState<UserEditPage> {
         _showErrorDialog('用户未登录或已失效');
         return;
       }
-      Map<String, dynamic> cleanUserData(User user, {required String name, required String email}) {
-        final data = Map<String, dynamic>.from(user.toJson());
 
-        // 删除后端不允许的字段
-        for (final key in ['roles']) {
-          data.remove(key);
-        }
+      final userMap = Map<String, dynamic>.of(user.toJson());
 
-        // 替换名称和邮箱
-        data['name'] = name;
-        data['email'] = email;
+      // 删除后端不允许的字段
+      userMap.remove('roles');
 
-        // 如果使用头像链接
-        if (_useAvatarUrl && _avatarUrlController.text.isNotEmpty) {
-          data['avatar'] = _avatarUrlController.text;
-        }
+      // 覆盖更新字段
+      userMap.addAll({
+        "name": _usernameController.text.trim(),
+        "email": _emailController.text.trim(),
+        "gender": _selectedGender,
+        "avatar":
+            _useAvatarUrl && _avatarUrlController.text.isNotEmpty
+                ? _avatarUrlController.text
+                : user.avatar,
+      });
 
-        return data;
-      }
+      // final data = {
+      //   ...user.toJson(),
+      //   "name": _usernameController.text.trim(),
+      //   "email": _emailController.text.trim(),
+      //   "gender": _selectedGender,
+      //   "avatar": _useAvatarUrl && _avatarUrlController.text.isNotEmpty
+      //       ? _avatarUrlController.text
+      //       : "",
+      // };
+      //
+      // data.remove('roles');
+      // final res = await updateUser(data);
 
-      // 请求更新接口
-      final body = cleanUserData(
-        user!,
-        name: _usernameController.text,
-        email: _emailController.text,
-      );
-      final res = await updateUser(body);
+
+
+      final res = await updateUser(userMap);
 
       // 响应成功
-      if (res.code == 200 && res.data != null) {
+      if (res.code == 200) {
         // 更新本地缓存中的 user 数据
         final updatedUser = res.data!; // ✅ 已经是 User 类型
         await authNotifier.login(updatedUser, authNotifier.token!);
         if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: const Text('保存成功！'),
-              backgroundColor: primaryColor,
-              behavior: SnackBarBehavior.floating,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(10),
-              ),
-            ),
-          );
+          ToastUtils.showToast('保存成功！');
           Navigator.pop(context, true); // 返回并标记"已保存"
         }
       } else {
@@ -330,8 +319,6 @@ class _UserEditPageState extends ConsumerState<UserEditPage> {
 
   @override
   Widget build(BuildContext context) {
-    final authNotifier = ref.read(authProvider.notifier);
-    final token = authNotifier.token;
     return Scaffold(
       backgroundColor: backgroundColor,
       appBar: AppBar(
@@ -349,23 +336,23 @@ class _UserEditPageState extends ConsumerState<UserEditPage> {
           TextButton(
             onPressed: _isLoading ? null : _saveUserData,
             child:
-            _isLoading
-                ? const SizedBox(
-              width: 20,
-              height: 20,
-              child: CircularProgressIndicator(
-                strokeWidth: 2,
-                color: Colors.white,
-              ),
-            )
-                : const Text(
-              '保存',
-              style: TextStyle(
-                color: Colors.white,
-                fontSize: 16,
-                fontWeight: FontWeight.w600,
-              ),
-            ),
+                _isLoading
+                    ? const SizedBox(
+                      width: 20,
+                      height: 20,
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2,
+                        color: Colors.white,
+                      ),
+                    )
+                    : const Text(
+                      '保存',
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontSize: 16,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
           ),
         ],
       ),
@@ -418,45 +405,61 @@ class _UserEditPageState extends ConsumerState<UserEditPage> {
                                 color: Colors.white,
                               ),
                               child: ClipOval(
-                                child: _useAvatarUrl && _avatarUrlController.text.isNotEmpty
-                                    ? Image.network(
-                                  _avatarUrlController.text,
-                                  fit: BoxFit.cover,
-                                  errorBuilder: (context, error, stackTrace) {
-                                    return Container(
-                                      color: Colors.grey[100],
-                                      child: const Icon(
-                                        Icons.error_outline,
-                                        size: 50,
-                                        color: Colors.red,
-                                      ),
-                                    );
-                                  },
-                                  loadingBuilder: (context, child, loadingProgress) {
-                                    if (loadingProgress == null) return child;
-                                    return Center(
-                                      child: CircularProgressIndicator(
-                                        value: loadingProgress.expectedTotalBytes != null
-                                            ? loadingProgress.cumulativeBytesLoaded /
-                                            loadingProgress.expectedTotalBytes!
-                                            : null,
-                                      ),
-                                    );
-                                  },
-                                )
-                                    : _selectedImage != null
-                                    ? Image.file(
-                                  _selectedImage!,
-                                  fit: BoxFit.cover,
-                                )
-                                    : Container(
-                                  color: Colors.grey[100],
-                                  child: const Icon(
-                                    Icons.person,
-                                    size: 50,
-                                    color: primaryColor,
-                                  ),
-                                ),
+                                child:
+                                    _useAvatarUrl &&
+                                            _avatarUrlController.text.isNotEmpty
+                                        ? Image.network(
+                                          _avatarUrlController.text,
+                                          fit: BoxFit.cover,
+                                          errorBuilder: (
+                                            context,
+                                            error,
+                                            stackTrace,
+                                          ) {
+                                            return Container(
+                                              color: Colors.grey[100],
+                                              child: const Icon(
+                                                Icons.error_outline,
+                                                size: 50,
+                                                color: Colors.red,
+                                              ),
+                                            );
+                                          },
+                                          loadingBuilder: (
+                                            context,
+                                            child,
+                                            loadingProgress,
+                                          ) {
+                                            if (loadingProgress == null)
+                                              return child;
+                                            return Center(
+                                              child: CircularProgressIndicator(
+                                                value:
+                                                    loadingProgress
+                                                                .expectedTotalBytes !=
+                                                            null
+                                                        ? loadingProgress
+                                                                .cumulativeBytesLoaded /
+                                                            loadingProgress
+                                                                .expectedTotalBytes!
+                                                        : null,
+                                              ),
+                                            );
+                                          },
+                                        )
+                                        : _selectedImage != null
+                                        ? Image.file(
+                                          _selectedImage!,
+                                          fit: BoxFit.cover,
+                                        )
+                                        : Container(
+                                          color: Colors.grey[100],
+                                          child: const Icon(
+                                            Icons.person,
+                                            size: 50,
+                                            color: primaryColor,
+                                          ),
+                                        ),
                               ),
                             ),
                           ),
@@ -497,7 +500,10 @@ class _UserEditPageState extends ConsumerState<UserEditPage> {
                         padding: const EdgeInsets.only(top: 8.0),
                         child: Text(
                           '链接: ${_avatarUrlController.text.length > 20 ? '${_avatarUrlController.text.substring(0, 20)}...' : _avatarUrlController.text}',
-                          style: TextStyle(color: Colors.grey[500], fontSize: 12),
+                          style: TextStyle(
+                            color: Colors.grey[500],
+                            fontSize: 12,
+                          ),
                           overflow: TextOverflow.ellipsis,
                         ),
                       ),
@@ -661,7 +667,9 @@ class _UserEditPageState extends ConsumerState<UserEditPage> {
                           return null; // 邮箱可以为空
                         }
                         // 简单的邮箱格式验证
-                        final emailRegex = RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$');
+                        final emailRegex = RegExp(
+                          r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$',
+                        );
                         if (!emailRegex.hasMatch(value)) {
                           return '请输入有效的邮箱地址';
                         }
@@ -719,53 +727,53 @@ class _UserEditPageState extends ConsumerState<UserEditPage> {
                     Wrap(
                       spacing: 12,
                       children:
-                      _genderOptions.map((gender) {
-                        final isSelected =
-                            _selectedGender == gender['value'];
-                        return GestureDetector(
-                          onTap: () {
-                            setState(() {
-                              _selectedGender = gender['value'];
-                            });
-                          },
-                          child: AnimatedContainer(
-                            duration: const Duration(milliseconds: 200),
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 20,
-                              vertical: 10,
-                            ),
-                            decoration: BoxDecoration(
-                              color:
-                              isSelected
-                                  ? primaryColor
-                                  : Colors.grey[100], // 使用普通颜色替代渐变
-                              borderRadius: BorderRadius.circular(20),
-                              boxShadow:
-                              isSelected
-                                  ? [
-                                BoxShadow(
-                                  color: primaryColor.withOpacity(
-                                    0.3,
-                                  ),
-                                  blurRadius: 8,
-                                  offset: const Offset(0, 2),
+                          Gender.options.map((gender) {
+                            final isSelected =
+                                _selectedGender == gender['value'];
+                            return GestureDetector(
+                              onTap: () {
+                                setState(() {
+                                  _selectedGender = gender['value'];
+                                });
+                              },
+                              child: AnimatedContainer(
+                                duration: const Duration(milliseconds: 200),
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 20,
+                                  vertical: 10,
                                 ),
-                              ]
-                                  : null,
-                            ),
-                            child: Text(
-                              gender['label']!,
-                              style: TextStyle(
-                                color:
-                                isSelected
-                                    ? Colors.white
-                                    : Colors.grey[700],
-                                fontWeight: FontWeight.w500,
+                                decoration: BoxDecoration(
+                                  color:
+                                      isSelected
+                                          ? primaryColor
+                                          : Colors.grey[100], // 使用普通颜色替代渐变
+                                  borderRadius: BorderRadius.circular(20),
+                                  boxShadow:
+                                      isSelected
+                                          ? [
+                                            BoxShadow(
+                                              color: primaryColor.withOpacity(
+                                                0.3,
+                                              ),
+                                              blurRadius: 8,
+                                              offset: const Offset(0, 2),
+                                            ),
+                                          ]
+                                          : null,
+                                ),
+                                child: Text(
+                                  gender['label']!,
+                                  style: TextStyle(
+                                    color:
+                                        isSelected
+                                            ? Colors.white
+                                            : Colors.grey[700],
+                                    fontWeight: FontWeight.w500,
+                                  ),
+                                ),
                               ),
-                            ),
-                          ),
-                        );
-                      }).toList(),
+                            );
+                          }).toList(),
                     ),
                   ],
                 ),

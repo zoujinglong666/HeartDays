@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:heart_days/apis/plan.dart';
 import 'package:heart_days/pages/plan_page.dart';
+import 'package:heart_days/utils/ToastUtils.dart';
 import 'package:heart_days/utils/dateUtils.dart';
-import 'package:heart_days/utils/navigation_service.dart';
 
 class PlanEditPage extends StatefulWidget {
   final Plan? plan;
@@ -68,7 +68,6 @@ class _PlanEditPageState extends State<PlanEditPage> {
     );
     _selectedDate = widget.plan?.date ?? DateTime.now();
     _selectedReminderTime = widget.plan?.reminderAt;
-    print(widget.plan?.completedAt);
     _selectedCompletedTime = widget.plan?.completedAt;
     _selectedCategory = widget.plan?.category ?? '工作';
     _selectedPriority = widget.plan?.priority ?? 1;
@@ -192,7 +191,7 @@ class _PlanEditPageState extends State<PlanEditPage> {
       'category': _selectedCategory,
       'priority': _selectedPriority,
       'status': _selectedStatus,
-      'date': _selectedDate?.toIso8601String(),
+      'date': _selectedDate.toIso8601String(),
       'reminder_at': _selectedReminderTime?.toIso8601String(),
       'completed_at': _selectedCompletedTime?.toIso8601String(),
       'remarks': _remarksController.text.trim(),
@@ -225,10 +224,7 @@ class _PlanEditPageState extends State<PlanEditPage> {
       }
     } catch (e) {
       // 捕获异常，给用户友好提示
-      print('保存计划失败: $e');
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text('保存失败，请稍后重试')));
+      ToastUtils.showToast('保存失败，请稍后重试');
     }
   }
 

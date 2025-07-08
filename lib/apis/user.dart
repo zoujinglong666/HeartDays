@@ -103,10 +103,12 @@ class User {
   final String userAccount;
   final String email;
   final String avatar;
+  final int gender;
   final List<String> roles;
 
   User({
     this.id = '',
+    this.gender=0,
     this.name = '无名',
     this.userAccount = '',
     this.email = '',
@@ -117,15 +119,17 @@ class User {
   factory User.fromJson(Map<String, dynamic> json) {
     return User(
       id: json['id']?.toString() ?? '',
-      name: json['name'] ?? '无名',
-      userAccount: json['userAccount'] ?? '',
-      email: json['email'] ?? '',
-      avatar: json['avatar'] ?? '',
+      name: json['name']?.toString() ?? '无名',
+      userAccount: json['userAccount']?.toString() ?? '',
+      email: json['email']?.toString() ?? '',
+      avatar: json['avatar']?.toString() ?? '',
+      gender: json['gender'] is int ? json['gender'] : 0,
       roles: (json['roles'] is List)
-          ? List<String>.from(json['roles'])
+          ? List<String>.from(json['roles'].whereType<String>())
           : ['user'],
     );
   }
+
 
   Map<String, dynamic> toJson() {
     return {
@@ -135,6 +139,7 @@ class User {
       'email': email,
       'avatar': avatar,
       'roles': roles,
+      'gender': gender,
     };
   }
 }
