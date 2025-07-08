@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:heart_days/apis/plan.dart';
+import 'package:heart_days/pages/plan_page.dart';
 import 'package:heart_days/utils/dateUtils.dart';
+import 'package:heart_days/utils/navigation_service.dart';
 
 class PlanEditPage extends StatefulWidget {
   final Plan? plan;
@@ -73,8 +75,6 @@ class _PlanEditPageState extends State<PlanEditPage> {
     _selectedStatus = widget.plan?.status ?? 0;
   }
 
-
-  
   @override
   void dispose() {
     _titleController.dispose();
@@ -214,7 +214,11 @@ class _PlanEditPageState extends State<PlanEditPage> {
 
       if (res != null) {
         // 成功后关闭页面并返回服务器响应的数据
-        Navigator.pop(context, res);
+
+        Navigator.push(
+          context,
+          MaterialPageRoute(builder: (context) => const PlanPage()),
+        );
       } else {
         // 返回为空，可视需要做处理
         // 例如弹toast提示失败
@@ -780,7 +784,8 @@ class _PlanEditPageState extends State<PlanEditPage> {
           _buildTextField(
             controller: _remarksController,
             hint: '请输入备注信息（可选）',
-            maxLines: 4, label: '',
+            maxLines: 4,
+            label: '',
           ),
         ],
       ),

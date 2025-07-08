@@ -60,7 +60,7 @@ class PlanDetailPage extends StatelessWidget {
               _buildRemarksCard(),
             if (plan.remarks != null && plan.remarks!.isNotEmpty)
               const SizedBox(height: 16),
-            _buildActionCard(context),
+            // _buildActionCard(context),
           ],
         ),
       ),
@@ -346,119 +346,119 @@ class PlanDetailPage extends StatelessWidget {
     );
   }
 
-  Widget _buildActionCard(BuildContext context) {
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.all(24),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.04),
-            blurRadius: 20,
-            offset: const Offset(0, 4),
-          ),
-        ],
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          const Text(
-            '操作',
-            style: TextStyle(
-              fontSize: 18,
-              fontWeight: FontWeight.w600,
-              color: Color(0xFF1A1A1A),
-            ),
-          ),
-          const SizedBox(height: 20),
-          Row(
-            children: [
-              Expanded(
-                child: _buildActionButton(
-                  context,
-                  icon: Icons.edit_outlined,
-                  title: '编辑',
-                  color: const Color(0xFF007AFF),
-                  onTap: () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (context) => PlanEditPage(plan: plan),
-                      ),
-                    );
-                  },
-                ),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: _buildActionButton(
-                  context,
-                  icon: Icons.delete_outline,
-                  title: '删除',
-                  color: const Color(0xFFFF3B30),
-                  onTap: () => _showDeleteDialog(context),
-                ),
-              ),
-            ],
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildActionButton(
-    BuildContext context, {
-    required IconData icon,
-    required String title,
-    required Color color,
-    required VoidCallback onTap,
-  }) {
-    return Material(
-      color: Colors.transparent,
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(12),
-        child: Container(
-          padding: const EdgeInsets.all(16),
-          decoration: BoxDecoration(
-            color: color.withOpacity(0.05),
-            borderRadius: BorderRadius.circular(12),
-            border: Border.all(color: color.withOpacity(0.1), width: 1),
-          ),
-          child: Row(
-            children: [
-              Container(
-                padding: const EdgeInsets.all(8),
-                decoration: BoxDecoration(
-                  color: color.withOpacity(0.1),
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                child: Icon(icon, color: color, size: 20),
-              ),
-              const SizedBox(width: 16),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      title,
-                      style: TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.w600,
-                        color: color,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
+  // Widget _buildActionCard(BuildContext context) {
+  //   return Container(
+  //     width: double.infinity,
+  //     padding: const EdgeInsets.all(24),
+  //     decoration: BoxDecoration(
+  //       color: Colors.white,
+  //       borderRadius: BorderRadius.circular(16),
+  //       boxShadow: [
+  //         BoxShadow(
+  //           color: Colors.black.withOpacity(0.04),
+  //           blurRadius: 20,
+  //           offset: const Offset(0, 4),
+  //         ),
+  //       ],
+  //     ),
+  //     child: Column(
+  //       crossAxisAlignment: CrossAxisAlignment.start,
+  //       children: [
+  //         const Text(
+  //           '操作',
+  //           style: TextStyle(
+  //             fontSize: 18,
+  //             fontWeight: FontWeight.w600,
+  //             color: Color(0xFF1A1A1A),
+  //           ),
+  //         ),
+  //         const SizedBox(height: 20),
+  //         Row(
+  //           children: [
+  //             Expanded(
+  //               child: _buildActionButton(
+  //                 context,
+  //                 icon: Icons.edit_outlined,
+  //                 title: '编辑',
+  //                 color: const Color(0xFF007AFF),
+  //                 onTap: () {
+  //                   Navigator.push(
+  //                     context,
+  //                     MaterialPageRoute(
+  //                       builder: (context) => PlanEditPage(plan: plan),
+  //                     ),
+  //                   );
+  //                 },
+  //               ),
+  //             ),
+  //             const SizedBox(width: 12),
+  //             Expanded(
+  //               child: _buildActionButton(
+  //                 context,
+  //                 icon: Icons.delete_outline,
+  //                 title: '删除',
+  //                 color: const Color(0xFFFF3B30),
+  //                 onTap: () => _showDeleteDialog(context),
+  //               ),
+  //             ),
+  //           ],
+  //         ),
+  //       ],
+  //     ),
+  //   );
+  // }
+  //
+  // Widget _buildActionButton(
+  //   BuildContext context, {
+  //   required IconData icon,
+  //   required String title,
+  //   required Color color,
+  //   required VoidCallback onTap,
+  // }) {
+  //   return Material(
+  //     color: Colors.transparent,
+  //     child: InkWell(
+  //       onTap: onTap,
+  //       borderRadius: BorderRadius.circular(12),
+  //       child: Container(
+  //         padding: const EdgeInsets.all(16),
+  //         decoration: BoxDecoration(
+  //           color: color.withOpacity(0.05),
+  //           borderRadius: BorderRadius.circular(12),
+  //           border: Border.all(color: color.withOpacity(0.1), width: 1),
+  //         ),
+  //         child: Row(
+  //           children: [
+  //             Container(
+  //               padding: const EdgeInsets.all(8),
+  //               decoration: BoxDecoration(
+  //                 color: color.withOpacity(0.1),
+  //                 borderRadius: BorderRadius.circular(8),
+  //               ),
+  //               child: Icon(icon, color: color, size: 20),
+  //             ),
+  //             const SizedBox(width: 16),
+  //             Expanded(
+  //               child: Column(
+  //                 crossAxisAlignment: CrossAxisAlignment.start,
+  //                 children: [
+  //                   Text(
+  //                     title,
+  //                     style: TextStyle(
+  //                       fontSize: 16,
+  //                       fontWeight: FontWeight.w600,
+  //                       color: color,
+  //                     ),
+  //                   ),
+  //                 ],
+  //               ),
+  //             ),
+  //           ],
+  //         ),
+  //       ),
+  //     ),
+  //   );
+  // }
 
   Color _getPriorityColor(PlanPriority priority) {
     switch (priority) {
@@ -480,7 +480,7 @@ class PlanDetailPage extends StatelessWidget {
       case PlanStatus.inProgress:
         return const Color(0xFF007AFF);
       case PlanStatus.completed:
-        return const Color(0xFFFF3B30);
+        return const Color(0xFF34C759);
       default:
         return const Color(0xFF8E8E93);
     }
