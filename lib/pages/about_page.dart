@@ -142,37 +142,6 @@ class AboutPage extends StatelessWidget {
               style: TextStyle(fontSize: 14, color: Colors.grey.shade700),
             ),
 
-            ElevatedButton(
-              onPressed: () {
-                final provinceCityMap = {
-                  '广东': ['广州', '深圳', '佛山'],
-                  '北京': ['朝阳', '海淀'],
-                  '江苏': ['南京', '苏州'],
-                };
-
-                AppMultiPicker.show<String>(
-                  context: context,
-                  title: '选择地区',
-                  columns: [
-                    provinceCityMap.keys.toList(),
-                    provinceCityMap['广东']!, // 初始默认广东
-                  ],
-                  onColumnChanged: (selectedValues) {
-                    final selectedProvince = selectedValues.first;
-                    return [
-                      provinceCityMap.keys.toList(),
-                      provinceCityMap[selectedProvince] ?? [],
-                    ];
-                  },
-                  onConfirm: (values) {
-                    print('省市: $values');
-                  },
-                );
-
-              },
-              child: Text("222222222222222222222222"),
-            ),
-
             const SizedBox(height: 32),
 
             Center(
