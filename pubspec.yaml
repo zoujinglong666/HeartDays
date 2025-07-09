@@ -59,6 +59,7 @@ dependencies:
   chinese_lunar_calendar: ^1.0.4  # 检查最新版本
   flutter_native_splash: ^2.4.6
   flutter_riverpod: ^2.6.1
+  mqtt_client: ^10.2.0
 flutter_launcher_icons:
     image_path: "lib/assets/images/icon.png"
     image_path_android: "lib/assets/images/icon.png"

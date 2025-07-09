@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:heart_days/components/app_multi_picker/app_multi_picker.dart';
 import 'package:heart_days/components/app_picker/app_picker.dart';
+import 'package:heart_days/pages/mqtt_page.dart';
 
 class AboutPage extends StatelessWidget {
   const AboutPage({super.key});
@@ -127,15 +128,27 @@ class AboutPage extends StatelessWidget {
               );
             }),
             const SizedBox(height: 32),
-            // 开发者信息
-            const Text(
-              '👨‍💻 关于开发者',
-              style: TextStyle(
-                fontSize: 18,
-                fontWeight: FontWeight.bold,
-                color: primaryColor,
+
+
+
+            GestureDetector(
+              onTap: (){
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (context) => const MqttPage()),
+                );
+              },
+              child: // 开发者信息
+              const Text(
+                '👨‍💻 关于开发者',
+                style: TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                  color: primaryColor,
+                ),
               ),
-            ),
+            )
+            ,
             const SizedBox(height: 12),
             Text(
               'Heart Days 由一位热爱生活与设计的开发者精心打造，致力于提升情侣、家庭之间的情感连接。',
