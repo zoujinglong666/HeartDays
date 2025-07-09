@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:heart_days/apis/plan.dart';
 import 'package:heart_days/utils/dateUtils.dart';
-import 'package:intl/intl.dart';
 import 'plan_edit_page.dart';
 
 class PlanDetailPage extends StatelessWidget {
@@ -528,65 +527,5 @@ class PlanDetailPage extends StatelessWidget {
 
   String _formatDate(DateTime date) {
     return '${date.year}年${date.month}月${date.day}日';
-  }
-
-
-
-  void _showDeleteDialog(BuildContext context) {
-    showDialog(
-      context: context,
-      builder:
-          (context) => AlertDialog(
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(16),
-            ),
-            title: const Text(
-              '确认删除',
-              style: TextStyle(
-                fontSize: 18,
-                fontWeight: FontWeight.w600,
-                color: Color(0xFF1A1A1A),
-              ),
-            ),
-            content: Text(
-              '确定要删除"${plan.title}"吗？此操作不可撤销。',
-              style: const TextStyle(
-                fontSize: 16,
-                color: Color(0xFF666666),
-                height: 1.5,
-              ),
-            ),
-            actions: [
-              TextButton(
-                onPressed: () => Navigator.pop(context),
-                child: const Text(
-                  '取消',
-                  style: TextStyle(
-                    fontSize: 16,
-                    color: Color(0xFF8E8E93),
-                    fontWeight: FontWeight.w500,
-                  ),
-                ),
-              ),
-              TextButton(
-                onPressed: () {
-                  Navigator.pop(context);
-                  Navigator.pop(context, {
-                    'action': 'delete',
-                    'planId': plan.id,
-                  });
-                },
-                child: const Text(
-                  '删除',
-                  style: TextStyle(
-                    fontSize: 16,
-                    color: Color(0xFFFF3B30),
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-              ),
-            ],
-          ),
-    );
   }
 }

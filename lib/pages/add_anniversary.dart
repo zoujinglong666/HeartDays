@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:heart_days/apis/anniversary.dart';
+import 'package:heart_days/components/DatePicker/date_picker.dart';
 import 'package:heart_days/utils/Notifier.dart';
 import 'package:heart_days/utils/ToastUtils.dart';
 import 'package:intl/intl.dart';
@@ -230,29 +231,16 @@ class _AddAnniversaryPageState extends State<AddAnniversaryPage> {
 
   // 选择日期
   Future<void> _selectDate(BuildContext context) async {
-    final DateTime? picked = await showDatePicker(
+    AppDatePicker.show(
       context: context,
-      initialDate: _selectedDate,
-      firstDate: DateTime(1900),
-      lastDate: DateTime(2100),
-      builder: (context, child) {
-        return Theme(
-          data: Theme.of(context).copyWith(
-            colorScheme: ColorScheme.light(
-              primary: _selectedColor,
-              onPrimary: Colors.white,
-              onSurface: Colors.black,
-            ),
-          ),
-          child: child!,
-        );
+      mode: AppDatePickerMode.editDate,
+      initialDateTime: _selectedDate,
+      onConfirm: (dateTime) {
+        setState(() {
+          _selectedDate = dateTime;
+        });
       },
     );
-    if (picked != null && picked != _selectedDate) {
-      setState(() {
-        _selectedDate = picked;
-      });
-    }
   }
 
   String colorToHex(Color color) {
@@ -357,11 +345,9 @@ class _AddAnniversaryPageState extends State<AddAnniversaryPage> {
                       await createAnniversary(payload);
                       ToastUtils.showToast("保存成功");
                     }
-
                     Navigator.of(context).pop();
                     notifier.value = 'anniversary_added';
                   } catch (e, stack) {
-                    print("❌ ${isEdit ? '编辑' : '保存'}出错: $e\n$stack");
                     ToastUtils.showToast("${isEdit ? '编辑' : '保存'}失败，请稍后重试");
                   }
                 }
@@ -398,7 +384,6 @@ class _AddAnniversaryPageState extends State<AddAnniversaryPage> {
                   _buildSectionTitle("类型"),
                   _buildTypeSelector(),
                   const SizedBox(height: 20),
-
                   // 标题输入
                   _buildSectionTitle("标题"),
                   _buildTextField(
@@ -668,7 +653,7 @@ class _AddAnniversaryPageState extends State<AddAnniversaryPage> {
         hintStyle: TextStyle(color: Colors.grey.shade400),
         prefixIcon: Icon(prefixIcon, color: _selectedColor),
         filled: true,
-        fillColor: Colors.grey.shade50,
+        fillColor: Colors.white,
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
           borderSide: BorderSide.none,
@@ -690,7 +675,7 @@ class _AddAnniversaryPageState extends State<AddAnniversaryPage> {
     return Container(
       height: 50,
       decoration: BoxDecoration(
-        color: Colors.grey.shade50,
+        color: Colors.transparent,
         borderRadius: BorderRadius.circular(12),
       ),
       child: ListView.builder(
@@ -750,7 +735,7 @@ class _AddAnniversaryPageState extends State<AddAnniversaryPage> {
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
         decoration: BoxDecoration(
-          color: Colors.grey.shade50,
+          color: Colors.white,
           borderRadius: BorderRadius.circular(12),
         ),
         child: Row(
@@ -778,7 +763,7 @@ class _AddAnniversaryPageState extends State<AddAnniversaryPage> {
     return Container(
       height: 40,
       decoration: BoxDecoration(
-        color: Colors.grey.shade50,
+        color: Colors.transparent,
         borderRadius: BorderRadius.circular(12),
       ),
       child: ListView.builder(
@@ -835,7 +820,7 @@ class _AddAnniversaryPageState extends State<AddAnniversaryPage> {
     return Container(
       height: 70,
       decoration: BoxDecoration(
-        color: Colors.grey.shade50,
+        color: Colors.white,
         borderRadius: BorderRadius.circular(12),
       ),
       child: ListView.builder(
@@ -886,7 +871,7 @@ class _AddAnniversaryPageState extends State<AddAnniversaryPage> {
     return Container(
       height: 70,
       decoration: BoxDecoration(
-        color: Colors.grey.shade50,
+        color: Colors.white,
         borderRadius: BorderRadius.circular(12),
       ),
       child: ListView.builder(
@@ -939,7 +924,7 @@ class _AddAnniversaryPageState extends State<AddAnniversaryPage> {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
       decoration: BoxDecoration(
-        color: Colors.grey.shade50,
+        color: Colors.white,
         borderRadius: BorderRadius.circular(12),
       ),
       child: Row(
@@ -966,7 +951,7 @@ class _AddAnniversaryPageState extends State<AddAnniversaryPage> {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: Colors.grey.shade50,
+        color: Colors.white,
         borderRadius: BorderRadius.circular(12),
       ),
       child: Column(

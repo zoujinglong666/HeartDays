@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:heart_days/apis/plan.dart';
+import 'package:heart_days/components/DatePicker/date_picker.dart';
 import 'package:heart_days/pages/plan_page.dart';
 import 'package:heart_days/utils/ToastUtils.dart';
 import 'package:heart_days/utils/dateUtils.dart';
@@ -83,93 +84,36 @@ class _PlanEditPageState extends State<PlanEditPage> {
   }
 
   Future<void> _selectDate(BuildContext context) async {
-    final DateTime? picked = await showDatePicker(
+    AppDatePicker.show(
       context: context,
-      initialDate: _selectedDate,
-      firstDate: DateTime(2020),
-      lastDate: DateTime(2030),
-      builder: (context, child) {
-        return Theme(
-          data: Theme.of(context).copyWith(
-            colorScheme: const ColorScheme.light(
-              primary: Color(0xFF007AFF),
-              onPrimary: Colors.white,
-              surface: Colors.white,
-              onSurface: Color(0xFF1A1A1A),
-            ),
-          ),
-          child: child!,
-        );
+      mode: AppDatePickerMode.startTime,
+      initialDateTime: _selectedDate,
+      showLaterTime: true,
+      onConfirm: (date) {
+        setState(() {
+          _selectedDate = date;
+        });
       },
     );
-    if (picked != null && picked != _selectedDate) {
-      setState(() {
-        _selectedDate = picked;
-      });
-    }
   }
 
   Future<void> _selectDateTime(
     BuildContext context, {
     required bool isReminder,
   }) async {
-    final DateTime? pickedDate = await showDatePicker(
+    AppDatePicker.show(
       context: context,
-      initialDate: DateTime.now(),
-      firstDate: DateTime(2020),
-      lastDate: DateTime(2030),
-      builder: (context, child) {
-        return Theme(
-          data: Theme.of(context).copyWith(
-            colorScheme: const ColorScheme.light(
-              primary: Color(0xFF007AFF),
-              onPrimary: Colors.white,
-              surface: Colors.white,
-              onSurface: Color(0xFF1A1A1A),
-            ),
-          ),
-          child: child!,
-        );
-      },
-    );
-
-    if (pickedDate != null) {
-      final TimeOfDay? pickedTime = await showTimePicker(
-        context: context,
-        initialTime: TimeOfDay.now(),
-        builder: (context, child) {
-          return Theme(
-            data: Theme.of(context).copyWith(
-              colorScheme: const ColorScheme.light(
-                primary: Color(0xFF007AFF),
-                onPrimary: Colors.white,
-                surface: Colors.white,
-                onSurface: Color(0xFF1A1A1A),
-              ),
-            ),
-            child: child!,
-          );
-        },
-      );
-
-      if (pickedTime != null) {
-        final selectedDateTime = DateTime(
-          pickedDate.year,
-          pickedDate.month,
-          pickedDate.day,
-          pickedTime.hour,
-          pickedTime.minute,
-        );
-
+      mode: AppDatePickerMode.editDate,
+      onConfirm: (dateTime) {
         setState(() {
           if (isReminder) {
-            _selectedReminderTime = selectedDateTime;
+            _selectedReminderTime = dateTime;
           } else {
-            _selectedCompletedTime = selectedDateTime;
+            _selectedCompletedTime = dateTime;
           }
         });
-      }
-    }
+      },
+    );
   }
 
   void _clearDateTime({required bool isReminder}) {

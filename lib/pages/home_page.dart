@@ -169,40 +169,19 @@ class _HomePageState extends State<HomePage> {
     });
   }
 
-  Future<String> getOneSentencePerDay() async {
-    try {
-      final response = await Dio().get(
-        'https://apis.xygeng.cn/openapi/one',
-        options: Options(
-          headers: {
-            'Referer': 'https://apis.codelife.cc/',
-            'Origin': 'https://apis.codelife.cc/',
-            'Accept': 'application/json',
-          },
-          sendTimeout: Duration(seconds: 10),
-          receiveTimeout: Duration(seconds: 10),
-        ),
-      );
-      print(response);
-
-      if (response.statusCode == 200 &&
-          response.data is Map &&
-          response.data['data'] is Map) {
-        return response.data['data']['content'] ?? '';
-      } else {
-        return '';
-      }
-    } catch (e) {
-      return '';
-    }
+  Future<String> getOneSentencePerDay()  async {
+    return '每日一句话';
   }
 
   Future<void> _loadData() async {
     if (!mounted) return; // 避免 setState 报错
     await loadAnniversariesFromLocal();
     final oneSentenceStr = await getOneSentencePerDay();
-    setState(() {oneSentenceContent = oneSentenceStr;});
+    setState(() {
+      oneSentenceContent = oneSentenceStr;
+    });
   }
+
   @override
   Widget build(BuildContext context) {
     final container = Theme.of(context).colorScheme.primaryContainer;
