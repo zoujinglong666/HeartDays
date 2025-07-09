@@ -1,5 +1,3 @@
-// custom_picker.dart
-
 import 'package:flutter/material.dart';
 
 /// 一个通用的、可自定义列表项的滚动选择器组件。
@@ -87,7 +85,6 @@ class _CustomPickerState extends State<CustomPicker> {
   Widget build(BuildContext context) {
     // 列表中的总项目数
     final int itemCount = widget.endValue - widget.startValue + 1;
-
     return SizedBox(
       height: 120,
       child: Center(

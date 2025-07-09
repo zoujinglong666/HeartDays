@@ -71,7 +71,6 @@ List<String> getWeeksList(DateTime initialDate, int yearsBack, bool showLaterTim
 }
 
 /// 从周列表的字符串中解析出开始和结束的DateTime对象
-///
 /// @param weekValue - 格式如 "2023.01.02~2023.01.08(第一周)" 的字符串
 /// @return 返回一个包含 "startTime" 和 "endTime" 的Map
 Map<String, DateTime> getWeekTime(String weekValue) {

@@ -1,6 +1,6 @@
-// edit_date.dart
 
 import 'package:flutter/material.dart';
+import 'package:heart_days/components/date_picker/picker_item.dart';
 
 import 'custom_picker.dart';
 
@@ -193,7 +193,7 @@ class _EditDateState extends State<EditDate> {
         },
         itemBuilder:
             (context, value, isSelected) =>
-                _buildPickerItem(value.toString(), "年", isSelected),
+                pickerItem(value.toString(), "年", isSelected),
       ),
     );
   }
@@ -228,7 +228,7 @@ class _EditDateState extends State<EditDate> {
           );
         },
         itemBuilder:
-            (context, value, isSelected) => _buildPickerItem(
+            (context, value, isSelected) => pickerItem(
               value.toString().padLeft(2, '0'),
               "月",
               isSelected,
@@ -269,7 +269,7 @@ class _EditDateState extends State<EditDate> {
           );
         },
         itemBuilder:
-            (context, value, isSelected) => _buildPickerItem(
+            (context, value, isSelected) => pickerItem(
               value.toString().padLeft(2, '0'),
               "日",
               isSelected,
@@ -307,7 +307,7 @@ class _EditDateState extends State<EditDate> {
           );
         },
         itemBuilder:
-            (context, value, isSelected) => _buildPickerItem(
+            (context, value, isSelected) => pickerItem(
               value.toString().padLeft(2, '0'),
               "时",
               isSelected,
@@ -353,7 +353,7 @@ class _EditDateState extends State<EditDate> {
           widget.onDateChanged(newDate);
         },
         itemBuilder:
-            (context, value, isSelected) => _buildPickerItem(
+            (context, value, isSelected) => pickerItem(
               value.toString().padLeft(2, '0'),
               "分",
               isSelected,
@@ -425,78 +425,4 @@ class _EditDateState extends State<EditDate> {
     );
   }
 
-  /// 通用的 Picker Item 构建器
-  // Widget _buildPickerItem(String value, String suffix, bool isSelected) {
-  //   final Color textColor =
-  //       isSelected ? const Color(0xFF3482FF) : Colors.black54;
-  //   final FontWeight fontWeight =
-  //       isSelected ? FontWeight.bold : FontWeight.normal;
-  //   final double fontSize = isSelected ? 24 : 18;
-  //
-  //   return Center(
-  //     child: FittedBox(
-  //       fit: BoxFit.scaleDown,
-  //       child: Row(
-  //         mainAxisAlignment: MainAxisAlignment.center,
-  //         crossAxisAlignment: CrossAxisAlignment.end,
-  //         children: [
-  //           Text(
-  //             value,
-  //             style: TextStyle(
-  //               fontSize: fontSize,
-  //               color: textColor,
-  //               fontWeight: fontWeight,
-  //             ),
-  //           ),
-  //           if (isSelected)
-  //             Padding(
-  //               padding: const EdgeInsets.only(left: 2),
-  //               child: Text(
-  //                 suffix,
-  //                 style: const TextStyle(
-  //                   fontSize: 12,
-  //                   color: Color(0xFF3482FF),
-  //                   fontWeight: FontWeight.bold,
-  //                 ),
-  //               ),
-  //             ),
-  //         ],
-  //       ),
-  //     ),
-  //   );
-  // }
-
-  Widget _buildPickerItem(String value, String suffix, bool isSelected) {
-    final Color textColor =
-        isSelected ? const Color(0xFF3482FF) : Colors.black54;
-    final FontWeight fontWeight =
-        isSelected ? FontWeight.bold : FontWeight.normal;
-    final double fontSize = isSelected ? 24 : 18;
-
-    return Center(
-      child: RichText(
-        textAlign: TextAlign.center,
-        text: TextSpan(
-          children: [
-            TextSpan(
-              text: value,
-              style: TextStyle(
-                fontSize: fontSize,
-                color: textColor,
-                fontWeight: fontWeight,
-              ),
-            ),
-            TextSpan(
-              text: suffix,
-              style: TextStyle(
-                fontSize: 12,
-                color: textColor,
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
 }

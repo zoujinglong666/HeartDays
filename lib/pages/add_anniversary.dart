@@ -3,9 +3,10 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:heart_days/apis/anniversary.dart';
-import 'package:heart_days/components/DatePicker/date_picker.dart';
+import 'package:heart_days/components/date_picker/date_picker.dart';
 import 'package:heart_days/utils/Notifier.dart';
 import 'package:heart_days/utils/ToastUtils.dart';
+import 'package:heart_days/utils/dateUtils.dart';
 import 'package:intl/intl.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -743,7 +744,7 @@ class _AddAnniversaryPageState extends State<AddAnniversaryPage> {
             Icon(Icons.calendar_today, color: _selectedColor),
             const SizedBox(width: 16),
             Text(
-              DateFormat('yyyy年MM月dd日').format(_selectedDate),
+               formatDateTime(_selectedDate),
               style: const TextStyle(fontSize: 16, color: Colors.black87),
             ),
             const Spacer(),

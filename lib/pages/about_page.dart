@@ -1,31 +1,19 @@
 import 'package:flutter/material.dart';
+import 'package:heart_days/components/app_multi_picker/app_multi_picker.dart';
+import 'package:heart_days/components/app_picker/app_picker.dart';
 
 class AboutPage extends StatelessWidget {
   const AboutPage({super.key});
-
   @override
   Widget build(BuildContext context) {
     const Color primaryColor = Color(0xFF5C6BC0);
-    const Color accentColor = Color(0xFFFF7043);
     const Color backgroundColor = Color(0xFFF8F9FA);
 
     final List<Map<String, String>> highlights = [
-      {
-        'title': '纪念日提醒',
-        'description': '每一个特别的日子，我们都替你牢牢记住，温暖提示，不再错过。',
-      },
-      {
-        'title': '心愿记录',
-        'description': '写下你们的小心愿，让彼此共同期待与实现。',
-      },
-      {
-        'title': '照片时光轴',
-        'description': '用相册记录点滴回忆，时光流转，爱不褪色。',
-      },
-      {
-        'title': '节日关怀',
-        'description': '内置中国传统节日提醒，节日情感不缺席。',
-      },
+      {'title': '纪念日提醒', 'description': '每一个特别的日子，我们都替你牢牢记住，温暖提示，不再错过。'},
+      {'title': '心愿记录', 'description': '写下你们的小心愿，让彼此共同期待与实现。'},
+      {'title': '照片时光轴', 'description': '用相册记录点滴回忆，时光流转，爱不褪色。'},
+      {'title': '节日关怀', 'description': '内置中国传统节日提醒，节日情感不缺席。'},
     ];
 
     return Scaffold(
@@ -70,10 +58,7 @@ class AboutPage extends StatelessWidget {
                   const SizedBox(height: 8),
                   Text(
                     '记录爱与回忆的每一天',
-                    style: TextStyle(
-                      fontSize: 14,
-                      color: Colors.grey.shade600,
-                    ),
+                    style: TextStyle(fontSize: 14, color: Colors.grey.shade600),
                   ),
                 ],
               ),
@@ -94,8 +79,10 @@ class AboutPage extends StatelessWidget {
               return Container(
                 margin: const EdgeInsets.only(bottom: 16),
                 padding: const EdgeInsets.all(16),
-                height: 100, // 固定统一高度
-                width: double.infinity, // 👈 保证宽度占满父容器
+                height: 100,
+                // 固定统一高度
+                width: double.infinity,
+                // 👈 保证宽度占满父容器
                 decoration: BoxDecoration(
                   color: Colors.white,
                   borderRadius: BorderRadius.circular(16),
@@ -139,12 +126,7 @@ class AboutPage extends StatelessWidget {
                 ),
               );
             }),
-
-
-
-
             const SizedBox(height: 32),
-
             // 开发者信息
             const Text(
               '👨‍💻 关于开发者',
@@ -157,10 +139,38 @@ class AboutPage extends StatelessWidget {
             const SizedBox(height: 12),
             Text(
               'Heart Days 由一位热爱生活与设计的开发者精心打造，致力于提升情侣、家庭之间的情感连接。',
-              style: TextStyle(
-                fontSize: 14,
-                color: Colors.grey.shade700,
-              ),
+              style: TextStyle(fontSize: 14, color: Colors.grey.shade700),
+            ),
+
+            ElevatedButton(
+              onPressed: () {
+                final provinceCityMap = {
+                  '广东': ['广州', '深圳', '佛山'],
+                  '北京': ['朝阳', '海淀'],
+                  '江苏': ['南京', '苏州'],
+                };
+
+                AppMultiPicker.show<String>(
+                  context: context,
+                  title: '选择地区',
+                  columns: [
+                    provinceCityMap.keys.toList(),
+                    provinceCityMap['广东']!, // 初始默认广东
+                  ],
+                  onColumnChanged: (selectedValues) {
+                    final selectedProvince = selectedValues.first;
+                    return [
+                      provinceCityMap.keys.toList(),
+                      provinceCityMap[selectedProvince] ?? [],
+                    ];
+                  },
+                  onConfirm: (values) {
+                    print('省市: $values');
+                  },
+                );
+
+              },
+              child: Text("222222222222222222222222"),
             ),
 
             const SizedBox(height: 32),
@@ -168,10 +178,7 @@ class AboutPage extends StatelessWidget {
             Center(
               child: Text(
                 '版本号 v1.0.0',
-                style: TextStyle(
-                  fontSize: 12,
-                  color: Colors.grey.shade500,
-                ),
+                style: TextStyle(fontSize: 12, color: Colors.grey.shade500),
               ),
             ),
             const SizedBox(height: 40),

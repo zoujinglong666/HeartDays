@@ -1,9 +1,18 @@
 import 'package:flutter/material.dart';
 import 'package:heart_days/apis/plan.dart';
-import 'package:heart_days/components/DatePicker/date_picker.dart';
+import 'package:heart_days/components/app_picker/app_picker.dart';
+import 'package:heart_days/components/date_picker/date_picker.dart';
 import 'package:heart_days/pages/plan_page.dart';
 import 'package:heart_days/utils/ToastUtils.dart';
 import 'package:heart_days/utils/dateUtils.dart';
+
+class Category {
+  final String name;
+  final IconData icon;
+  final Color color;
+
+  const Category({required this.name, required this.icon, required this.color});
+}
 
 class PlanEditPage extends StatefulWidget {
   final Plan? plan;
@@ -26,23 +35,27 @@ class _PlanEditPageState extends State<PlanEditPage> {
   late int _selectedPriority;
   late int _selectedStatus;
 
-  final List<Map<String, dynamic>> _categories = [
-    {'name': '工作', 'icon': Icons.work, 'color': const Color(0xFFFF3B30)},
-    {'name': '学习', 'icon': Icons.school, 'color': const Color(0xFF007AFF)},
-    {
-      'name': '健身',
-      'icon': Icons.fitness_center,
-      'color': const Color(0xFF34C759),
-    },
-    {'name': '生活', 'icon': Icons.favorite, 'color': const Color(0xFFFF2D92)},
-    {'name': '娱乐', 'icon': Icons.games, 'color': const Color(0xFFFF9500)},
-    {
-      'name': '购物',
-      'icon': Icons.shopping_cart,
-      'color': const Color(0xFF5856D6),
-    },
-    {'name': '旅行', 'icon': Icons.flight, 'color': const Color(0xFF32D74B)},
-    {'name': '其他', 'icon': Icons.more_horiz, 'color': const Color(0xFF8E8E93)},
+  final List<Category> _categories = [
+    const Category(name: '工作', icon: Icons.work, color: Color(0xFFFF3B30)),
+    const Category(name: '学习', icon: Icons.school, color: Color(0xFF007AFF)),
+    const Category(
+      name: '健身',
+      icon: Icons.fitness_center,
+      color: Color(0xFF34C759),
+    ),
+    const Category(name: '生活', icon: Icons.favorite, color: Color(0xFFFF2D92)),
+    const Category(name: '娱乐', icon: Icons.games, color: Color(0xFFFF9500)),
+    const Category(
+      name: '购物',
+      icon: Icons.shopping_cart,
+      color: Color(0xFF5856D6),
+    ),
+    const Category(name: '旅行', icon: Icons.flight, color: Color(0xFF32D74B)),
+    const Category(
+      name: '其他',
+      icon: Icons.more_horiz,
+      color: Color(0xFF8E8E93),
+    ),
   ];
 
   final List<Map<String, dynamic>> _priorities = [
@@ -390,6 +403,54 @@ class _PlanEditPageState extends State<PlanEditPage> {
     );
   }
 
+  // 日期选择器
+  Widget _buildCategorySelector() {
+    return InkWell(
+      onTap: () {
+        AppPicker.show<String>(
+          context: context,
+          options: _categories.map((item) => item.name).toList(),
+          title: '选择分类',
+          initialValue: _selectedCategory,
+          onConfirm: (value) {
+            setState(() {
+              _selectedCategory = value;
+            });
+
+          },
+        );
+      },
+      borderRadius: BorderRadius.circular(12),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+        decoration: BoxDecoration(
+          color: const Color(0xFFF2F2F7),
+          borderRadius: BorderRadius.circular(12),
+        ),
+        child: Row(
+          children: [
+            const Icon(
+              Icons.category,
+              color: Color(0xFF007AFF),
+              size: 20,
+            ),
+            const SizedBox(width: 16),
+            Text(
+              _selectedCategory,
+              style: const TextStyle(fontSize: 16, color: Colors.black87),
+            ),
+            const Spacer(),
+            Icon(
+              Icons.arrow_forward_ios,
+              size: 16,
+              color: Colors.grey.shade400,
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
   Widget _buildCategoryCard() {
     return Container(
       width: double.infinity,
@@ -417,71 +478,71 @@ class _PlanEditPageState extends State<PlanEditPage> {
             ),
           ),
           const SizedBox(height: 20),
-          GridView.builder(
-            physics: const NeverScrollableScrollPhysics(),
-            shrinkWrap: true,
-            gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-              crossAxisCount: 2,
-              crossAxisSpacing: 12,
-              mainAxisSpacing: 12,
-              childAspectRatio: 2.5,
-            ),
-            itemCount: _categories.length,
-            itemBuilder: (context, index) {
-              final category = _categories[index];
-              final isSelected = _selectedCategory == category['name'];
-              return Material(
-                color: Colors.transparent,
-                child: InkWell(
-                  onTap: () {
-                    setState(() {
-                      _selectedCategory = category['name'];
-                    });
-                  },
-                  borderRadius: BorderRadius.circular(12),
-                  child: Container(
-                    decoration: BoxDecoration(
-                      color:
-                          isSelected
-                              ? category['color'].withOpacity(0.1)
-                              : const Color(0xFFF2F2F7),
-                      borderRadius: BorderRadius.circular(12),
-                      border: Border.all(
-                        color:
-                            isSelected ? category['color'] : Colors.transparent,
-                        width: 2,
-                      ),
-                    ),
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Icon(
-                          category['icon'],
-                          color:
-                              isSelected
-                                  ? category['color']
-                                  : const Color(0xFF8E8E93),
-                          size: 20,
-                        ),
-                        const SizedBox(width: 8),
-                        Text(
-                          category['name'],
-                          style: TextStyle(
-                            fontSize: 14,
-                            fontWeight: FontWeight.w600,
-                            color:
-                                isSelected
-                                    ? category['color']
-                                    : const Color(0xFF1A1A1A),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-              );
-            },
-          ),
+          _buildCategorySelector(),
+          // GridView.builder(
+          //   physics: const NeverScrollableScrollPhysics(),
+          //   shrinkWrap: true,
+          //   gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+          //     crossAxisCount: 2,
+          //     crossAxisSpacing: 12,
+          //     mainAxisSpacing: 12,
+          //     childAspectRatio: 2.5,
+          //   ),
+          //   itemCount: _categories.length,
+          //   itemBuilder: (context, index) {
+          //     final category = _categories[index];
+          //     final isSelected = _selectedCategory == category.name;
+          //     return Material(
+          //       color: Colors.transparent,
+          //       child: InkWell(
+          //         onTap: () {
+          //           setState(() {
+          //             _selectedCategory = category.name;
+          //           });
+          //         },
+          //         borderRadius: BorderRadius.circular(12),
+          //         child: Container(
+          //           decoration: BoxDecoration(
+          //             color:
+          //                 isSelected
+          //                     ? category.color.withOpacity(0.1)
+          //                     : const Color(0xFFF2F2F7),
+          //             borderRadius: BorderRadius.circular(12),
+          //             border: Border.all(
+          //               color: isSelected ? category.color : Colors.transparent,
+          //               width: 2,
+          //             ),
+          //           ),
+          //           child: Row(
+          //             mainAxisAlignment: MainAxisAlignment.center,
+          //             children: [
+          //               Icon(
+          //                 category.icon,
+          //                 color:
+          //                     isSelected
+          //                         ? category.color
+          //                         : const Color(0xFF8E8E93),
+          //                 size: 20,
+          //               ),
+          //               const SizedBox(width: 8),
+          //               Text(
+          //                 category.name,
+          //                 style: TextStyle(
+          //                   fontSize: 14,
+          //                   fontWeight: FontWeight.w600,
+          //                   color:
+          //                       isSelected
+          //                           ? category.color
+          //                           : const Color(0xFF1A1A1A),
+          //                 ),
+          //               ),
+          //             ],
+          //           ),
+          //         ),
+          //       ),
+          //     );
+          //   },
+          // ),
         ],
       ),
     );

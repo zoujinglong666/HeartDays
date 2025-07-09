@@ -1,7 +1,5 @@
 import 'dart:convert';
-
 import 'package:chinese_lunar_calendar/chinese_lunar_calendar.dart';
-import 'package:dio/dio.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_slidable/flutter_slidable.dart';
@@ -89,14 +87,10 @@ class _HomePageState extends State<HomePage> {
     try {
       final prefs = await SharedPreferences.getInstance();
       final authDataString = prefs.getString('auth_data');
-      print(authDataString);
-
       if (authDataString == null) {
-        print("⚠️ auth_data 不存在");
         setState(() => anniversaries = []);
         return;
       }
-
       final Map<String, dynamic> authMap = jsonDecode(authDataString);
       final authState = AuthState.fromJson(authMap);
       if (authState.user?.id == null) {
@@ -105,8 +99,7 @@ class _HomePageState extends State<HomePage> {
         return;
       }
 
-      final response = await fetchAnniversaryListByUserId(authState.user!.id!);
-      print("✅ 成功加载纪念日数量: ${response.data}");
+      final response = await fetchAnniversaryListByUserId(authState.user!.id);
       if (response.code == 200 && response.data != null) {
         print("✅ 成功加载纪念日数量: ${response.data!.length}");
         setState(() => anniversaries = response.data!);
@@ -561,7 +554,7 @@ class _HomePageState extends State<HomePage> {
 
     // 侧滑删除和编辑功能
     return Dismissible(
-      key: Key(item.date.toString() ?? DateTime.now().toString()),
+      key: Key(item.date.toString()),
       // 确保每个卡片有唯一的key
       direction: DismissDirection.endToStart,
       // 从右向左滑动
@@ -953,7 +946,7 @@ class _HomePageState extends State<HomePage> {
                     ),
                   ],
                 ),
-                if (item.description!.isNotEmpty) ...[
+                if (item.description.isNotEmpty) ...[
                   const SizedBox(height: 16),
                   Container(
                     width: double.infinity,

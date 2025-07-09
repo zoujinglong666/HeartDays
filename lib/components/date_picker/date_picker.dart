@@ -1,6 +1,7 @@
 // date_picker.dart
 
 import 'package:flutter/material.dart';
+import 'dart:ui'; // 导入 dart:ui 以使用 ImageFilter
 import 'edit_date.dart';
 import 'edit_time.dart';
 import 'filter_date.dart';
@@ -36,7 +37,7 @@ class AppDatePicker {
   ///
   /// @param context - BuildContext
   /// @param mode - 选择器模式，决定了UI和行为
-  /// @param onConfirm - 点击“确定”按钮的回调，返回选择结果
+  /// @param onConfirm - 点击"确定"按钮的回调，返回选择结果
   /// @param filterType - 当 mode 为 filterDate 时，指定筛选类型（周/月/年）
   /// @param initialDateTime - 初始显示的日期时间，默认为当前时间
   /// @param startTime - 可选的最小开始时间，用于限制选择范围
@@ -45,7 +46,7 @@ class AppDatePicker {
   /// @param yearsBack - 在筛选模式下，从当前年份回溯的年数
   /// @param showLaterTime - 是否允许选择未来的时间，默认为 true
   /// @param onChange - （可选）当选择值变化时的实时回调
-  /// @param onCancel - （可选）点击“取消”或遮罩时的回调
+  /// @param onCancel - （可选）点击"取消"或遮罩时的回调
   static void show({
     required BuildContext context,
     required AppDatePickerMode mode,
@@ -56,7 +57,6 @@ class AppDatePicker {
     DateTime? initialDateTime,
     DateTime? startTime,
     int? yearsBack,
-    int? yearsForward,
     bool? showLaterTime,
     Color? primaryColor, // ✅ 新增：主题色参数
     Function(dynamic)? onChange,
@@ -77,7 +77,6 @@ class AppDatePicker {
             onChange: onChange ?? (_) {},
             filterType: filterType ?? FilterType.week,
             yearsBack: yearsBack ?? 3,
-            yearsForward: yearsForward ?? 0,
             startTime: startTime,
             showLaterTime: showLaterTime ?? true,
             onConfirm: (selectedTime) {
@@ -103,7 +102,6 @@ class DatePickerOverlay extends StatefulWidget {
   final DateTime? startTime;
   final FilterType filterType;
   final int yearsBack;
-  final int yearsForward;
   final String? title; // [NEW]
   final WeekItemBuilder? weekItemBuilder; // [NEW]
   final bool showLaterTime;
@@ -124,17 +122,12 @@ class DatePickerOverlay extends StatefulWidget {
     this.startTime,
     this.filterType = FilterType.week,
     this.yearsBack = 3,
-    this.yearsForward = 0,
   });
 
   @override
   State<DatePickerOverlay> createState() => _DatePickerOverlayState();
 }
 
-//
-// 你这段代码的 _animationController = AnimationController(...) 中传入了 vsync: this，this 代表当前的类实例。但是为了 this 能作为 vsync，当前类必须实现 TickerProvider 或 TickerProviderStateMixin。
-// ❌ 报错原因：
-// this 报错是因为当前类没有实现 TickerProvider，所以不能作为 vsync 参数传入。
 class _DatePickerOverlayState extends State<DatePickerOverlay> with SingleTickerProviderStateMixin {
   // 用于存储 editDate, startTime, endTime 模式下的选择结果
   late DateTime _selectedDateTime;
@@ -224,11 +217,6 @@ class _DatePickerOverlayState extends State<DatePickerOverlay> with SingleTicker
     widget.onChange(value);
   }
 
-  /// 处理确认按钮点击事件
-  // void _onConfirm() {
-  //   widget.onConfirm(_selectionResult);
-  // }
-
   /// 根据模式获取选择器的标题
   String _getPickerTitle() {
     if (widget.title != null) {
@@ -253,20 +241,59 @@ class _DatePickerOverlayState extends State<DatePickerOverlay> with SingleTicker
   Widget build(BuildContext context) {
     return Stack(
       children: [
-        // 半透明遮罩，使用动画控制透明度
+        // 半透明遮罩，使用动画控制透明度，添加模糊效果
+        // Positioned.fill(
+        //   child: GestureDetector(
+        //     onTap: _handleCancel,
+        //     child: AnimatedBuilder(
+        //       animation: _animation,
+        //       builder: (context, child) {
+        //         final opacity = _animation.value;
+        //         return Container(
+        //           color: Colors.black.withOpacity(0.3 * opacity),
+        //           child: Container(
+        //             decoration: BoxDecoration(
+        //               gradient: LinearGradient(
+        //                 begin: Alignment.topCenter,
+        //                 end: Alignment.bottomCenter,
+        //                 colors: [
+        //                   Colors.black.withOpacity(0.2 * opacity),
+        //                   Colors.black.withOpacity(0.5 * opacity),
+        //                 ],
+        //               ),
+        //             ),
+        //           ),
+        //         );
+        //       },
+        //     ),
+        //   ),
+        // ),
+
         Positioned.fill(
-          child: AnimatedBuilder(
-            animation: _animation,
-            builder: (context, child) {
-              return GestureDetector(
-                onTap: _handleCancel,
-                child: Container(
-                  color: Colors.black.withOpacity(0.54 * _animation.value),
-                ),
-              );
-            },
+          child: GestureDetector(
+            onTap: _handleCancel,
+            child: AnimatedBuilder(
+              animation: _animation,
+              builder: (context, child) {
+                return Container(
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      begin: Alignment.topCenter,
+                      end: Alignment.bottomCenter,
+                      colors: [
+                        Colors.black.withOpacity(0.4 * _animation.value),
+                        Colors.black.withOpacity(0.6 * _animation.value),
+                      ],
+                      stops: const [0.0, 1.0],
+                    ),
+                  ),
+                );
+              },
+            ),
           ),
         ),
+
+
         // 主内容面板，使用动画控制位置
         AnimatedBuilder(
           animation: _animation,
@@ -285,6 +312,14 @@ class _DatePickerOverlayState extends State<DatePickerOverlay> with SingleTicker
               decoration: BoxDecoration(
                 color: Colors.white,
                 borderRadius: BorderRadius.circular(32),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withOpacity(0.2),
+                    blurRadius: 15,
+                    spreadRadius: 2,
+                    offset: const Offset(0, 4),
+                  ),
+                ],
               ),
               child: Column(
                 mainAxisSize: MainAxisSize.min,
@@ -341,7 +376,6 @@ class _DatePickerOverlayState extends State<DatePickerOverlay> with SingleTicker
           type: widget.filterType,
           initialDate: _selectedDateTime,
           yearsBack: widget.yearsBack,
-          yearsForward: widget.yearsForward,
           showLaterTime: widget.showLaterTime,
           onDateChanged: _onValueChanged,
           // [MODIFIED] 将 weekItemBuilder 传递给 FilterDate
@@ -356,7 +390,7 @@ class _DatePickerOverlayState extends State<DatePickerOverlay> with SingleTicker
     }
   }
 
-  /// 构建底部的“取消”和“确定”按钮
+  /// 构建底部的"取消"和"确定"按钮
   Widget _buildActionButtons() {
     return Row(
       children: [
@@ -377,7 +411,7 @@ class _DatePickerOverlayState extends State<DatePickerOverlay> with SingleTicker
         Expanded(
           child: TextButton(
             style: TextButton.styleFrom(
-              backgroundColor: const Color(0xFF3482ff),
+              backgroundColor: const Color(0xFF42A5F5),
               padding: const EdgeInsets.symmetric(vertical: 14),
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
             ),
@@ -390,4 +424,4 @@ class _DatePickerOverlayState extends State<DatePickerOverlay> with SingleTicker
       ],
     );
   }
-  }
+}

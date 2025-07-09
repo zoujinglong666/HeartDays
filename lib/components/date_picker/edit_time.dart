@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:heart_days/components/date_picker/picker_item.dart';
 import 'custom_picker.dart';
 /// 仅用于编辑时间（时、分）的组件
 class EditTime extends StatefulWidget {
@@ -12,6 +13,7 @@ class EditTime extends StatefulWidget {
     required this.showLaterTime,
     required this.onDateChanged,
   });
+
   @override
   State<EditTime> createState() => _EditTimeState();
 }
@@ -70,7 +72,7 @@ class _EditTimeState extends State<EditTime> {
                 });
                 _notifyChange();
               },
-              itemBuilder: (context, value, isSelected) => _buildPickerItem(
+              itemBuilder: (context, value, isSelected) => pickerItem(
                 value.toString().padLeft(2, '0'),
                 "时",
                 isSelected,
@@ -89,7 +91,7 @@ class _EditTimeState extends State<EditTime> {
                 });
                 _notifyChange();
               },
-              itemBuilder: (context, value, isSelected) => _buildPickerItem(
+              itemBuilder: (context, value, isSelected) => pickerItem(
                 value.toString().padLeft(2, '0'),
                 "分",
                 isSelected,
@@ -101,39 +103,5 @@ class _EditTimeState extends State<EditTime> {
     );
   }
 
-  /// Picker Item 的通用构建方法
-  Widget _buildPickerItem(String value, String suffix, bool isSelected) {
-    final Color textColor = isSelected ? const Color(0xFF3482FF) : Colors.black54;
-    final FontWeight fontWeight = isSelected ? FontWeight.bold : FontWeight.normal;
-    final double fontSize = isSelected ? 24 : 18;
 
-    return Center(
-      child: Stack(
-        clipBehavior: Clip.none,
-        alignment: Alignment.center,
-        children: [
-          Text(
-            value,
-            style: TextStyle(
-              fontSize: fontSize,
-              color: textColor,
-              fontWeight: fontWeight,
-            ),
-          ),
-          if (isSelected)
-            Positioned(
-              right: -16,
-              child: Text(
-                suffix,
-                style: const TextStyle(
-                  fontSize: 12,
-                  color: Color(0xFF3482FF),
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-            ),
-        ],
-      ),
-    );
-  }
 }

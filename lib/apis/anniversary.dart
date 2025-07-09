@@ -3,6 +3,9 @@ import 'dart:ui';
 import 'package:heart_days/http/http_manager.dart';
 import 'package:heart_days/http/model/api_response.dart';
 
+import 'package:flutter/material.dart';
+import 'package:intl/intl.dart';
+
 class Anniversary {
   final String? id;
   final String title;
@@ -34,61 +37,80 @@ class Anniversary {
     this.updatedAt,
   });
 
-  factory Anniversary.fromJson(Map<String, dynamic> json) {
-    // 处理颜色字段
-    Color? parseColor(dynamic colorValue) {
-      if (colorValue == null) return null;
-      if (colorValue is int) return Color(colorValue);
-      if (colorValue is String) {
-        // 处理十六进制颜色字符串
-        if (colorValue.startsWith('#')) {
-          colorValue = colorValue.substring(1);
-        }
-        try {
-          return Color(int.parse(colorValue, radix: 16) + 0xFF000000);
-        } catch (e) {
-          print("❌ 颜色解析失败: $colorValue");
-          return null;
-        }
+  /// 颜色解析函数
+  static Color? parseColor(dynamic colorValue) {
+    if (colorValue == null) return null;
+    if (colorValue is int) return Color(colorValue);
+    if (colorValue is String) {
+      if (colorValue.startsWith('#')) {
+        colorValue = colorValue.substring(1);
       }
-      return null;
+      try {
+        return Color(int.parse(colorValue, radix: 16) + 0xFF000000);
+      } catch (e) {
+        print("❌ 颜色解析失败: $colorValue");
+      }
+    }
+    return null;
+  }
+
+  /// 日期解析函数，兼容 'yyyy-MM-dd HH:mm:ss' 格式
+  static DateTime parseDateTime(dynamic input) {
+    if (input == null) return DateTime(2000);
+    if (input is DateTime) return input;
+
+    final str = input.toString();
+
+    // 优先标准 ISO 格式
+    try {
+      return DateTime.parse(str).toLocal();
+    } catch (_) {}
+
+    // 使用 intl 解析 yyyy-MM-dd HH:mm:ss 格式为 UTC 再转本地
+    try {
+      final formatter = DateFormat("yyyy-MM-dd HH:mm:ss");
+      return formatter.parseUtc(str).toLocal();
+    } catch (e) {
+      print("❌ 日期解析失败: $str");
     }
 
+    return DateTime(2000);
+  }
+
+  factory Anniversary.fromJson(Map<String, dynamic> json) {
     return Anniversary(
       id: json['id']?.toString() ?? '',
       title: json['title'] ?? '',
-      date: DateTime.tryParse(json['date']) ?? DateTime.now(),
-      icon: json['icon'] ?? '',
       description: json['description'] ?? '',
+      date: parseDateTime(json['date']),
+      icon: json['icon'] ?? '',
       color: parseColor(json['color']),
       type: json['type'] ?? '',
       isPinned: json['is_pinned'] ?? json['isPinned'] ?? false,
       isHighlighted: json['is_highlighted'] ?? json['isHighlighted'] ?? false,
       repetitiveType: json['repetitive_type'] ?? '',
       userId: json['user_id']?.toString(),
-      createdAt:
-          json['created_at'] != null
-              ? DateTime.tryParse(json['created_at'])
-              : null,
-      updatedAt:
-          json['updated_at'] != null
-              ? DateTime.tryParse(json['updated_at'])
-              : null,
+      createdAt: parseDateTime(json['created_at']),
+      updatedAt: parseDateTime(json['updated_at']),
     );
   }
 
   Map<String, dynamic> toJson() {
-    // 处理颜色序列化
     String? serializeColor(Color? color) {
       if (color == null) return null;
       return '#${color.value.toRadixString(16).padLeft(8, '0').substring(2)}';
+    }
+
+    String? serializeDate(DateTime? date) {
+      if (date == null) return null;
+      return date.toIso8601String(); // 你也可以换成 yyyy-MM-dd HH:mm:ss 格式
     }
 
     return {
       if (id != null && id!.isNotEmpty) 'id': id,
       'title': title,
       'description': description,
-      'date': date.toIso8601String(),
+      'date': serializeDate(date),
       'icon': icon,
       'color': serializeColor(color),
       'type': type,
@@ -96,18 +118,13 @@ class Anniversary {
       'is_highlighted': isHighlighted,
       'repetitive_type': repetitiveType,
       'user_id': userId,
-      'created_at': createdAt?.toIso8601String(),
-      'updated_at': updatedAt?.toIso8601String(),
+      'created_at': serializeDate(createdAt),
+      'updated_at': serializeDate(updatedAt),
     };
   }
 }
 
-/// 获取所有纪念日
-Future<List<Anniversary>> fetchAnniversaryAll() async {
-  final res = await HttpManager.get('/anniversaries');
-  if (res.code != 200 || res.data == null) throw Exception(res.message);
-  return (res.data as List).map((e) => Anniversary.fromJson(e)).toList();
-}
+
 
 /// 获取指定 ID 的纪念日
 Future<Anniversary> fetchById(int id) async {

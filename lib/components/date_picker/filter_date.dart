@@ -1,6 +1,7 @@
 // filter_date.dart
 
 import 'package:flutter/material.dart';
+import 'package:heart_days/components/date_picker/picker_item.dart';
 import 'custom_picker.dart';
 import 'date_picker.dart';
 import 'date_picker_utils.dart';
@@ -191,7 +192,7 @@ class _FilterDateState extends State<FilterDate> {
               },
               itemBuilder:
                   (context, value, isSelected) =>
-                      _buildPickerItem(value.toString(), "年", isSelected),
+                      pickerItem(value.toString(), "年", isSelected),
             ),
           ),
           Expanded(
@@ -209,7 +210,7 @@ class _FilterDateState extends State<FilterDate> {
                 _onFilterChanged();
               },
               itemBuilder:
-                  (context, value, isSelected) => _buildPickerItem(
+                  (context, value, isSelected) => pickerItem(
                     value.toString().padLeft(2, '0'),
                     "月",
                     isSelected,
@@ -237,44 +238,9 @@ class _FilterDateState extends State<FilterDate> {
         },
         itemBuilder:
             (context, value, isSelected) =>
-                _buildPickerItem(value.toString(), "年", isSelected),
+               pickerItem(value.toString(), "年", isSelected),
       ),
     );
   }
 
-  Widget _buildPickerItem(String value, String suffix, bool isSelected) {
-    final Color textColor =
-        isSelected ? const Color(0xFF3482FF) : Colors.black54;
-    final FontWeight fontWeight =
-        isSelected ? FontWeight.bold : FontWeight.normal;
-    final double fontSize = isSelected ? 24 : 18;
-    return Center(
-      child: Stack(
-        clipBehavior: Clip.none,
-        alignment: Alignment.center,
-        children: [
-          Text(
-            value,
-            style: TextStyle(
-              fontSize: fontSize,
-              color: textColor,
-              fontWeight: fontWeight,
-            ),
-          ),
-          if (isSelected)
-            Positioned(
-              right: -16,
-              child: Text(
-                suffix,
-                style: const TextStyle(
-                  fontSize: 12,
-                  color: Color(0xFF3482FF),
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-            ),
-        ],
-      ),
-    );
-  }
 }
