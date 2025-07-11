@@ -4,6 +4,8 @@ class AdapterInterceptorHandler extends Interceptor {
   @override
   void onResponse(Response response, ResponseInterceptorHandler handler) {
     // 统一格式适配
+
+    print('✅ 统一格式适配 response: $response');
     if (response.data is Map<String, dynamic> && response.data.containsKey('result')) {
       response.data = response.data['result'];
     }

@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:heart_days/apis/anniversary.dart';
+import 'package:heart_days/common/event_bus.dart';
 import 'package:heart_days/components/date_picker/date_picker.dart';
 import 'package:heart_days/utils/Notifier.dart';
 import 'package:heart_days/utils/ToastUtils.dart';
@@ -164,28 +165,6 @@ class _AddAnniversaryPageState extends State<AddAnniversaryPage> {
     const Color(0xFF00975d), // su7（Dawn Pink）
   ];
 
-  Future<void> saveAnniversaryToLocal(
-    Map<String, dynamic> newAnniversary,
-  ) async {
-    final prefs = await SharedPreferences.getInstance();
-    final key = 'anniversaries';
-
-    // 获取已存的数据
-    final String? rawList = prefs.getString(key);
-    List<Map<String, dynamic>> anniversaryList = [];
-
-    if (rawList != null) {
-      final List<dynamic> decoded = json.decode(rawList);
-      anniversaryList = decoded.cast<Map<String, dynamic>>();
-    }
-
-    // 添加新数据
-    anniversaryList.add(newAnniversary);
-
-    // 保存
-    await prefs.setString(key, json.encode(anniversaryList));
-  }
-
   @override
   void initState() {
     super.initState();
@@ -341,13 +320,14 @@ class _AddAnniversaryPageState extends State<AddAnniversaryPage> {
                   try {
                     if (isEdit) {
                       await updateAnniversary(payload);
+                      eventBus.fire(AnniversaryListUpdated());
                       ToastUtils.showToast("编辑成功");
                     } else {
                       await createAnniversary(payload);
+                      eventBus.fire(AnniversaryListUpdated());
                       ToastUtils.showToast("保存成功");
                     }
                     Navigator.of(context).pop();
-                    notifier.value = 'anniversary_added';
                   } catch (e, stack) {
                     ToastUtils.showToast("${isEdit ? '编辑' : '保存'}失败，请稍后重试");
                   }
@@ -1029,47 +1009,4 @@ class _AddAnniversaryPageState extends State<AddAnniversaryPage> {
     );
   }
 
-  // 保存按钮
-  // Widget _buildSaveButton() {
-  //   return ElevatedButton(
-  //     onPressed: () async {
-  //       if (_formKey.currentState!.validate()) {
-  //         final newAnniversary = Anniversary(
-  //           id: DateTime.now().millisecondsSinceEpoch.toString(),
-  //           title: _titleController.text,
-  //           date: _selectedDate,
-  //           icon: _selectedIcon,
-  //           description: _descriptionController.text,
-  //           color: _selectedColor,
-  //           type: _selectedType,
-  //           isPinned: _isPinned,
-  //           isHighlighted: _isHighlighted,
-  //           repetitiveType: "",
-  //         );
-  //
-  //         // 🔸 保存到本地
-  //         await saveAnniversaryToLocal(newAnniversary.toJson());
-  //
-  //         // 添加成功后发出事件
-  //         notifier.value = 'anniversary_added';
-  //         // 返回上一页
-  //         ToastUtils.showToast("保存成功");
-  //
-  //         Navigator.of(context).pop();
-  //       }
-  //     },
-  //     style: ElevatedButton.styleFrom(
-  //       backgroundColor: _selectedColor,
-  //       foregroundColor: Colors.white,
-  //       padding: const EdgeInsets.symmetric(vertical: 16),
-  //       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-  //       elevation: 0,
-  //       minimumSize: const Size(double.infinity, 56), // 确保按钮足够高
-  //     ),
-  //     child: const Text(
-  //       "保存",
-  //       style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-  //     ),
-  //   );
-  // }
 }

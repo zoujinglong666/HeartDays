@@ -20,13 +20,19 @@ class LogInterceptorHandler extends Interceptor {
     final response = err.response;
     String errorMessage = "请求失败，请稍后重试";
 
+    // 👇 如果是 401，说明有 token 过期处理，不提示 toast
+    if (response?.statusCode == 401) {
+      print("⚠️ 检测到 401 错误，跳过提示（由刷新 token 逻辑处理）");
+      super.onError(err, handler); // 继续传递给后续逻辑（如刷新 token）
+      return;
+    }
+
     if (response != null) {
       print("⚠️ 状态码: ${response.statusCode}");
       print("⚠️ 返回体: ${response.data}");
 
       final data = response.data;
       if (data is Map<String, dynamic>) {
-        // 👇 检查外层 message 是嵌套 Map
         final innerMessage = data['message'];
         if (innerMessage is String) {
           errorMessage = innerMessage;
@@ -47,5 +53,6 @@ class LogInterceptorHandler extends Interceptor {
     ToastUtils.showToast(errorMessage);
     super.onError(err, handler);
   }
+
 
 }

@@ -4,6 +4,7 @@ import 'package:flutter/services.dart';
 import 'package:heart_days/pages/register_page.dart';
 import 'package:heart_days/provider/auth_provider.dart';
 import 'package:heart_days/utils/ToastUtils.dart';
+import 'package:heart_days/utils/simpleEncryptor_utils.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../utils/app_theme_controller.dart';
 import 'package:heart_days/apis/user.dart';
@@ -146,20 +147,25 @@ class _LoginPageState extends ConsumerState<LoginPage>
         _isLoading = true;
       });
       try {
+
+        final secret = 'mySecret';
+        final encrypted = SimpleEncryptor.encryptText(_passwordController.text, secret);
+        print("密文: $encrypted");
         final response = await userLogin({
           "userAccount": _usernameController.text,
-          "password": _passwordController.text,
+          "password": encrypted,
         });
 
         if (response.code == 200) {
           final user = response.data?.user;
           final token = response.data?.accessToken;
+          final refreshToken = response.data?.refreshToken;
           if (user != null && token != null) {
             _showToast('登录成功');
             await ref.read(authProvider.notifier).login(user, token);
-
             final prefs = await SharedPreferences.getInstance();
             await prefs.setString('token', token);
+            await prefs.setString('refresh_token', refreshToken!);
 
             Navigator.of(
               context,

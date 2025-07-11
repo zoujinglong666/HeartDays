@@ -75,16 +75,19 @@ class UserDto {
 
 class LoginResponse {
   final String accessToken;
+  final String? refreshToken; // 添加refreshToken字段
   final User user;
 
   LoginResponse({
     required this.accessToken,
+    this.refreshToken,
     required this.user,
   });
 
   factory LoginResponse.fromJson(Map<String, dynamic> json) {
     return LoginResponse(
       accessToken: json['access_token'],
+      refreshToken: json['refresh_token'], // 解析refreshToken
       user: User.fromJson(json['user']),
     );
   }
@@ -92,6 +95,7 @@ class LoginResponse {
   Map<String, dynamic> toJson() {
     return {
       'access_token': accessToken,
+      'refresh_token': refreshToken,
       'user': user.toJson(),
     };
   }
@@ -108,11 +112,11 @@ class User {
 
   User({
     this.id = '',
-    this.gender=0,
     this.name = '无名',
     this.userAccount = '',
     this.email = '',
     this.avatar = '',
+    this.gender = 0,
     this.roles = const ['user'],
   });
 
@@ -130,7 +134,6 @@ class User {
     );
   }
 
-
   Map<String, dynamic> toJson() {
     return {
       'id': id,
@@ -138,12 +141,11 @@ class User {
       'userAccount': userAccount,
       'email': email,
       'avatar': avatar,
-      'roles': roles,
       'gender': gender,
+      'roles': roles,
     };
   }
 }
-
 
 Future<ApiResponse<UserDto>> userRegister(Map<String, dynamic> data) async {
   return await HttpManager.post<UserDto>(
@@ -153,19 +155,50 @@ Future<ApiResponse<UserDto>> userRegister(Map<String, dynamic> data) async {
   );
 }
 Future<ApiResponse<LoginResponse>> userLogin(Map<String, dynamic> data) async {
-  return await HttpManager.post<LoginResponse>( // ✅ 改成 LoginResponse
+  return await HttpManager.post<LoginResponse>(
     "/auth/login",
     data: data,
     fromJson: (json) => LoginResponse.fromJson(json), // ✅ 保持一致
   );
 }
-
+Future<ApiResponse> userLogoutApi() async {
+  return await HttpManager.post<LoginResponse>(
+    "/auth/logout",
+  );
+}
 
 Future<ApiResponse<User>> updateUser(Map<String, dynamic> data) async {
-  return await HttpManager.post<User>( // ✅ 改成 LoginResponse
+  return await HttpManager.post<User>(
     "/users/update",
     data: data,
     fromJson: (json) => User.fromJson(json), // ✅ 保持一致
+  );
+}
+
+/// 强制登出其他设备
+Future<ApiResponse<void>> forceLogoutOtherDevices() async {
+  return await HttpManager.post<void>(
+    "/auth/force-logout-others",
+    data: {},
+    fromJson: (json) => null,
+  );
+}
+class RefreshTokenRequest {
+  final String refreshToken;
+
+  RefreshTokenRequest({required this.refreshToken});
+
+  Map<String, dynamic> toJson() => {
+    'refresh_token': refreshToken,
+  };
+}
+
+/// 刷新token
+Future<ApiResponse<Map<String, dynamic>>> refreshTokenApi(Map<String, dynamic> data) async {
+  return await HttpManager.post<Map<String, dynamic>>(
+    "/auth/refresh",
+    data: data,
+    fromJson: (json) => json,
   );
 }
 

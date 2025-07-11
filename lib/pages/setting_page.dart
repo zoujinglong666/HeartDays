@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:heart_days/apis/user.dart';
 import 'package:heart_days/provider/auth_provider.dart';
 import 'package:heart_days/utils/ToastUtils.dart';
 
@@ -191,6 +192,7 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
               ),
               TextButton(
                 onPressed: () async {
+                  await userLogoutApi();
                   await ref.read(authProvider.notifier).logout();
                   // 退出登录，清除导航栈并跳转到登录页面
                   Navigator.of(context).pushNamedAndRemoveUntil(

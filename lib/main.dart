@@ -31,6 +31,8 @@ void main() {
           (route) => false,
     );
   });
+
+
   runApp(
     ProviderScope( // ✅ 必须包裹全应用
       child: MyApp(), // 或 App()
@@ -41,10 +43,6 @@ void main() {
 
 class MyApp extends StatelessWidget {
   const MyApp({super.key});
-
-
-
-
   @override
   Widget build(BuildContext context) {
     return MaterialApp(

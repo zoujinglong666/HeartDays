@@ -1,9 +1,11 @@
+import 'dart:async';
 import 'dart:convert';
 import 'package:chinese_lunar_calendar/chinese_lunar_calendar.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_slidable/flutter_slidable.dart';
 import 'package:heart_days/apis/anniversary.dart';
+import 'package:heart_days/common/event_bus.dart';
 import 'package:heart_days/components/AnimatedCardWrapper.dart';
 import 'package:heart_days/components/SwiperCardView.dart';
 import 'package:heart_days/pages/add_anniversary.dart';
@@ -11,6 +13,7 @@ import 'package:heart_days/pages/today_history_page.dart';
 import 'package:heart_days/provider/auth_provider.dart';
 import 'package:heart_days/utils/Notifier.dart';
 import 'package:heart_days/utils/SafeNavigator.dart';
+import 'package:heart_days/common/event_bus.dart';
 import 'package:intl/intl.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../components/BaseInfoCard.dart';
@@ -87,6 +90,7 @@ class _HomePageState extends State<HomePage> {
     try {
       final prefs = await SharedPreferences.getInstance();
       final authDataString = prefs.getString('auth_data');
+      print(authDataString);
       if (authDataString == null) {
         setState(() => anniversaries = []);
         return;
@@ -94,11 +98,9 @@ class _HomePageState extends State<HomePage> {
       final Map<String, dynamic> authMap = jsonDecode(authDataString);
       final authState = AuthState.fromJson(authMap);
       if (authState.user?.id == null) {
-        print("⚠️ 用户 ID 缺失");
         setState(() => anniversaries = []);
         return;
       }
-
       final response = await fetchAnniversaryListByUserId(authState.user!.id);
       if (response.code == 200 && response.data != null) {
         print("✅ 成功加载纪念日数量: ${response.data!.length}");
@@ -148,31 +150,47 @@ class _HomePageState extends State<HomePage> {
   }
 
   // 这是 Dart 的生命周期 & 异步使用问题 —— initState() 不能是 async 函数，也不能直接 await。你需要把 await 操作放到 initState() 中调用的另一个函数里。
+  StreamSubscription? _anniversarySubscription;
+
   @override
   void initState() {
     super.initState();
     _loadData();
-
-    // 监听事件
-    notifier.addListener(() {
-      if (notifier.value == 'anniversary_added') {
-        _loadData(); // 🔄 刷新
-        notifier.value = null; // 重置事件，防止重复触发
-      }
+    // ✅ 监听纪念日列表更新事件
+    _anniversarySubscription = eventBus.on<AnniversaryListUpdated>().listen((event) {
+      print("🔄 收到纪念日列表更新事件，开始刷新...");
+      _loadData(); // 🔄 刷新
     });
   }
 
-  Future<String> getOneSentencePerDay()  async {
+  Future<String> getOneSentencePerDay() async {
     return '每日一句话';
   }
 
   Future<void> _loadData() async {
     if (!mounted) return; // 避免 setState 报错
-    await loadAnniversariesFromLocal();
-    final oneSentenceStr = await getOneSentencePerDay();
-    setState(() {
-      oneSentenceContent = oneSentenceStr;
-    });
+    
+    print("🔄 开始加载纪念日数据...");
+    try {
+      await loadAnniversariesFromLocal();
+      final oneSentenceStr = await getOneSentencePerDay();
+      
+      if (mounted) {
+        setState(() {
+          oneSentenceContent = oneSentenceStr;
+        });
+        print("✅ 纪念日数据加载完成，当前数量: ${anniversaries.length}");
+      }
+    } catch (e) {
+      print("❌ 加载纪念日数据失败: $e");
+    }
+  }
+
+  @override
+  void dispose() {
+    // 清理事件监听器，避免内存泄漏
+    _anniversarySubscription?.cancel();
+    super.dispose();
   }
 
   @override
@@ -644,6 +662,8 @@ class _HomePageState extends State<HomePage> {
                         );
                       });
                       await anniversaryDeleteById(int.parse(item.id as String));
+                      // 发送删除成功事件
+                      eventBus.fire(AnniversaryListUpdated());
                     }
                   }
                 },
