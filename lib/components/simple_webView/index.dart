@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:heart_days/components/AnimatedGradientLinearProgress.dart';
 import 'package:webview_flutter/webview_flutter.dart';
 
 class SimpleWebView extends StatefulWidget {
@@ -16,6 +17,7 @@ class SimpleWebView extends StatefulWidget {
   final Function(String)? onUrlChanged;
   final Function(String)? onTitleChanged;
   final Widget? loadingWidget;
+  final Widget? errorWidget; // 新增：自定义错误界面
 
   const SimpleWebView({
     super.key,
@@ -31,6 +33,7 @@ class SimpleWebView extends StatefulWidget {
     this.onUrlChanged,
     this.onTitleChanged,
     this.loadingWidget,
+    this.errorWidget, // 新增参数
   });
 
   @override
@@ -42,6 +45,8 @@ class _SimpleWebViewState extends State<SimpleWebView> {
   String _currentTitle = '';
   String _currentUrl = '';
   bool _isLoading = true;
+  bool _hasError = false; // 新增：错误状态
+  String _errorMessage = ''; // 新增：错误信息
   double _progress = 0.0;
   bool _canGoBack = false;
   bool _canGoForward = false;
@@ -77,6 +82,8 @@ class _SimpleWebViewState extends State<SimpleWebView> {
           onPageStarted: (url) {
             setState(() {
               _isLoading = true;
+              _hasError = false; // 重置错误状态
+              _errorMessage = '';
               _progress = 0.0;
             });
             widget.onUrlChanged?.call(url);
@@ -86,15 +93,44 @@ class _SimpleWebViewState extends State<SimpleWebView> {
               _progress = progress / 100;
             });
           },
-          onPageFinished: (url) {
+          onPageFinished: (url) async {
             setState(() {
               _isLoading = false;
+              _hasError = false;
               _currentUrl = url;
             });
+
+            // 可选：增强空内容检测
+            try {
+              final content = await _controller.runJavaScriptReturningResult(
+                "document.body.innerText.trim()",
+              );
+
+              if ((content as String).isEmpty) {
+                setState(() {
+                  _hasError = true;
+                  _errorMessage = '页面加载内容为空';
+                });
+              }
+            } catch (_) {
+              // JS 执行失败忽略
+            }
+
             _getTitle();
             _checkNavigationState();
             widget.onUrlChanged?.call(url);
           },
+          onWebResourceError: (WebResourceError error) {
+            final isMainFrame = error.isForMainFrame ?? true; // iOS 上 null 默认 true
+            if (isMainFrame && _shouldShowCustomError(error.errorType!)) {
+              setState(() {
+                _isLoading = false;
+                _hasError = true;
+                _errorMessage = _getErrorMessage(error);
+              });
+            }
+          },
+
           onNavigationRequest: (request) => NavigationDecision.navigate,
         ),
       )
@@ -103,6 +139,61 @@ class _SimpleWebViewState extends State<SimpleWebView> {
         onMessageReceived: (message) => _handleJSMessage(message.message),
       );
 
+    _loadUrl();
+  }
+
+  // 新增：判断是否应该显示自定义错误界面
+  bool _shouldShowCustomError(WebResourceErrorType errorType) {
+    switch (errorType) {
+      case WebResourceErrorType.timeout:
+        return true; // 连接超时
+      case WebResourceErrorType.hostLookup:
+        return true; // 无法连接到服务器
+      case WebResourceErrorType.unknown:
+        return true; // 未知错误（通常是网络问题）
+      case WebResourceErrorType.badUrl:
+        return true; // 无效的网址
+      case WebResourceErrorType.failedSslHandshake:
+        return true; // SSL证书验证失败
+      case WebResourceErrorType.tooManyRequests:
+        return true; // 请求过于频繁
+      case WebResourceErrorType.redirectLoop:
+        return true; // 重定向循环
+      default:
+        return false; // 其他错误类型不显示自定义错误界面
+    }
+  }
+
+  // 新增：获取错误信息
+  String _getErrorMessage(WebResourceError error) {
+    switch (error.errorType) {
+      case WebResourceErrorType.unknown:
+        return '网络连接异常，请检查网络设置';
+      case WebResourceErrorType.badUrl:
+        return '网址格式错误，请检查链接是否正确';
+      case WebResourceErrorType.timeout:
+        return '连接超时，请检查网络连接后重试';
+      case WebResourceErrorType.hostLookup:
+        return '无法连接到服务器，请检查网络连接';
+      case WebResourceErrorType.failedSslHandshake:
+        return '安全连接失败，请检查网络设置';
+      case WebResourceErrorType.tooManyRequests:
+        return '请求过于频繁，请稍后再试';
+      case WebResourceErrorType.redirectLoop:
+        return '页面重定向异常，请稍后重试';
+      default:
+        return '加载失败，请检查网络连接';
+    }
+  }
+
+  // 新增：重试加载
+  void _retry() {
+    setState(() {
+      _isLoading = true;
+      _hasError = false;
+      _errorMessage = '';
+      _progress = 0.0;
+    });
     _loadUrl();
   }
 
@@ -197,6 +288,15 @@ class _SimpleWebViewState extends State<SimpleWebView> {
     }
   }
 
+  // 新增：处理手势返回
+  Future<bool> _onWillPop() async {
+    if (await _controller.canGoBack()) {
+      _controller.goBack();
+      return false; // 阻止默认的返回行为
+    }
+    return true; // 允许默认的返回行为
+  }
+
   void _goForward() async {
     if (await _controller.canGoForward()) {
       _controller.goForward();
@@ -216,19 +316,25 @@ class _SimpleWebViewState extends State<SimpleWebView> {
     final showRefresh = widget.showRefresh != false;
     final showProgress = widget.showProgress != false;
 
-    return Scaffold(
-      backgroundColor: Colors.white,
-      appBar: showNav ? _buildAppBar(showBackIcon, showRefresh) : null,
-      body: SafeArea(
-        top: !showNav,
-        child: Container(
-          color: Colors.white,
-          child: Stack(
-            children: [
-              WebViewWidget(controller: _controller),
-              if (showProgress && _isLoading && _progress < 1.0) _buildProgressBar(),
-              if (_isLoading && !showProgress) _buildLoadingIndicator(),
-            ],
+    return WillPopScope(
+      onWillPop: _onWillPop,
+      child: Scaffold(
+        backgroundColor: Colors.white,
+        appBar: showNav ? _buildAppBar(showBackIcon, showRefresh) : null,
+        body: SafeArea(
+          top: !showNav,
+          child: Container(
+            color: Colors.white,
+            child: Stack(
+              children: [
+                if (!_hasError) WebViewWidget(controller: _controller),
+                if (showProgress && _isLoading && !_hasError && _progress < 1.0)
+                  _buildProgressBar(),
+                if (_isLoading && !showProgress && !_hasError)
+                  _buildLoadingIndicator(),
+                if (_hasError) _buildErrorWidget(), // 放最后一层，遮住 webview
+              ],
+            ),
           ),
         ),
       ),
@@ -345,11 +451,10 @@ class _SimpleWebViewState extends State<SimpleWebView> {
       top: 0,
       left: 0,
       right: 0,
-      child: LinearProgressIndicator(
+      child:AnimatedGradientLinearProgress(
         value: _progress,
         backgroundColor: Colors.grey.shade200,
-        valueColor: AlwaysStoppedAnimation<Color>(Color(0xFF4A90E2)),
-      ),
+      )
     );
   }
 
@@ -366,6 +471,49 @@ class _SimpleWebViewState extends State<SimpleWebView> {
               Text(
                 '加载中...',
                 style: TextStyle(color: Colors.grey.shade600, fontSize: 14),
+              ),
+            ],
+          ),
+    );
+  }
+
+  Widget _buildErrorWidget() {
+    return Center(
+      child: widget.errorWidget ??
+          Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(
+                Icons.signal_wifi_off,
+                size: 64,
+                color: Colors.grey.shade400,
+              ),
+              const SizedBox(height: 16),
+              Text(
+                '网络连接失败',
+                style: TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.w500,
+                  color: Colors.grey.shade700,
+                ),
+              ),
+              const SizedBox(height: 8),
+              Text(
+                _errorMessage,
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  color: Colors.grey.shade600,
+                  fontSize: 14,
+                ),
+              ),
+              const SizedBox(height: 24),
+              ElevatedButton.icon(
+                onPressed: _retry,
+                icon: const Icon(Icons.refresh),
+                label: const Text('重试'),
+                style: ElevatedButton.styleFrom(
+                  foregroundColor: Colors.white,
+                ),
               ),
             ],
           ),

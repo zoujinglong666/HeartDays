@@ -7,50 +7,59 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 class TokenInterceptorHandler extends Interceptor {
   SharedPreferences? _prefs;
-  final Map<String, bool> _refreshingRequests = {};
+  final Dio _dio;
 
-  Future<SharedPreferences> get prefs async {
-    _prefs ??= await SharedPreferences.getInstance();
-    return _prefs!;
-  }
-  late final Dio _dio;
+  TokenInterceptorHandler(this._dio);
 
-  bool _isRefreshing = false;
-  List<Function(String)> _retryQueue = []; // 持有失败请求的处理器
   final List<String> authWhitelist = [
     '/login',
     '/register',
     '/auth/refresh',
   ];
-  TokenInterceptorHandler(this._dio);
+
+  Future<SharedPreferences> get prefs async {
+    _prefs ??= await SharedPreferences.getInstance();
+    return _prefs!;
+  }
+
+  bool _isRefreshing = false;
+  List<Function(String)> _retryQueue = [];
+
+  /// 保存已重试请求的 key，防止重复 retry
+  final Set<String> _retriedRequests = {};
+
+  /// 缓存 key：用于判断请求唯一性（路径+方法）
+  String _cacheKey(RequestOptions options) =>
+      "${options.method}:${options.path}:${options.queryParameters.toString()}";
+
+  /// 网络监听只注册一次
+  static bool _hasNetworkListener = false;
+
   @override
-  void onRequest(
-    RequestOptions options,
-    RequestInterceptorHandler handler,
-  ) async {
+  void onRequest(RequestOptions options, RequestInterceptorHandler handler) async {
     try {
-      Connectivity().onConnectivityChanged.listen((ConnectivityResult result) {
-        if (result == ConnectivityResult.none) {
-          ToastUtils.showToast('网络连接已断开');
-        }
-      });
+      if (!_hasNetworkListener) {
+        _hasNetworkListener = true;
+        Connectivity().onConnectivityChanged.listen((ConnectivityResult result) {
+          if (result == ConnectivityResult.none) {
+            ToastUtils.showToast('网络连接已断开');
+          }
+        });
+      }
+
       final p = await prefs;
       final token = p.getString('token');
-
       if (token != null && token.isNotEmpty) {
         options.headers['Authorization'] = 'Bearer $token';
         print('✅ 附带 Token 请求: $token');
-      } else {
-        print('⚠️ 无 Token，跳过 Authorization 设置');
       }
 
       handler.next(options);
     } catch (e) {
-      print('❌ TokenInterceptor 错误: $e');
-      handler.next(options); // 继续请求
+      print('❌ 请求处理异常: $e');
+      handler.next(options);
     }
   }
-
 
   bool _isWhitelisted(String path) {
     return authWhitelist.any((api) => path.contains(api));
@@ -59,16 +68,18 @@ class TokenInterceptorHandler extends Interceptor {
   @override
   void onError(DioError err, ErrorInterceptorHandler handler) async {
     final path = err.requestOptions.path;
+    final key = _cacheKey(err.requestOptions);
 
     if (err.response?.statusCode == 401 && !_isWhitelisted(path)) {
       final prefsInstance = await prefs;
       final oldRefreshToken = prefsInstance.getString("refresh_token");
 
-      // ✅ 如果正在刷新，就把当前请求放到等待队列里
       if (_isRefreshing) {
-        print("⏳ 正在刷新 Token，将请求加入队列等待");
+        print("⏳ 正在刷新 Token，将请求加入队列等待: $path");
         _retryQueue.add((String token) async {
           try {
+            if (_retriedRequests.contains(key)) return;
+            _retriedRequests.add(key);
             final clonedRequest = await _retryRequest(err.requestOptions, token);
             handler.resolve(clonedRequest as Response);
           } catch (e) {
@@ -93,20 +104,22 @@ class TokenInterceptorHandler extends Interceptor {
           if (newToken != null) {
             await prefsInstance.setString('token', newToken);
             await prefsInstance.setString('refresh_token', newRefreshToken);
-
             _dio.options.headers['Authorization'] = 'Bearer $newToken';
 
-            // 先重试当前请求
-            final retryResponse = await _retryRequest(err.requestOptions, newToken);
-            handler.resolve(retryResponse as Response);
+            // 当前请求也一起重试
+            if (!_retriedRequests.contains(key)) {
+              _retriedRequests.add(key);
+              final retryResponse = await _retryRequest(err.requestOptions, newToken);
+              handler.resolve(retryResponse as Response);
+            }
 
-            // 再处理等待队列
+            // 队列中所有请求
             for (var retry in _retryQueue) {
               retry(newToken);
             }
             _retryQueue.clear();
 
-            print("✅ 刷新成功，所有请求已重试");
+            print("✅ Token刷新成功，所有请求已重试");
             return;
           }
         }
@@ -114,30 +127,29 @@ class TokenInterceptorHandler extends Interceptor {
         print("❌ Token刷新失败");
         await _logout();
 
-        handler.reject(err); // 当前请求失败
+        handler.reject(err);
         for (var retry in _retryQueue) {
-          retry(""); // 通知失败
+          retry("");
         }
         _retryQueue.clear();
       } catch (e) {
         print("❌ 刷新异常: $e");
         await _logout();
 
-        handler.reject(err); // 当前请求失败
+        handler.reject(err);
         for (var retry in _retryQueue) {
-          retry(""); // 通知失败
+          retry("");
         }
         _retryQueue.clear();
       } finally {
         _isRefreshing = false;
+        _retriedRequests.clear();
       }
-
     } else {
-      handler.next(err); // 非 401 或白名单请求
+      handler.next(err);
     }
   }
 
-  /// 尝试重新请求
   Future<Response> _retryRequest(RequestOptions requestOptions, String token) async {
     final options = Options(
       method: requestOptions.method,
@@ -153,7 +165,6 @@ class TokenInterceptorHandler extends Interceptor {
     );
   }
 
-  /// 退出登录逻辑
   Future<void> _logout() async {
     final prefsInstance = await prefs;
     await prefsInstance.remove('token');
@@ -161,9 +172,9 @@ class TokenInterceptorHandler extends Interceptor {
     await prefsInstance.remove('auth_data');
     eventBus.fire(TokenExpiredEvent());
   }
+
   @override
   void onResponse(Response response, ResponseInterceptorHandler handler) {
-    // 可以在这里处理响应，比如检查token是否即将过期
     handler.next(response);
   }
 }
