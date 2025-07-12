@@ -13,8 +13,13 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 class AddAnniversaryPage extends StatefulWidget {
   final Anniversary? anniversaryItem;
+  final DateTime? initialDate;
 
-  const AddAnniversaryPage({super.key, this.anniversaryItem});
+  const AddAnniversaryPage({
+    super.key, 
+    this.anniversaryItem,
+    this.initialDate,
+  });
 
   @override
   State<AddAnniversaryPage> createState() => _AddAnniversaryPageState();
@@ -178,7 +183,7 @@ class _AddAnniversaryPageState extends State<AddAnniversaryPage> {
     _descriptionController.text = widget.anniversaryItem?.description ?? '';
 
     // 初始化日期
-    _selectedDate = widget.anniversaryItem?.date ?? DateTime.now();
+    _selectedDate = widget.anniversaryItem?.date ?? widget.initialDate ?? DateTime.now();
 
     // 初始化图标
     _selectedIcon = widget.anniversaryItem?.icon ?? '💖';

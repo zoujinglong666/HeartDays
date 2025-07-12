@@ -1,12 +1,16 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_overlay_window/flutter_overlay_window.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:heart_days/common/event_bus.dart';
 import 'package:heart_days/pages/SplashPage.dart';
 import 'package:heart_days/pages/main_page.dart';
 import 'package:heart_days/pages/login_page.dart';
 import 'package:flutter/services.dart';
+import 'package:heart_days/pages/node_page.dart';
+import 'package:heart_days/services/floating_note_service.dart';
 import 'package:heart_days/utils/navigation_service.dart';
-void main() {
+
+Future<void> main() async {
   // 沉浸状态栏 + 底部导航栏
   SystemChrome.setSystemUIOverlayStyle(
     const SystemUiOverlayStyle(
@@ -21,37 +25,59 @@ void main() {
   // SystemChrome.setEnabledSystemUIMode(
   //   SystemUiMode.edgeToEdge, // 启用沉浸式底部栏
   // );
-       // 注册拦截器
+  // 注册拦截器
 
   // ✅ 监听 Token 过期事件
   eventBus.on<TokenExpiredEvent>().listen((event) {
     print("📢 Token 过期事件触发，跳转登录页");
     NavigationService.navigatorKey.currentState?.pushNamedAndRemoveUntil(
       '/login',
-          (route) => false,
+      (route) => false,
     );
   });
 
+  WidgetsFlutterBinding.ensureInitialized();
 
-  runApp(
-    ProviderScope( // ✅ 必须包裹全应用
-      child: MyApp(), // 或 App()
-    ),
-  );
+  // 检查是否从悬浮窗启动
+  final isOverlayActive = await FlutterOverlayWindow.isActive();
+  print(isOverlayActive);
+
+  if (isOverlayActive) {
+    runApp(
+      MaterialApp(
+        debugShowCheckedModeBanner: false,
+        home: const FloatingNoteService(),
+        theme: ThemeData(
+          useMaterial3: true,
+          colorScheme: ColorScheme.fromSeed(seedColor: AppTheme.primary),
+        ),
+      ),
+    );
+  } else {
+    // 原有的应用启动代码
+    runApp(
+      ProviderScope(
+        // ✅ 必须包裹全应用
+        child: MyApp(), // 或 App()
+      ),
+    );
+  }
 }
-
 
 class MyApp extends StatelessWidget {
   const MyApp({super.key});
+
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
       title: '甜甜纪念日',
-      navigatorKey: NavigationService.navigatorKey, // ✅ 设置全局跳转控制器
+      navigatorKey: NavigationService.navigatorKey,
+      // ✅ 设置全局跳转控制器
       theme: ThemeData(
         colorScheme: ColorScheme.fromSeed(seedColor: Colors.transparent),
       ),
-      home: const SplashPage(), // ✅ 设置启动页为判断页
+      home: const SplashPage(),
+      // ✅ 设置启动页为判断页
       routes: {
         '/login': (context) => const LoginPage(),
         '/main': (context) => MainPage(),
@@ -59,4 +85,3 @@ class MyApp extends StatelessWidget {
     );
   }
 }
-

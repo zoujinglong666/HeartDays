@@ -6,6 +6,7 @@ import 'dart:io';
 import 'interceptors/log_interceptor.dart';
 import 'interceptors/loading_interceptor.dart';
 import 'interceptors/token_interceptor.dart';
+import 'interceptors/auth_interceptor.dart';
 import 'interceptors/adapter_interceptor.dart';
 import 'package:dio_cache_interceptor/dio_cache_interceptor.dart';
 import 'package:path_provider/path_provider.dart';
@@ -32,7 +33,7 @@ class DioClient {
     dio.interceptors.addAll([
       LogInterceptorHandler(),
       LoadingInterceptorHandler(),
-      TokenInterceptorHandler(),
+      TokenInterceptorHandler(dio),
       AdapterInterceptorHandler(),
     ]);
 

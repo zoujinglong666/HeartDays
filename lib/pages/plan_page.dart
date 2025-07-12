@@ -309,17 +309,7 @@ class _PlanPageState extends State<PlanPage> {
           IconButton(
             icon: const Icon(Icons.search, color: Colors.black87),
             onPressed: () {
-              // 显示搜索提示
-              ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(
-                  content: const Text('搜索功能开发中...'),
-                  backgroundColor: const Color(0xFF007AFF),
-                  behavior: SnackBarBehavior.floating,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                ),
-              );
+
             },
           ),
         ],

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 
 /// 一个通用的、可自定义列表项的滚动选择器组件。
 /// 它基于 `ListWheelScrollView` 构建，并将 item 的构建委托给外部。
@@ -99,6 +100,8 @@ class _CustomPickerState extends State<CustomPicker> {
           onSelectedItemChanged: (index) {
             // 当用户滚动选择时，计算新的值
             final newValue = widget.startValue + index;
+            // 🚀 增加滚动时的震动反馈
+            HapticFeedback.selectionClick();
             // 更新内部状态以触发UI重建（例如，选中项的样式变化）
             setState(() {
               _selectedValue = newValue;

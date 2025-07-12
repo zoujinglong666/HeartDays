@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:heart_days/components/app_multi_picker/app_multi_picker.dart';
 import 'package:heart_days/components/app_picker/app_picker.dart';
+import 'package:heart_days/components/simple_webView/example.dart';
 import 'package:heart_days/pages/mqtt_page.dart';
 
 class AboutPage extends StatelessWidget {
@@ -61,6 +62,15 @@ class AboutPage extends StatelessWidget {
                     '记录爱与回忆的每一天',
                     style: TextStyle(fontSize: 14, color: Colors.grey.shade600),
                   ),
+                  GestureDetector(child: MaterialButton(onPressed: (){
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => WebViewExample(),
+                      ),
+                    );
+
+                  },child: Text('1111111111111111111'),))
                 ],
               ),
             ),

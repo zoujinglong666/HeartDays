@@ -1,56 +1,22 @@
-import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:dio/dio.dart';
 import 'package:heart_days/apis/user.dart';
 import 'package:heart_days/common/event_bus.dart';
-import 'package:heart_days/utils/ToastUtils.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 
-class TokenInterceptorHandler extends Interceptor {
-  SharedPreferences? _prefs;
-  final Map<String, bool> _refreshingRequests = {};
-
-  Future<SharedPreferences> get prefs async {
-    _prefs ??= await SharedPreferences.getInstance();
-    return _prefs!;
-  }
-  late final Dio _dio;
+class AuthInterceptor extends Interceptor {
+  final Dio _dio;
 
   bool _isRefreshing = false;
   List<Function(String)> _retryQueue = []; // 持有失败请求的处理器
+
+  AuthInterceptor(this._dio);
+
   final List<String> authWhitelist = [
     '/login',
     '/register',
     '/auth/refresh',
   ];
-  TokenInterceptorHandler(this._dio);
-  @override
-  void onRequest(
-    RequestOptions options,
-    RequestInterceptorHandler handler,
-  ) async {
-    try {
-      Connectivity().onConnectivityChanged.listen((ConnectivityResult result) {
-        if (result == ConnectivityResult.none) {
-          ToastUtils.showToast('网络连接已断开');
-        }
-      });
-      final p = await prefs;
-      final token = p.getString('token');
 
-      if (token != null && token.isNotEmpty) {
-        options.headers['Authorization'] = 'Bearer $token';
-        print('✅ 附带 Token 请求: $token');
-      } else {
-        print('⚠️ 无 Token，跳过 Authorization 设置');
-      }
-
-      handler.next(options);
-    } catch (e) {
-      print('❌ TokenInterceptor 错误: $e');
-      handler.next(options); // 继续请求
-    }
-  }
-
+  get prefs => null;
 
   bool _isWhitelisted(String path) {
     return authWhitelist.any((api) => path.contains(api));
@@ -160,10 +126,5 @@ class TokenInterceptorHandler extends Interceptor {
     await prefsInstance.remove('refresh_token');
     await prefsInstance.remove('auth_data');
     eventBus.fire(TokenExpiredEvent());
-  }
-  @override
-  void onResponse(Response response, ResponseInterceptorHandler handler) {
-    // 可以在这里处理响应，比如检查token是否即将过期
-    handler.next(response);
   }
 }

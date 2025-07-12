@@ -213,10 +213,10 @@ class _LoginPageState extends ConsumerState<LoginPage>
                         const SizedBox(height: 32), // 减少顶部间距
                         // Logo和标题区域
                         _buildHeader(),
-                        const SizedBox(height: 24), // 减少间距
+                        const SizedBox(height: 16), // 减少间距
                         // Tab切换
                         // _buildTabBar(),
-                        const SizedBox(height: 16), // 减少间距
+                        // const SizedBox(height: 16), // 减少间距
                         // 登录卡片
                         _buildLoginCard(),
                       ],

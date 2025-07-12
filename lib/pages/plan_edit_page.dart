@@ -113,9 +113,11 @@ class _PlanEditPageState extends State<PlanEditPage> {
   Future<void> _selectDateTime(
     BuildContext context, {
     required bool isReminder,
+    String? title,
   }) async {
     AppDatePicker.show(
       context: context,
+      title: title,
       mode: AppDatePickerMode.editDate,
       onConfirm: (dateTime) {
         setState(() {
@@ -416,7 +418,6 @@ class _PlanEditPageState extends State<PlanEditPage> {
             setState(() {
               _selectedCategory = value;
             });
-
           },
         );
       },
@@ -429,11 +430,7 @@ class _PlanEditPageState extends State<PlanEditPage> {
         ),
         child: Row(
           children: [
-            const Icon(
-              Icons.category,
-              color: Color(0xFF007AFF),
-              size: 20,
-            ),
+            const Icon(Icons.category, color: Color(0xFF007AFF), size: 20),
             const SizedBox(width: 16),
             Text(
               _selectedCategory,
@@ -666,7 +663,9 @@ class _PlanEditPageState extends State<PlanEditPage> {
           _buildDateTimeSelector(
             label: '提醒时间',
             selectedDateTime: _selectedReminderTime,
-            onTap: () => _selectDateTime(context, isReminder: true),
+            onTap:
+                () =>
+                    _selectDateTime(context, isReminder: true, title: "编辑提醒时间"),
             onClear: () => _clearDateTime(isReminder: true),
             icon: Icons.notifications_outlined,
           ),
@@ -674,7 +673,12 @@ class _PlanEditPageState extends State<PlanEditPage> {
           _buildDateTimeSelector(
             label: '完成时间',
             selectedDateTime: _selectedCompletedTime,
-            onTap: () => _selectDateTime(context, isReminder: false),
+            onTap:
+                () => _selectDateTime(
+                  context,
+                  isReminder: false,
+                  title: "编辑完成时间",
+                ),
             onClear: () => _clearDateTime(isReminder: false),
             icon: Icons.check_circle_outline,
           ),
