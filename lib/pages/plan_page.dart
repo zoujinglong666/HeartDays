@@ -10,7 +10,6 @@ import 'package:table_calendar/table_calendar.dart';
 import 'plan_detail_page.dart';
 import 'plan_edit_page.dart';
 import 'pomodoro_timer_page.dart';
-import 'package:heart_days/main.dart';
 
 class PlanPage extends StatefulWidget {
   const PlanPage({super.key});
