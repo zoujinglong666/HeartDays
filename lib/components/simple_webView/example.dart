@@ -78,7 +78,7 @@ class WebViewExample extends StatelessWidget {
       context,
       MaterialPageRoute(
         builder: (context) => const SimpleWebView(
-          initialUrl: 'https://www.baidu.com',
+          initialUrl: 'https://juejin.cn/',
           pageTitle: '百度',
         ),
       ),

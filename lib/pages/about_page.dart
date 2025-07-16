@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:heart_days/components/app_multi_picker/app_multi_picker.dart';
 import 'package:heart_days/components/app_picker/app_picker.dart';
 import 'package:heart_days/components/simple_webView/example.dart';
+import 'package:heart_days/pages/calendar_integration_example.dart';
 import 'package:heart_days/pages/mqtt_page.dart';
 
 class AboutPage extends StatelessWidget {
@@ -66,7 +67,7 @@ class AboutPage extends StatelessWidget {
                     Navigator.push(
                       context,
                       MaterialPageRoute(
-                        builder: (context) => WebViewExample(),
+                        builder: (context) => CalendarIntegrationExample(),
                       ),
                     );
 
