@@ -11,10 +11,12 @@ class RegisterPage extends StatefulWidget {
 class _RegisterPageState extends State<RegisterPage>
     with TickerProviderStateMixin {
   final TextEditingController _usernameController = TextEditingController();
+  final TextEditingController _emailController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
   final TextEditingController _confirmPasswordController =
       TextEditingController();
   final FocusNode _usernameFocusNode = FocusNode();
+  final FocusNode _emailFocusNode = FocusNode();
   final FocusNode _passwordFocusNode = FocusNode();
   final FocusNode _confirmPasswordFocusNode = FocusNode();
 
@@ -61,9 +63,11 @@ class _RegisterPageState extends State<RegisterPage>
   @override
   void dispose() {
     _usernameController.dispose();
+    _emailController.dispose();
     _passwordController.dispose();
     _confirmPasswordController.dispose();
     _usernameFocusNode.dispose();
+    _emailFocusNode.dispose();
     _passwordFocusNode.dispose();
     _confirmPasswordFocusNode.dispose();
     _animationController.dispose();
@@ -102,6 +106,10 @@ class _RegisterPageState extends State<RegisterPage>
   Future<void> _handleRegister() async {
     if (_usernameController.text.isEmpty) {
       _showToast('请输入账号');
+      return;
+    }
+    if (_emailController.text.isEmpty) {
+      _showToast('请输入邮箱');
       return;
     }
     if (_passwordController.text.isEmpty) {
@@ -146,6 +154,7 @@ class _RegisterPageState extends State<RegisterPage>
       try {
         final response = await userRegister({
           "userAccount": username,
+          "email": _emailController.text.trim(),
           "password": password,
           "confirmPassword": confirmPassword,
         });
@@ -294,6 +303,10 @@ class _RegisterPageState extends State<RegisterPage>
           _buildUsernameInput(),
 
           const SizedBox(height: 16),
+          // 邮箱输入框
+          _buildEmailInput(),
+
+          const SizedBox(height: 16),
 
           // 密码输入框
           _buildPasswordInput(),
@@ -333,6 +346,36 @@ class _RegisterPageState extends State<RegisterPage>
           hintText: '请输入用户名',
           hintStyle: TextStyle(color: textLight),
           prefixIcon: Icon(Icons.person, color: textSecondary),
+          border: InputBorder.none,
+          contentPadding: EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+        ),
+        onSubmitted: (value) {
+          _passwordFocusNode.requestFocus();
+        },
+      ),
+    );
+  }
+
+  Widget _buildEmailInput() {
+    return Container(
+      decoration: BoxDecoration(
+        color: backgroundColor,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(
+          color: _emailFocusNode.hasFocus ? primaryColor : Colors.transparent,
+          width: 2,
+        ),
+      ),
+      child: TextField(
+        controller: _emailController,
+        focusNode: _emailFocusNode,
+        keyboardType: TextInputType.emailAddress,
+        textInputAction: TextInputAction.next,
+        style: const TextStyle(fontSize: 16, color: textPrimary),
+        decoration: const InputDecoration(
+          hintText: '请输入邮箱',
+          hintStyle: TextStyle(color: textLight),
+          prefixIcon: Icon(Icons.email, color: textSecondary),
           border: InputBorder.none,
           contentPadding: EdgeInsets.symmetric(horizontal: 20, vertical: 16),
         ),

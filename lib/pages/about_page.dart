@@ -4,6 +4,7 @@ import 'package:heart_days/pages/mqtt_page.dart';
 
 class AboutPage extends StatelessWidget {
   const AboutPage({super.key});
+
   @override
   Widget build(BuildContext context) {
     const Color primaryColor = Color(0xFF5C6BC0);
@@ -60,15 +61,6 @@ class AboutPage extends StatelessWidget {
                     '记录爱与回忆的每一天',
                     style: TextStyle(fontSize: 14, color: Colors.grey.shade600),
                   ),
-                  GestureDetector(child: MaterialButton(onPressed: (){
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (context) => CalendarIntegrationExample(),
-                      ),
-                    );
-
-                  },child: Text('1111111111111111111'),))
                 ],
               ),
             ),
@@ -137,17 +129,15 @@ class AboutPage extends StatelessWidget {
             }),
             const SizedBox(height: 32),
 
-
-
             GestureDetector(
-              onTap: (){
+              onTap: () {
                 Navigator.push(
                   context,
                   MaterialPageRoute(builder: (context) => const MqttPage()),
                 );
               },
               child: // 开发者信息
-              const Text(
+                  const Text(
                 '👨‍💻 关于开发者',
                 style: TextStyle(
                   fontSize: 18,
@@ -155,8 +145,7 @@ class AboutPage extends StatelessWidget {
                   color: primaryColor,
                 ),
               ),
-            )
-            ,
+            ),
             const SizedBox(height: 12),
             Text(
               'Heart Days 由一位热爱生活与设计的开发者精心打造，致力于提升情侣、家庭之间的情感连接。',

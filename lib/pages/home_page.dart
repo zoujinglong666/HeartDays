@@ -348,6 +348,7 @@ class _HomePageState extends State<HomePage> {
       floatingActionButton: Container(
         decoration: BoxDecoration(borderRadius: BorderRadius.circular(16)),
         child: FloatingActionButton(
+          heroTag: 'home_fab', // 唯一tag，防止Hero冲突
           onPressed: () async {
             SafeNavigator.pushOnce(context, AddAnniversaryPage());
           },

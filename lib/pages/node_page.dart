@@ -489,7 +489,7 @@ class _NodePageState extends State<NodePage> {
         ),
       ),
       floatingActionButton: FloatingActionButton(
-        heroTag: null,
+        heroTag: 'node_fab', // 唯一tag，防止Hero冲突
         // ✅ 关闭默认 Hero tag，避免冲突
         onPressed: _addNote,
         backgroundColor: AppTheme.primary,

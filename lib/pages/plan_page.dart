@@ -9,6 +9,7 @@ import 'package:table_calendar/table_calendar.dart';
 import 'plan_detail_page.dart';
 import 'plan_edit_page.dart';
 import 'pomodoro_timer_page.dart';
+import 'package:heart_days/main.dart';
 
 class PlanPage extends StatefulWidget {
   const PlanPage({super.key});
@@ -17,7 +18,7 @@ class PlanPage extends StatefulWidget {
   State<PlanPage> createState() => _PlanPageState();
 }
 
-class _PlanPageState extends State<PlanPage> {
+class _PlanPageState extends State<PlanPage> with RouteAware {
   CalendarFormat _calendarFormat = CalendarFormat.month;
   DateTime _focusedDay = DateTime.now();
   DateTime? _selectedDay;
@@ -55,6 +56,26 @@ class _PlanPageState extends State<PlanPage> {
   @override
   void initState() {
     super.initState();
+    _loadData();
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    // 注册路由监听
+    routeObserver.subscribe(this, ModalRoute.of(context)!);
+  }
+
+  @override
+  void dispose() {
+    // 注销路由监听
+    routeObserver.unsubscribe(this);
+    super.dispose();
+  }
+
+  @override
+  void didPopNext() {
+    // 从下一个页面pop回来时刷新数据
     _loadData();
   }
 
@@ -230,6 +251,7 @@ class _PlanPageState extends State<PlanPage> {
         ),
       ),
       floatingActionButton: FloatingActionButton(
+        heroTag: 'plan_fab', // 唯一tag，防止Hero冲突
         onPressed: _addNewPlan,
         backgroundColor: const Color(0xFFE8C4C4),
         child: const Icon(Icons.add, color: Colors.white),

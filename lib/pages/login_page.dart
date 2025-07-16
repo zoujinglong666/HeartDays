@@ -53,6 +53,7 @@ class _LoginPageState extends ConsumerState<LoginPage>
   void initState() {
     super.initState();
     AppThemeController().setTransparentUI();
+    _loadAgreementState(); // 新增：加载本地勾选状态
 
     _animationController = AnimationController(
       duration: const Duration(milliseconds: 600), // 减少动画时长
@@ -89,6 +90,15 @@ class _LoginPageState extends ConsumerState<LoginPage>
     _animationController.forward();
   }
 
+  // 新增：加载本地勾选状态
+  Future<void> _loadAgreementState() async {
+    final prefs = await SharedPreferences.getInstance();
+    final agreed = prefs.getBool('agreed_privacy_policy') ?? false;
+    setState(() {
+      _isAgreed = agreed;
+    });
+  }
+
   void _toggleShowConfirmPassword() {
     setState(() {
       _showConfirmPassword = !_showConfirmPassword;
@@ -119,10 +129,12 @@ class _LoginPageState extends ConsumerState<LoginPage>
     });
   }
 
-  void _toggleAgreement() {
+  void _toggleAgreement() async {
     setState(() {
       _isAgreed = !_isAgreed;
     });
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool('agreed_privacy_policy', _isAgreed);
   }
 
   Future<void> _handleLogin() async {

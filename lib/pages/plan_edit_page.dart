@@ -77,6 +77,7 @@ class _PlanEditPageState extends State<PlanEditPage> {
     _descriptionController = TextEditingController(
       text: widget.plan?.description ?? '',
     );
+    print(widget.plan?.remarks);
     _remarksController = TextEditingController(
       text: widget.plan?.remarks ?? '',
     );
@@ -172,11 +173,7 @@ class _PlanEditPageState extends State<PlanEditPage> {
 
       if (res != null) {
         // 成功后关闭页面并返回服务器响应的数据
-
-        Navigator.push(
-          context,
-          MaterialPageRoute(builder: (context) => const PlanPage()),
-        );
+        Navigator.pop(context, true); // 只pop当前页面，避免页面栈混乱
       } else {
         // 返回为空，可视需要做处理
         // 例如弹toast提示失败

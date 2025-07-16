@@ -10,6 +10,8 @@ import 'package:heart_days/pages/node_page.dart';
 import 'package:heart_days/services/floating_note_service.dart';
 import 'package:heart_days/utils/navigation_service.dart';
 
+final RouteObserver<ModalRoute<void>> routeObserver = RouteObserver<ModalRoute<void>>();
+
 Future<void> main() async {
   // 沉浸状态栏 + 底部导航栏
   SystemChrome.setSystemUIOverlayStyle(
@@ -72,6 +74,7 @@ class MyApp extends StatelessWidget {
     return MaterialApp(
       title: '甜甜纪念日',
       navigatorKey: NavigationService.navigatorKey,
+      navigatorObservers: [routeObserver],
       // ✅ 设置全局跳转控制器
       theme: ThemeData(
         colorScheme: ColorScheme.fromSeed(seedColor: Colors.transparent),
