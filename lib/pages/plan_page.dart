@@ -1,7 +1,6 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:heart_days/apis/plan.dart';
-import 'package:heart_days/components/EnhancedCalendar.dart';
 import 'package:heart_days/pages/todo_page.dart';
 import 'package:heart_days/provider/auth_provider.dart';
 import 'package:heart_days/utils/ToastUtils.dart';
@@ -52,32 +51,6 @@ class _PlanPageState extends State<PlanPage> {
     },
   ];
 
-  final List<Map<String, dynamic>> _planCategories = [
-    {
-      'icon': Icons.work,
-      'label': '工作',
-      'color': Color(0xFFE74C3C),
-      'bgColor': Color(0xFFFFEBEE),
-    },
-    {
-      'icon': Icons.school,
-      'label': '学习',
-      'color': Color(0xFF3498DB),
-      'bgColor': Color(0xFFE3F2FD),
-    },
-    {
-      'icon': Icons.fitness_center,
-      'label': '健身',
-      'color': Color(0xFF27AE60),
-      'bgColor': Color(0xFFE8F5E8),
-    },
-    {
-      'icon': Icons.favorite,
-      'label': '生活',
-      'color': Color(0xFFE67E22),
-      'bgColor': Color(0xFFFFF3E0),
-    },
-  ];
 
   @override
   void initState() {
@@ -211,17 +184,7 @@ class _PlanPageState extends State<PlanPage> {
     await planDeleteById(planId);
   }
 
-  // 获取分类计划数量
-  int _getCategoryCount(String category) {
-    return _plans.where((plan) => plan.category == category).length;
-  }
 
-  // 获取分类计划数量（按状态）
-  int _getCategoryCountByStatus(String category, String status) {
-    return _plans
-        .where((plan) => plan.category == category && plan.status == status)
-        .length;
-  }
   String priorityLabelFromInt(int value) {
     switch (intToPriority(value)) {
       case PlanPriority.high:
