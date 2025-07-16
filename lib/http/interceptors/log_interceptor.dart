@@ -42,7 +42,7 @@ class LogInterceptorHandler extends Interceptor {
         if (err.error is SocketException) {
           errorMessage = "无法连接服务器，请检查网络或稍后重试";
         } else {
-          errorMessage = "发生未知错误";
+          errorMessage = "";
         }
         break;
 
@@ -84,10 +84,7 @@ class LogInterceptorHandler extends Interceptor {
       }
     }
 
-    ToastUtils.showToast(errorMessage);
+  ToastUtils.showToast(errorMessage);
     super.onError(err, handler);
   }
-
-
-
 }

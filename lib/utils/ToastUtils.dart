@@ -9,6 +9,9 @@ class ToastUtils {
 
   // 纯文本Toast
   static void showToast(String msg) {
+    if (msg.isEmpty) {
+      return;
+    }
     cancel();
     Fluttertoast.showToast(
       msg: msg,
@@ -22,13 +25,16 @@ class ToastUtils {
 
   // 带图标的Toast，icon放左边，支持自定义背景和字体颜色
   static void showIconToast(
-      String msg, {
-        required IconData icon,
-        Color backgroundColor = Colors.black87,
-        Color textColor = Colors.white,
-        ToastGravity gravity = ToastGravity.BOTTOM,
-        int durationSeconds = 2,
-      }) {
+    String msg, {
+    required IconData icon,
+    Color backgroundColor = Colors.black87,
+    Color textColor = Colors.white,
+    ToastGravity gravity = ToastGravity.BOTTOM,
+    int durationSeconds = 2,
+  }) {
+    if (msg.isEmpty) {
+      return;
+    }
     cancel();
     Fluttertoast.showToast(
       msg: msg,
@@ -45,50 +51,55 @@ class ToastUtils {
   // 下面是带图标的复杂Toast（需要自己引入第三方包flutter_overlay或用OverlayEntry实现）
   // 如果你想要真正带图标的toast弹窗，可以用如下思路：
   static void showCustomToast(
-      BuildContext context,
-      String msg, {
-        IconData? icon,
-        Color backgroundColor = Colors.black87,
-        Color textColor = Colors.white,
-        ToastGravity gravity = ToastGravity.BOTTOM,
-        Duration duration = const Duration(seconds: 2),
-      }) {
+    BuildContext context,
+    String msg, {
+    IconData? icon,
+    Color backgroundColor = Colors.black87,
+    Color textColor = Colors.white,
+    ToastGravity gravity = ToastGravity.BOTTOM,
+    Duration duration = const Duration(seconds: 2),
+  }) {
+    if (msg.isEmpty) {
+      return;
+    }
     cancel();
     OverlayEntry? overlayEntry;
-    overlayEntry = OverlayEntry(builder: (context) {
-      return Positioned(
-        bottom: gravity == ToastGravity.BOTTOM ? 50 : null,
-        top: gravity == ToastGravity.TOP ? 50 : null,
-        left: 20,
-        right: 20,
-        child: Material(
-          color: Colors.transparent,
-          child: Container(
-            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-            decoration: BoxDecoration(
-              color: backgroundColor,
-              borderRadius: BorderRadius.circular(25),
-            ),
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                if (icon != null)
-                  Padding(
-                    padding: const EdgeInsets.only(right: 8),
-                    child: Icon(icon, color: textColor, size: 20),
+    overlayEntry = OverlayEntry(
+      builder: (context) {
+        return Positioned(
+          bottom: gravity == ToastGravity.BOTTOM ? 50 : null,
+          top: gravity == ToastGravity.TOP ? 50 : null,
+          left: 20,
+          right: 20,
+          child: Material(
+            color: Colors.transparent,
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+              decoration: BoxDecoration(
+                color: backgroundColor,
+                borderRadius: BorderRadius.circular(25),
+              ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  if (icon != null)
+                    Padding(
+                      padding: const EdgeInsets.only(right: 8),
+                      child: Icon(icon, color: textColor, size: 20),
+                    ),
+                  Flexible(
+                    child: Text(
+                      msg,
+                      style: TextStyle(color: textColor, fontSize: 16),
+                    ),
                   ),
-                Flexible(
-                  child: Text(
-                    msg,
-                    style: TextStyle(color: textColor, fontSize: 16),
-                  ),
-                ),
-              ],
+                ],
+              ),
             ),
           ),
-        ),
-      );
-    });
+        );
+      },
+    );
 
     Overlay.of(context)?.insert(overlayEntry);
 

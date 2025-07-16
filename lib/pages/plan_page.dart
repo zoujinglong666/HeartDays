@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:heart_days/apis/plan.dart';
+import 'package:heart_days/pages/calendar_page.dart';
 import 'package:heart_days/pages/todo_page.dart';
 import 'package:heart_days/provider/auth_provider.dart';
 import 'package:heart_days/utils/ToastUtils.dart';
@@ -28,48 +29,66 @@ class _PlanPageState extends State<PlanPage> with RouteAware {
   final Color morandiGreen = const Color(0xFFD5E4C3);
   final Color morandiYellow = const Color(0xFFF1E0C5);
   final Color morandiGrey = const Color(0xFFE0E0E0);
-
+  List<Map<String, dynamic>> _quickTools=[];
   List<Plan> _plans = [];
   bool _isRefreshing = false;
 
-  final List<Map<String, dynamic>> _quickTools = [
-    {
-      'icon': Icons.event_note,
-      'label': '添加计划',
-      'color': const Color(0xFFFF6B6B),
-      'onTap': () {},
-    },
-    {
-      'icon': Icons.check_circle_outline,
-      'label': '待办事项',
-      'color': const Color(0xFF4ECDC4),
-    },
-    {'icon': Icons.timer, 'label': '专注计时', 'color': const Color(0xFF45B7D1)},
-    {
-      'icon': Icons.insert_chart,
-      'label': '统计分析',
-      'color': const Color(0xFF96CEB4),
-    },
-  ];
 
 
   @override
   void initState() {
     super.initState();
+    _quickTools = [
+      {
+        'icon': Icons.event_note,
+        'label': '添加计划',
+        'color': const Color(0xFFFF6B6B),
+        'onTap': (BuildContext context) => _addNewPlan(),
+      },
+      {
+        'icon': Icons.check_circle_outline,
+        'label': '待办事项',
+        'color': const Color(0xFF4ECDC4),
+        'onTap': (BuildContext context) {
+          Navigator.push(
+            context,
+            MaterialPageRoute(builder: (context) => const TodoPage()),
+          );
+        },
+      },
+      {
+        'icon': Icons.timer,
+        'label': '专注计时',
+        'color': const Color(0xFF45B7D1),
+        'onTap': (BuildContext context) {
+          Navigator.push(
+            context,
+            MaterialPageRoute(builder: (context) => const PomodoroTimerPage()),
+          );
+        },
+      },
+      {
+        'icon': Icons.insert_chart,
+        'label': '统计分析',
+        'color': const Color(0xFF96CEB4),
+        'onTap': (BuildContext context) {
+          Navigator.push(
+            context,
+            MaterialPageRoute(builder: (context) => const CalendarPage()),
+          );
+        },
+      },
+    ];
     _loadData();
   }
 
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
-    // 注册路由监听
-    routeObserver.subscribe(this, ModalRoute.of(context)!);
   }
 
   @override
   void dispose() {
-    // 注销路由监听
-    routeObserver.unsubscribe(this);
     super.dispose();
   }
 
@@ -292,12 +311,6 @@ class _PlanPageState extends State<PlanPage> with RouteAware {
               color: Color(0xFF2C2C2C),
             ),
           ),
-          IconButton(
-            icon: const Icon(Icons.search, color: Colors.black87),
-            onPressed: () {
-
-            },
-          ),
         ],
       ),
     );
@@ -400,25 +413,7 @@ class _PlanPageState extends State<PlanPage> with RouteAware {
             itemBuilder: (context, index) {
               final tool = _quickTools[index];
               return GestureDetector(
-                onTap: () {
-                  if (index == 0) {
-                    _addNewPlan();
-                  } else if (index == 2) {
-                    // 专注计时
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (context) => const PomodoroTimerPage(),
-                      ),
-                    );
-                  } else if (index == 1) {
-                    // 待办事项
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(builder: (context) => const TodoPage()),
-                    );
-                  }
-                },
+                onTap: () => tool['onTap'](context),
                 child: Container(
                   width: 80,
                   decoration: BoxDecoration(

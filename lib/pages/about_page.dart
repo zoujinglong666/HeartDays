@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:heart_days/pages/calendar_integration_example.dart';
 import 'package:heart_days/pages/mqtt_page.dart';
 
 class AboutPage extends StatelessWidget {

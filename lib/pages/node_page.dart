@@ -1,16 +1,11 @@
 import 'dart:convert';
 import 'dart:io';
 import 'dart:async';
-import 'package:flutter_overlay_window/flutter_overlay_window.dart';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_staggered_grid_view/flutter_staggered_grid_view.dart';
 import 'package:image_picker/image_picker.dart';
-import 'package:path_provider/path_provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:flutter_sound/flutter_sound.dart';
-import 'package:permission_handler/permission_handler.dart';
-import 'package:record/record.dart';
 
 // 定义主题颜色 - 语雀风格配色（优化对比度）
 class AppTheme {
@@ -129,8 +124,7 @@ class NodePage extends StatefulWidget {
 class _NodePageState extends State<NodePage> {
   List<Note> notes = [];
 
-  final FlutterSoundPlayer _audioPlayer = FlutterSoundPlayer();
-  String _currentTheme = 'default';
+  final String _currentTheme = 'default';
   String _searchQuery = '';
   bool _isSearching = false;
   final TextEditingController _searchController = TextEditingController();
@@ -139,117 +133,15 @@ class _NodePageState extends State<NodePage> {
   void initState() {
     super.initState();
     _loadNotes();
-    _initAudioPlayer();
   }
 
   @override
   void dispose() {
-    _audioPlayer.closePlayer();
     _searchController.dispose();
     super.dispose();
   }
 
   // 在 _NodePageState 类中添加以下方法
-
-  // 检查悬浮窗权限
-  Future<bool> _checkFloatingPermission() async {
-    bool hasPermission = await FlutterOverlayWindow.isPermissionGranted();
-    if (!hasPermission) {
-      // 显示权限请求对话框
-      bool? userChoice = await showDialog<bool>(
-        context: context,
-        builder:
-            (context) =>
-            AlertDialog(
-              title: const Text('需要悬浮窗权限'),
-              content: const Text('显示悬浮便签需要悬浮窗权限，是否授权？'),
-              actions: [
-                TextButton(
-                  onPressed: () => Navigator.of(context).pop(false),
-                  child: const Text('取消'),
-                ),
-                TextButton(
-                  onPressed: () => Navigator.of(context).pop(true),
-                  child: const Text('授权'),
-                ),
-              ],
-            ),
-      );
-
-      if (userChoice == true) {
-        // 请求权限
-        await FlutterOverlayWindow.requestPermission();
-        return await FlutterOverlayWindow.isPermissionGranted();
-      }
-      return false;
-    }
-    return true;
-  }
-
-  Future<void> _toggleFloatingNote(Note note) async {
-    try {
-      // 检查是否已有悬浮窗
-      bool isActive = await FlutterOverlayWindow.isActive();
-      print('悬浮窗是否已激活: $isActive');
-
-      if (isActive) {
-        // 关闭悬浮窗
-        await FlutterOverlayWindow.closeOverlay();
-        return;
-      }
-
-      // 没有悬浮窗，检查权限
-      bool hasPermission = await _checkFloatingPermission();
-      print('悬浮窗权限: $hasPermission');
-      if (!hasPermission) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('需要悬浮窗权限才能显示悬浮便签'),
-            behavior: SnackBarBehavior.floating,
-          ),
-        );
-        return;
-      }
-
-      // 保存当前便签数据到临时存储
-      final prefs = await SharedPreferences.getInstance();
-      await prefs.setString('floating_note', jsonEncode(note.toJson()));
-      print("准备打开悬浮窗...");
-
-      // 打开悬浮窗 - 使用try-catch捕获可能的错误
-      try {
-       await FlutterOverlayWindow.showOverlay(
-          height: 300,
-          width: 300,
-          alignment: OverlayAlignment.center,
-          enableDrag: true,
-          flag: OverlayFlag.defaultFlag,
-          visibility: NotificationVisibility.visibilityPublic,
-        );
-
-      } catch (e) {
-        print("打开悬浮窗出错: $e");
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('悬浮窗打开失败: $e'),
-            behavior: SnackBarBehavior.floating,
-          ),
-        );
-      }
-    } catch (e) {
-      print("悬浮窗操作出错: $e");
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('悬浮窗操作失败: $e'),
-          behavior: SnackBarBehavior.floating,
-        ),
-      );
-    }
-  }
-
-  Future<void> _initAudioPlayer() async {
-    await _audioPlayer.openPlayer();
-  }
 
   Future<void> _loadNotes() async {
     final prefs = await SharedPreferences.getInstance();
@@ -345,11 +237,6 @@ class _NodePageState extends State<NodePage> {
     );
   }
 
-  void _changeTheme(String theme) {
-    setState(() {
-      _currentTheme = theme;
-    });
-  }
 
   List<Note> _getFilteredNotes() {
     if (_searchQuery.isEmpty) {
@@ -361,12 +248,7 @@ class _NodePageState extends State<NodePage> {
     }).toList();
   }
 
-  String _getRandomThemeKey() {
-    final keys = AppTheme.noteThemes.keys.toList();
-    keys.remove('default'); // 可选：不随机到默认色
-    keys.shuffle();
-    return keys.first;
-  }
+
 
   @override
   Widget build(BuildContext context) {
@@ -500,7 +382,7 @@ class _NodePageState extends State<NodePage> {
   }
 
   Widget _buildNoteCard(Note note) {
-    final themeKey = note.theme ?? _getRandomThemeKey();
+    final themeKey = note.theme;
     final themeColor =
         AppTheme.noteThemes[themeKey] ?? AppTheme.noteThemes['default'];
     return GestureDetector(
@@ -596,60 +478,20 @@ class _NodePageState extends State<NodePage> {
                     ),
                   ),
                 ),
-              if (note.audioPath != null)
-                Container(
-                  margin: const EdgeInsets.only(bottom: 12.0),
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 12,
-                    vertical: 8,
-                  ),
-                  decoration: BoxDecoration(
-                    color: Colors.white.withOpacity(0.5),
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  child: Row(
-                    children: [
-                      const Icon(
-                        Icons.audiotrack,
-                        color: AppTheme.secondary,
-                        size: 18,
-                      ),
-                      const SizedBox(width: 8),
-                      const Text(
-                        '语音备忘录',
-                        style: TextStyle(
-                          color: AppTheme.textSecondary,
-                          fontSize: 13,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  Text(
-                    '${note.updatedAt.year}/${note.updatedAt.month}/${note
-                        .updatedAt.day}',
-                    style: const TextStyle(
-                      fontSize: 12,
-                      color: AppTheme.textHint,
-                    ),
-                  ),
-
-                  // 添加悬浮窗按钮
-                  GestureDetector(
-                    onTap: () => _toggleFloatingNote(note),
-                    child: Container(
-                      padding: const EdgeInsets.all(4),
-                      child: Icon(
-                        Icons.picture_in_picture_alt,
-                        size: 18,
-                        color: AppTheme.textSecondary.withOpacity(0.7),
+                  Expanded(
+                    child: Text(
+                      '${note.updatedAt.year}/${note.updatedAt.month}/${note.updatedAt.day}',
+                      style: const TextStyle(
+                        fontSize: 12,
+                        color: AppTheme.textHint,
                       ),
+                      overflow: TextOverflow.ellipsis,
+                      maxLines: 1,
                     ),
                   ),
-
                   IconButton(
                     icon: const Icon(
                       Icons.delete_outline,
@@ -753,37 +595,6 @@ class _ImagePreviewPageState extends State<ImagePreviewPage> {
   }
 }
 
-// 录音计时器类
-class RecordingTimer {
-  Timer? _timer;
-  int _seconds = 0;
-  final Function(int) onTick;
-
-  RecordingTimer({required this.onTick});
-
-  void start() {
-    _seconds = 0;
-    _timer = Timer.periodic(const Duration(seconds: 1), (timer) {
-      _seconds++;
-      onTick(_seconds);
-    });
-  }
-
-  void stop() {
-    _timer?.cancel();
-    _timer = null;
-    _seconds = 0;
-  }
-
-  String get formattedTime {
-    final minutes = (_seconds / 60).floor().toString().padLeft(2, '0');
-    final seconds = (_seconds % 60).toString().padLeft(2, '0');
-    return '$minutes:$seconds';
-  }
-
-  bool get isRunning => _timer != null;
-}
-
 class NoteEditorPage extends StatefulWidget {
   final Note note;
 
@@ -796,49 +607,19 @@ class NoteEditorPage extends StatefulWidget {
 class _NoteEditorPageState extends State<NoteEditorPage> {
   final TextEditingController _titleController = TextEditingController();
   final TextEditingController _contentController = TextEditingController();
-  final FlutterSoundPlayer _audioPlayer = FlutterSoundPlayer();
-
-  // 更新为 record 6.0.0 兼容的录音实现
-  // final Record _audioRecorder = Record();
-  bool _isRecording = false;
-  bool _isPlaying = false;
-  String? _currentRecordingPath;
-  late RecordingTimer _recordingTimer;
-  String _recordingTime = '00:00';
-
-  // 录音波形动画值
-  final List<double> _waveformValues = [0.3, 0.7, 0.5, 0.9, 0.4, 0.8, 0.6];
-  int _waveformIndex = 0;
-  Timer? _waveformTimer;
 
   @override
   void initState() {
     super.initState();
     _titleController.text = widget.note.title;
     _contentController.text = widget.note.content;
-    _initAudioPlayer();
-    _recordingTimer = RecordingTimer(
-      onTick: (seconds) {
-        setState(() {
-          _recordingTime = _recordingTimer.formattedTime;
-        });
-      },
-    );
   }
 
   @override
   void dispose() {
     _titleController.dispose();
     _contentController.dispose();
-    _audioPlayer.closePlayer();
-    // _audioRecorder.dispose();
-    _recordingTimer.stop();
-    _waveformTimer?.cancel();
     super.dispose();
-  }
-
-  Future<void> _initAudioPlayer() async {
-    await _audioPlayer.openPlayer();
   }
 
   Future<void> _pickImage() async {
@@ -849,97 +630,6 @@ class _NoteEditorPageState extends State<NoteEditorPage> {
       setState(() {
         widget.note.images.add(pickedFile.path);
       });
-    }
-  }
-
-  // 开始波形动画
-  void _startWaveformAnimation() {
-    _waveformTimer = Timer.periodic(const Duration(milliseconds: 200), (timer) {
-      setState(() {
-        _waveformIndex = (_waveformIndex + 1) % _waveformValues.length;
-      });
-    });
-  }
-
-  // 停止波形动画
-  void _stopWaveformAnimation() {
-    _waveformTimer?.cancel();
-    _waveformTimer = null;
-  }
-
-  // 更新为 record 6.0.0 兼容的录音实现
-  Future<void> _startRecording() async {
-    try {
-      if (await Permission.microphone
-          .request()
-          .isGranted) {
-        final directory = await getApplicationDocumentsDirectory();
-        _currentRecordingPath =
-        '${directory.path}/audio_${DateTime
-            .now()
-            .millisecondsSinceEpoch}.m4a';
-
-        // 配置录音参数 - 兼容 record 6.0.0
-        // await _audioRecorder.start(
-        //   path: _currentRecordingPath!,
-        //   encoder: AudioEncoder.aacLc, // AAC编码
-        //   bitRate: 128000, // 比特率
-        //   samplingRate: 44100, // 采样率
-        // );
-
-        setState(() {
-          _isRecording = true;
-        });
-
-        // 开始计时和波形动画
-        _recordingTimer.start();
-        _startWaveformAnimation();
-      }
-    } catch (e) {
-      print('Error recording audio: $e');
-    }
-  }
-
-  Future<void> _stopRecording() async {
-    try {
-      // final path = await _audioRecorder.stop();
-
-      setState(() {
-        _isRecording = false;
-        // widget.note.audioPath = path;
-      });
-
-      // 停止计时和波形动画
-      _recordingTimer.stop();
-      _stopWaveformAnimation();
-      setState(() {
-        _recordingTime = '00:00';
-      });
-    } catch (e) {
-      print('Error stopping recording: $e');
-    }
-  }
-
-  Future<void> _playAudio() async {
-    if (widget.note.audioPath != null) {
-      if (_isPlaying) {
-        await _audioPlayer.stopPlayer();
-        setState(() {
-          _isPlaying = false;
-        });
-      } else {
-        await _audioPlayer.startPlayer(
-          fromURI: widget.note.audioPath,
-          whenFinished: () {
-            setState(() {
-              _isPlaying = false;
-            });
-          },
-        );
-        setState(() {
-          _isPlaying = true;
-        });
-      }
     }
   }
 
@@ -1167,67 +857,7 @@ class _NoteEditorPageState extends State<NoteEditorPage> {
                 ],
 
                 // 录音区域
-                if (_isRecording || widget.note.audioPath != null) ...[
-                  const Padding(
-                    padding: EdgeInsets.only(left: 4, bottom: 8),
-                    child: Text(
-                      '语音',
-                      style: TextStyle(
-                        fontWeight: FontWeight.w500,
-                        color: AppTheme.textSecondary,
-                        fontSize: 14,
-                      ),
-                    ),
-                  ),
-                  Card(
-                    elevation: 0,
-                    color: Colors.white,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    child: Padding(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 16,
-                        vertical: 12,
-                      ),
-                      child:
-                      _isRecording
-                          ? _buildRecordingIndicator()
-                          : Row(
-                        children: [
-                          IconButton(
-                            icon: Icon(
-                              _isPlaying
-                                  ? Icons.stop
-                                  : Icons.play_arrow,
-                              color: AppTheme.primary,
-                            ),
-                            onPressed: _playAudio,
-                          ),
-                          const Text(
-                            '语音备忘录',
-                            style: TextStyle(
-                              color: AppTheme.textSecondary,
-                            ),
-                          ),
-                          const Spacer(),
-                          IconButton(
-                            icon: const Icon(
-                              Icons.delete,
-                              color: Colors.red,
-                              size: 20,
-                            ),
-                            onPressed: () {
-                              setState(() {
-                                widget.note.audioPath = null;
-                              });
-                            },
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-                ],
+
 
                 const SizedBox(height: 16),
                 // 主题选择区域
@@ -1317,51 +947,10 @@ class _NoteEditorPageState extends State<NoteEditorPage> {
                 label: '图片',
                 onPressed: _pickImage,
               ),
-              _buildBottomBarButton(
-                icon: _isRecording ? Icons.stop : Icons.mic,
-                label: _isRecording ? '停止' : '录音',
-                onPressed: _isRecording ? _stopRecording : _startRecording,
-                isHighlighted: _isRecording,
-              ),
             ],
           ),
         ),
       ),
-    );
-  }
-
-  // 录音指示器
-  Widget _buildRecordingIndicator() {
-    return Row(
-      children: [
-        const Icon(Icons.mic, color: Colors.red),
-        const SizedBox(width: 8),
-        Text('录音中 $_recordingTime',
-            style: const TextStyle(color: Colors.red)),
-        const SizedBox(width: 16),
-        // 波形动画
-        Expanded(
-          child: SizedBox(
-            height: 30,
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: List.generate(7, (index) {
-                final waveIndex =
-                    (index + _waveformIndex) % _waveformValues.length;
-                return Container(
-                  margin: const EdgeInsets.symmetric(horizontal: 2),
-                  width: 3,
-                  height: 20 * _waveformValues[waveIndex],
-                  decoration: BoxDecoration(
-                    color: Colors.red,
-                    borderRadius: BorderRadius.circular(1.5),
-                  ),
-                );
-              }),
-            ),
-          ),
-        ),
-      ],
     );
   }
 
