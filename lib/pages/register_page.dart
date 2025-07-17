@@ -523,44 +523,65 @@ class _RegisterPageState extends State<RegisterPage>
   }
 
   Widget _buildAgreementSection() {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
-      child: Row(
-        children: [
-          SizedBox(
-            width: 24,
-            height: 24,
-            child: Checkbox(
-              value: _isAgreed,
-              onChanged: (val) => _toggleAgreement(),
-              activeColor: primaryColor,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(4),
+    return Column(
+      children: [
+        Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            GestureDetector(
+              onTap: _toggleAgreement,
+              child: Container(
+                width: 16, // 稍微减小复选框尺寸
+                height: 16,
+                decoration: BoxDecoration(
+                  color: _isAgreed ? primaryColor : Colors.transparent,
+                  border: Border.all(
+                    color: _isAgreed ? primaryColor : textLight,
+                    width: 1,
+                  ),
+                  borderRadius: BorderRadius.circular(3), // 稍微减小圆角
+                ),
+                child:
+                _isAgreed
+                    ? const Icon(
+                  Icons.check,
+                  size: 14, // 稍微减小勾选图标尺寸
+                  color: Colors.white,
+                )
+                    : null,
               ),
             ),
-          ),
-          const SizedBox(width: 8),
-          Expanded(
-            child: RichText(
+            const SizedBox(width: 4), // 减少间距
+            RichText(
               text: TextSpan(
-                style: TextStyle(fontSize: 14, color: textSecondary),
+                style: const TextStyle(
+                  fontSize: 14, // 稍微减小字体
+                  color: textSecondary,
+                ),
                 children: [
                   const TextSpan(text: '我已阅读并同意'),
                   TextSpan(
                     text: '《用户协议》',
-                    style: TextStyle(color: primaryColor),
+                    style: const TextStyle(
+                      color: primaryColor,
+                      fontWeight: FontWeight.w500,
+                    ),
                   ),
                   const TextSpan(text: '和'),
                   TextSpan(
                     text: '《隐私政策》',
-                    style: TextStyle(color: primaryColor),
+                    style: const TextStyle(
+                      color: primaryColor,
+                      fontWeight: FontWeight.w500,
+                    ),
                   ),
                 ],
               ),
             ),
-          ),
-        ],
-      ),
+          ],
+        ),
+        const SizedBox(height: 16), // 减少两行文字之间的间距
+      ],
     );
   }
 }

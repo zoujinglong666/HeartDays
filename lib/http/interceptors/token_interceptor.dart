@@ -23,7 +23,7 @@ class TokenInterceptorHandler extends Interceptor {
   }
 
   bool _isRefreshing = false;
-  List<Function(String)> _retryQueue = [];
+  final List<Function(String)> _retryQueue = [];
 
   /// 保存已重试请求的 key，防止重复 retry
   final Set<String> _retriedRequests = {};
@@ -51,12 +51,10 @@ class TokenInterceptorHandler extends Interceptor {
       final token = p.getString('token');
       if (token != null && token.isNotEmpty) {
         options.headers['Authorization'] = 'Bearer $token';
-        print('✅ 附带 Token 请求: $token');
       }
 
       handler.next(options);
     } catch (e) {
-      print('❌ 请求处理异常: $e');
       handler.next(options);
     }
   }
@@ -66,7 +64,7 @@ class TokenInterceptorHandler extends Interceptor {
   }
 
   @override
-  void onError(DioError err, ErrorInterceptorHandler handler) async {
+  void onError(DioException err, ErrorInterceptorHandler handler) async {
     final path = err.requestOptions.path;
     final key = _cacheKey(err.requestOptions);
 
@@ -74,6 +72,13 @@ class TokenInterceptorHandler extends Interceptor {
       final prefsInstance = await prefs;
       final oldRefreshToken = prefsInstance.getString("refresh_token");
 
+      // ✅ 如果没有 refresh_token，直接退出登录
+      if (oldRefreshToken == null || oldRefreshToken.isEmpty) {
+        print("⚠️ 无有效 Refresh Token，退出登录");
+        await _logout();
+        handler.reject(err); // 拒绝当前请求
+        return;
+      }
       if (_isRefreshing) {
         print("⏳ 正在刷新 Token，将请求加入队列等待: $path");
         _retryQueue.add((String token) async {
@@ -81,9 +86,9 @@ class TokenInterceptorHandler extends Interceptor {
             if (_retriedRequests.contains(key)) return;
             _retriedRequests.add(key);
             final clonedRequest = await _retryRequest(err.requestOptions, token);
-            handler.resolve(clonedRequest as Response);
+            handler.resolve(clonedRequest);
           } catch (e) {
-            handler.reject(e as DioError);
+            handler.reject(e as DioException);
           }
         });
         return;
@@ -93,6 +98,9 @@ class TokenInterceptorHandler extends Interceptor {
 
       try {
         print("🔁 开始刷新 Token");
+
+
+
         final refreshSuccess = await refreshTokenApi({
           "refresh_token": oldRefreshToken,
         });
@@ -110,7 +118,7 @@ class TokenInterceptorHandler extends Interceptor {
             if (!_retriedRequests.contains(key)) {
               _retriedRequests.add(key);
               final retryResponse = await _retryRequest(err.requestOptions, newToken);
-              handler.resolve(retryResponse as Response);
+              handler.resolve(retryResponse);
             }
 
             // 队列中所有请求

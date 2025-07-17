@@ -42,10 +42,9 @@ dependencies:
   http_cache_hive_store: ^5.0.1
   path_provider: ^2.1.1
   event_bus: ^2.0.1
-  flutter_slidable: ^4.0.0
-  flutter_staggered_grid_view: ^0.7.0
+  flutter_slidable: ^4.0.0 #侧滑删除
+  flutter_staggered_grid_view: ^0.7.0 #瀑布流
   image_picker: ^1.0.7
-  flutter_sound: ^9.28.0
   permission_handler: ^11.3.1
   fluttertoast: ^8.2.4  # toast
   flutter_local_notifications: ^17.2.2  # 本地通知
@@ -54,13 +53,15 @@ dependencies:
   cupertino_icons: ^1.0.8
   chinese_lunar_calendar: ^1.0.4  # 检查最新版本
   flutter_native_splash: ^2.4.6
-  flutter_riverpod: ^2.6.1
+  flutter_riverpod: ^2.6.1 #一个状态管理插件，它是 Provider 的改进版本，用于在 Flutter 应用中管理应用状态。
   mqtt_client: ^10.2.0
   device_info_plus: ^10.1.0
   connectivity_plus: ^5.0.2
   crypto: ^3.0.3  # 密码加密
   encrypt: ^5.0.3  # AES加密
   webview_flutter: ^4.2.2
+  easy_refresh: ^3.4.0
+  shimmer: ^3.0.0  # 加载效果
 flutter_launcher_icons:
     image_path: "lib/assets/images/icon.png"
     image_path_android: "lib/assets/images/icon.png"

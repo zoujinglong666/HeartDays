@@ -51,8 +51,8 @@ class AppDatePicker {
     required BuildContext context,
     required AppDatePickerMode mode,
     required Function(dynamic) onConfirm,
-    String? title, // [NEW] 添加可选的自定义标题参数
-    WeekItemBuilder? weekItemBuilder, // [NEW] 添加可选的自定义周UI构建器
+    String? title, // 添加可选的自定义标题参数
+    WeekItemBuilder? weekItemBuilder, // 添加可选的自定义周UI构建器
     FilterType? filterType,
     DateTime? initialDateTime,
     DateTime? startTime,
@@ -229,7 +229,7 @@ class _DatePickerOverlayState extends State<DatePickerOverlay> with SingleTicker
       case AppDatePickerMode.filterDate:
         return "筛选时间";
       case AppDatePickerMode.editTime:
-        return "编辑提醒时间";
+        return "编辑时间";
       case AppDatePickerMode.startTime:
         return "编辑开始时间";
       case AppDatePickerMode.endTime:
@@ -292,8 +292,6 @@ class _DatePickerOverlayState extends State<DatePickerOverlay> with SingleTicker
             ),
           ),
         ),
-
-
         // 主内容面板，使用动画控制位置
         AnimatedBuilder(
           animation: _animation,
@@ -378,7 +376,6 @@ class _DatePickerOverlayState extends State<DatePickerOverlay> with SingleTicker
           yearsBack: widget.yearsBack,
           showLaterTime: widget.showLaterTime,
           onDateChanged: _onValueChanged,
-          // [MODIFIED] 将 weekItemBuilder 传递给 FilterDate
           weekItemBuilder: widget.weekItemBuilder,
         );
       case AppDatePickerMode.editTime:
@@ -399,7 +396,7 @@ class _DatePickerOverlayState extends State<DatePickerOverlay> with SingleTicker
             style: TextButton.styleFrom(
               backgroundColor: const Color(0XFFF0F0F0),
               padding: const EdgeInsets.symmetric(vertical: 14),
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(28)),
             ),
             onPressed: _handleCancel,
             child: const Text("取消",
@@ -413,7 +410,7 @@ class _DatePickerOverlayState extends State<DatePickerOverlay> with SingleTicker
             style: TextButton.styleFrom(
               backgroundColor: const Color(0xFF42A5F5),
               padding: const EdgeInsets.symmetric(vertical: 14),
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(28)),
             ),
             onPressed: _onConfirm,
             child: const Text("确定",

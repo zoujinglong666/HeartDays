@@ -8,12 +8,22 @@ import 'package:flutter/services.dart';
 import 'package:heart_days/utils/navigation_service.dart';
 void main() {
   // 沉浸状态栏 + 底部导航栏
+  // SystemChrome.setSystemUIOverlayStyle(
+  //   const SystemUiOverlayStyle(
+  //     statusBarColor: Colors.transparent,
+  //     statusBarIconBrightness: Brightness.dark,
+  //     systemNavigationBarColor: Colors.transparent, // 设置为透明
+  //     systemNavigationBarIconBrightness: Brightness.dark,
+  //   ),
+  // );
+
   SystemChrome.setSystemUIOverlayStyle(
     const SystemUiOverlayStyle(
-      statusBarColor: Colors.transparent,
-      statusBarIconBrightness: Brightness.dark,
-      systemNavigationBarColor: Colors.transparent, // 设置为透明
-      systemNavigationBarIconBrightness: Brightness.dark,
+      statusBarColor: Colors.white, // 白色背景
+      statusBarIconBrightness: Brightness.dark, // 状态栏图标颜色：深色
+      statusBarBrightness: Brightness.light, // iOS状态栏文字颜色，和Android相反
+      systemNavigationBarColor: Colors.white, // 导航栏白色（可选）
+      systemNavigationBarIconBrightness: Brightness.dark, // 导航栏图标深色（可选）
     ),
   );
 
@@ -48,7 +58,7 @@ class MyApp extends StatelessWidget {
       title: '甜甜纪念日',
       navigatorKey: NavigationService.navigatorKey, // ✅ 设置全局跳转控制器
       theme: ThemeData(
-        colorScheme: ColorScheme.fromSeed(seedColor: Colors.transparent),
+        colorScheme: ColorScheme.fromSeed(seedColor: Colors.blue),
       ),
       home: const SplashPage(), // ✅ 设置启动页为判断页
       routes: {

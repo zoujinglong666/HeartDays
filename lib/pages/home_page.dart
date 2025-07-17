@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:convert';
+import 'dart:math' as math;
 import 'package:chinese_lunar_calendar/chinese_lunar_calendar.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
@@ -7,6 +8,7 @@ import 'package:flutter_slidable/flutter_slidable.dart';
 import 'package:heart_days/apis/anniversary.dart';
 import 'package:heart_days/common/event_bus.dart';
 import 'package:heart_days/components/AnimatedCardWrapper.dart';
+import 'package:heart_days/components/AnniversaryCard.dart';
 import 'package:heart_days/components/SwiperCardView.dart';
 import 'package:heart_days/pages/add_anniversary.dart';
 import 'package:heart_days/pages/today_history_page.dart';
@@ -23,11 +25,15 @@ class HomePage extends StatefulWidget {
   State<HomePage> createState() => _HomePageState();
 }
 
-class _HomePageState extends State<HomePage> {
+class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
   List<Anniversary> anniversaries = [];
   String oneSentenceContent = "";
   bool _isAscending = true; // 控制升序/降序
-
+  // 添加布局模式状态
+  bool _isStackLayout = false; // false: 列表模式, true: 堆叠模式
+  int _currentStackIndex = 0;
+  Offset _dragOffset = Offset.zero;
+  late final AnimationController _animationController;
   List<Map<String, dynamic>> getBuiltinAnniversaries() {
     final now = DateTime.now();
     final today = DateTime(now.year, now.month, now.day);
@@ -101,13 +107,11 @@ class _HomePageState extends State<HomePage> {
       }
       final response = await fetchAnniversaryListByUserId(authState.user!.id);
       if (response.code == 200 && response.data != null) {
-        print("✅ 成功加载纪念日数量: ${response.data!.length}");
         setState(() => anniversaries = response.data!);
       } else {
         setState(() => anniversaries = []);
       }
     } catch (e) {
-      print("❌ JSON 解析失败或加载出错: $e");
       setState(() => anniversaries = []);
     }
   }
@@ -115,7 +119,6 @@ class _HomePageState extends State<HomePage> {
   // 定义应用配色方案
   static const Color primaryColor = Color(0xFF5C6BC0); // 靛蓝色作为主色调
   static const Color accentColor = Color(0xFFFF7043); // 橙色作为强调色
-
   // 卡片渐变色
   static const List<List<Color>> cardGradients = [
     [Color(0xFFE3F2FD), Color(0xFFBBDEFB)], // 蓝色系
@@ -153,32 +156,26 @@ class _HomePageState extends State<HomePage> {
   @override
   void initState() {
     super.initState();
+    _animationController = AnimationController(
+      duration: const Duration(seconds: 8),
+      vsync: this,
+    )..repeat(); // 循环动画
     _loadData();
     // ✅ 监听纪念日列表更新事件
-    _anniversarySubscription = eventBus.on<AnniversaryListUpdated>().listen((event) {
-      print("🔄 收到纪念日列表更新事件，开始刷新...");
+    _anniversarySubscription = eventBus.on<AnniversaryListUpdated>().listen((
+      event,
+    ) {
       _loadData(); // 🔄 刷新
     });
   }
 
-  Future<String> getOneSentencePerDay() async {
-    return '每日一句话';
-  }
+
 
   Future<void> _loadData() async {
     if (!mounted) return; // 避免 setState 报错
-    
-    print("🔄 开始加载纪念日数据...");
     try {
       await loadAnniversariesFromLocal();
-      final oneSentenceStr = await getOneSentencePerDay();
-      
-      if (mounted) {
-        setState(() {
-          oneSentenceContent = oneSentenceStr;
-        });
-        print("✅ 纪念日数据加载完成，当前数量: ${anniversaries.length}");
-      }
+
     } catch (e) {
       print("❌ 加载纪念日数据失败: $e");
     }
@@ -188,8 +185,10 @@ class _HomePageState extends State<HomePage> {
   void dispose() {
     // 清理事件监听器，避免内存泄漏
     _anniversarySubscription?.cancel();
+    _animationController.dispose();
     super.dispose();
   }
+
 
   @override
   Widget build(BuildContext context) {
@@ -215,64 +214,110 @@ class _HomePageState extends State<HomePage> {
             ],
           ),
 
-          // 功能模块入口
-          // buildFeatureModules(),
           // 标题栏
           Padding(
             padding: const EdgeInsets.fromLTRB(20, 16, 20, 8),
-            child: Row(
+            child: // 在排序按钮的Row中添加布局切换按钮
+                Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                const Text(
+                Text(
                   "特别时刻",
                   style: TextStyle(
-                    fontSize: 16,
+                    fontSize: 20,
                     fontWeight: FontWeight.bold,
                     color: Color(0xFF6487A6), // 适配浅蓝风格的深灰蓝标题
                   ),
                 ),
 
-                InkWell(
-                  onTap: _sortAnniversariesByDate,
-                  child: Container(
-                    decoration: BoxDecoration(
-                      color: Color(0xFFE6F0FA), // ✅ 浅蓝背景
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 12,
-                      vertical: 6,
-                    ),
-                    child: Row(
-                      children: [
-                        // Icon(Icons.sort, size: 16, color: Color(0xFF64A6D9)),
-                        Transform.rotate(
-                          angle: _isAscending ? 0 : 3.14, // 旋转箭头以表示方向
-                          child: Icon(
-                            Icons.sort,
-                            size: 16,
-                            color: const Color(0xFF64A6D9),
-                          ),
+                // 按钮组
+                Row(
+                  children: [
+                    // 布局切换按钮
+                    InkWell(
+                      onTap: () {
+                        setState(() {
+                          _isStackLayout = !_isStackLayout;
+                          if (_isStackLayout) {
+                            _currentStackIndex = 0;
+                          }
+                        });
+                      },
+                      child: Container(
+                        decoration: BoxDecoration(
+                          color: Color(0xFFE6F0FA),
+                          borderRadius: BorderRadius.circular(12),
                         ),
-                        // ✅ 浅蓝图标
-                        const SizedBox(width: 4),
-                        Text(
-                          "排序",
-                          style: TextStyle(
-                            fontSize: 14,
-                            color: Color(0xFF64A6D9), // ✅ 浅蓝文字
-                            fontWeight: FontWeight.w500,
-                          ),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 12,
+                          vertical: 6,
                         ),
-                      ],
+                        child: Row(
+                          children: [
+                            Icon(
+                              _isStackLayout ? Icons.view_list : Icons.layers,
+                              size: 16,
+                              color: const Color(0xFF64A6D9),
+                            ),
+                            const SizedBox(width: 4),
+                            Text(
+                              _isStackLayout ? "列表" : "堆叠",
+                              style: TextStyle(
+                                fontSize: 14,
+                                color: Color(0xFF64A6D9),
+                                fontWeight: FontWeight.w500,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
                     ),
-                  ),
+
+                    const SizedBox(width: 8),
+
+                    // 排序按钮
+                    InkWell(
+                      onTap: _sortAnniversariesByDate,
+                      child: Container(
+                        decoration: BoxDecoration(
+                          color: Color(0xFFE6F0FA), // ✅ 浅蓝背景
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 12,
+                          vertical: 6,
+                        ),
+                        child: Row(
+                          children: [
+                            Transform.rotate(
+                              angle: _isAscending ? 0 : 3.14, // 旋转箭头以表示方向
+                              child: Icon(
+                                Icons.sort,
+                                size: 16,
+                                color: const Color(0xFF64A6D9),
+                              ),
+                            ),
+                            const SizedBox(width: 4),
+                            Text(
+                              "排序",
+                              style: TextStyle(
+                                fontSize: 14,
+                                color: Color(0xFF64A6D9), // ✅ 浅蓝文字
+                                fontWeight: FontWeight.w500,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ],
                 ),
               ],
             ),
           ),
 
           // 纪念日列表 - 添加下拉刷新功能
+          // 替换原来的列表显示部分
           Expanded(
             child:
                 anniversaries.isEmpty
@@ -306,39 +351,9 @@ class _HomePageState extends State<HomePage> {
                         ],
                       ),
                     )
-                    : RefreshIndicator(
-                      onRefresh: _loadData,
-                      child: ListView.builder(
-                        padding: const EdgeInsets.symmetric(horizontal: 16),
-                        itemBuilder: (context, index) {
-                          // 添加列表项动画
-                          return AnimatedBuilder(
-                            animation: Listenable.merge([
-                              // 如果有滚动控制器，可以在这里添加
-                            ]),
-                            builder: (context, child) {
-                              return AnimatedOpacity(
-                                opacity: 1.0,
-                                duration: Duration(
-                                  milliseconds: 500 + (index * 100),
-                                ),
-                                child: AnimatedPadding(
-                                  duration: const Duration(milliseconds: 300),
-                                  padding: const EdgeInsets.only(
-                                    top: 4,
-                                    bottom: 4,
-                                  ),
-                                  child: buildAnniversaryCard(
-                                    anniversaries[index],
-                                  ),
-                                ),
-                              );
-                            },
-                          );
-                        },
-                        itemCount: anniversaries.length,
-                      ),
-                    ),
+                    : _isStackLayout
+                    ? _buildStackLayout()
+                    : _buildListLayout(),
           ),
         ],
       ),
@@ -346,7 +361,8 @@ class _HomePageState extends State<HomePage> {
       floatingActionButton: Container(
         decoration: BoxDecoration(borderRadius: BorderRadius.circular(16)),
         child: FloatingActionButton(
-          heroTag: 'home_fab', // 唯一tag，防止Hero冲突
+          heroTag: 'home_fab',
+          // 唯一tag，防止Hero冲突
           onPressed: () async {
             SafeNavigator.pushOnce(context, AddAnniversaryPage());
           },
@@ -360,6 +376,173 @@ class _HomePageState extends State<HomePage> {
         ),
       ),
     );
+  }
+
+  // 列表布局（原来的布局）
+  Widget _buildListLayout() {
+    return RefreshIndicator(
+      onRefresh: _loadData,
+      child: ListView.builder(
+        padding: const EdgeInsets.symmetric(horizontal: 16),
+        itemBuilder: (context, index) {
+          return AnimatedBuilder(
+            animation: Listenable.merge([]),
+            builder: (context, child) {
+              return AnimatedOpacity(
+                opacity: 1.0,
+                duration: Duration(milliseconds: 500 + (index * 100)),
+                child: AnimatedPadding(
+                  duration: const Duration(milliseconds: 300),
+                  padding: const EdgeInsets.only(top: 4, bottom: 4),
+                  child: buildAnniversaryCard(anniversaries[index]),
+                ),
+              );
+            },
+          );
+        },
+        itemCount: anniversaries.length,
+      ),
+    );
+  }
+
+  // 堆叠布局（新的卡片堆叠布局）
+  Widget _buildStackLayout() {
+    return RefreshIndicator(
+      onRefresh: _loadData,
+      child: Column(
+        children: [
+          // 堆叠卡片区域 - 增加高度和居中
+          Expanded(
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 0),
+              child: Stack(
+                alignment: Alignment.center,
+                children: [
+                  // 背景卡片（显示后面的卡片）- 最多显示3层
+                  ...List.generate(math.min(4, anniversaries.length), (index) {
+                    final cardIndex =
+                        (_currentStackIndex + index) % anniversaries.length;
+
+                    // 缩放比例（第 4 层更小）
+                    final scale =
+                        1.0 - (index * 0.08); // [1.0, 0.92, 0.84, 0.76]
+                    final verticalOffset = index * 12.0;
+                    final horizontalOffset = index * 6.0;
+
+                    // 透明度递减：第一张1.0，第二张0.7，第三张0.4，第四张0.2
+                    final opacity = switch (index) {
+                      0 => 1.0,
+                      1 => 0.7,
+                      2 => 0.4,
+                      3 => 0.2,
+                      _ => 0.0,
+                    };
+
+                    return Positioned(
+                      top: verticalOffset,
+                      left: horizontalOffset,
+                      right: horizontalOffset,
+                      child: Transform.scale(
+                        scale: scale,
+                        child: AnimatedOpacity(
+                          duration: const Duration(milliseconds: 300),
+                          opacity: opacity,
+                          child: _buildStackCard(
+                            anniversaries[cardIndex],
+                            index == 0,
+                            index,
+                          ),
+                        ),
+                      ),
+                    );
+                  }).reversed,
+                ],
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildStackCard(Anniversary item, bool isTopCard, int stackIndex) {
+    final isCurrent = isTopCard;
+    final dragDx = _dragOffset.dx;
+
+    // 旋转角度范围（左右滑动最大 ±10 度）
+    final rotation = isCurrent ? dragDx / 300 * 0.2 : 0.0;
+
+    // 缩放 + Y 偏移，让卡片形成层叠视觉（后面的卡片越小、越低）
+    final scale = 1.0 - (0.05 * stackIndex);
+    final offsetY = 12.0 * stackIndex;
+
+    Widget card = AnniversaryCard(anniversary: item);
+
+    // 包裹缩放和偏移
+    card = Transform.translate(
+      offset: Offset(0, offsetY),
+      child: Transform.scale(
+        scale: scale,
+        alignment: Alignment.topCenter,
+        child: card,
+      ),
+    );
+
+    if (isCurrent) {
+      // AnimatedBuilder 实现旋转动画 + 拖拽
+      card = AnimatedBuilder(
+        animation: Listenable.merge([_animationController]),
+        builder: (_, child) {
+          return Transform.translate(
+            offset: _dragOffset,
+            child: Transform.rotate(angle: rotation, child: child),
+          );
+        },
+        child: card,
+      );
+
+      // 包裹手势
+      card = GestureDetector(
+        onPanUpdate: (details) {
+          setState(() {
+            _dragOffset += details.delta;
+          });
+        },
+        onPanEnd: (details) {
+          final velocity = details.velocity.pixelsPerSecond.dx;
+          const threshold = 300.0;
+
+          if (velocity < -threshold &&
+              _currentStackIndex < anniversaries.length - 1) {
+            setState(() {
+              _currentStackIndex++;
+              _dragOffset = Offset.zero;
+            });
+          } else if (velocity > threshold && _currentStackIndex > 0) {
+            setState(() {
+              _currentStackIndex--;
+              _dragOffset = Offset.zero;
+            });
+          } else {
+            // 回弹动画
+            setState(() {
+              _dragOffset = Offset.zero;
+            });
+          }
+        },
+        onTap: () {
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (_) => AddAnniversaryPage(anniversaryItem: item),
+            ),
+          );
+        },
+        child: card,
+      );
+    }
+
+    return card;
   }
 
   // 顶部今日卡片 - 全新设计
@@ -442,119 +625,6 @@ class _HomePageState extends State<HomePage> {
               ],
             ),
           ),
-
-          // 底部天气和农历信息（可选）
-          // Padding(
-          //   padding: const EdgeInsets.all(16),
-          //   child: Row(
-          //     mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          //     children: [
-          //       Row(
-          //         children: [
-          //           Icon(Icons.wb_sunny, color: Colors.orange.shade400),
-          //           const SizedBox(width: 8),
-          //           Text(
-          //             "晴 23°C", // 这里可以接入天气API
-          //             style: TextStyle(
-          //               fontSize: 14,
-          //               color: Colors.grey.shade700,
-          //             ),
-          //           ),
-          //         ],
-          //       ),
-          //       Text(
-          //         "农历六月初六", // 这里可以接入农历转换
-          //         style: TextStyle(fontSize: 14, color: Colors.grey.shade700),
-          //       ),
-          //     ],
-          //   ),
-          // ),
-        ],
-      ),
-    );
-  }
-
-  // 功能模块小组件
-  Widget buildFeatureModules() {
-    return Container(
-      margin: const EdgeInsets.fromLTRB(16, 8, 16, 16),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Padding(padding: const EdgeInsets.only(left: 8, bottom: 8)),
-          GridView.count(
-            shrinkWrap: true,
-            physics: const NeverScrollableScrollPhysics(),
-            crossAxisCount: 4,
-            mainAxisSpacing: 8,
-            crossAxisSpacing: 8,
-            children: [
-              _buildFeatureItem("生日提醒", Icons.cake, const Color(0xFF42A5F5)),
-              _buildFeatureItem(
-                "纪念相册",
-                Icons.photo_album,
-                const Color(0xFF66BB6A),
-              ),
-              _buildFeatureItem("情侣游戏", Icons.games, const Color(0xFFEC407A)),
-              _buildFeatureItem(
-                "心愿清单",
-                Icons.favorite,
-                const Color(0xFFFF7043),
-              ),
-              _buildFeatureItem("共享日记", Icons.book, const Color(0xFF5C6BC0)),
-              _buildFeatureItem(
-                "恋爱计算",
-                Icons.calculate,
-                const Color(0xFF8D6E63),
-              ),
-              _buildFeatureItem(
-                "情侣壁纸",
-                Icons.wallpaper,
-                const Color(0xFF26A69A),
-              ),
-              _buildFeatureItem(
-                "更多功能",
-                Icons.more_horiz,
-                const Color(0xFF78909C),
-              ),
-            ],
-          ),
-        ],
-      ),
-    );
-  }
-
-  // 单个功能模块项
-  Widget _buildFeatureItem(String title, IconData icon, Color color) {
-    return GestureDetector(
-      onTap: () {
-        // TODO: 跳转到对应功能
-        print("打开功能: $title");
-      },
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Container(
-            width: 50,
-            height: 50,
-            decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(15),
-              boxShadow: [
-                BoxShadow(
-                  color: color.withOpacity(0.01),
-                  blurRadius: 8,
-                  offset: const Offset(0, 2),
-                ),
-              ],
-            ),
-            child: Icon(icon, color: color, size: 28),
-          ),
-          const SizedBox(height: 8),
-          Text(
-            title,
-            style: TextStyle(fontSize: 12, color: Colors.grey.shade800),
-          ),
         ],
       ),
     );
@@ -565,10 +635,8 @@ class _HomePageState extends State<HomePage> {
     final isFuture = daysLeft >= 0;
     final tagText = isFuture ? '还有 $daysLeft 天' : '已过去 ${-daysLeft} 天';
     final bool isNearby = isFuture && daysLeft <= 7; // 判断是否临近
-
     // 使用多样化的配色
     final cardColors = getGradientByDate(item.date);
-
     // 侧滑删除和编辑功能
     return Dismissible(
       key: Key(item.date.toString()),
@@ -841,7 +909,7 @@ class _HomePageState extends State<HomePage> {
     return BaseInfoCard(
       emoji: "💡",
       title: "每日一句",
-      subtitle: oneSentenceContent,
+      subtitle: "每日一句",
       gradientColors: [Color(0xFFAED581), Color(0xFF81C784)], // 阳光绿
     );
   }
@@ -889,20 +957,6 @@ class _HomePageState extends State<HomePage> {
         ),
         child: Stack(
           children: [
-            // ✅ 放纹理，盖在背景色之上
-            // Positioned.fill(
-            //   child: ClipRRect(
-            //     borderRadius: BorderRadius.circular(16),
-            //     child: Opacity(
-            //       opacity: 0.06,
-            //       child: Image.asset(
-            //         'lib/assets/images/metal_texture.png',
-            //         fit: BoxFit.cover,
-            //       ),
-            //     ),
-            //   ),
-            // ),
-
             // ✅ 放内容
             Column(
               children: [
