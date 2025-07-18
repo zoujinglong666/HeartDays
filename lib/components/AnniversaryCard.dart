@@ -1,7 +1,6 @@
 import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:heart_days/apis/anniversary.dart';
-import 'package:heart_days/components/AnimatedProgressIndicator.dart';
 import 'package:intl/intl.dart';
 
 class AnniversaryCard extends StatelessWidget {

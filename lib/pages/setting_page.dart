@@ -3,6 +3,10 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:heart_days/apis/user.dart';
 import 'package:heart_days/provider/auth_provider.dart';
 import 'package:heart_days/utils/ToastUtils.dart';
+import 'dart:io';
+import 'package:path_provider/path_provider.dart';
+import 'package:cached_network_image/cached_network_image.dart';
+import 'package:flutter/painting.dart';
 
 class SettingsPage extends ConsumerStatefulWidget {
   const SettingsPage({super.key});
@@ -13,6 +17,13 @@ class SettingsPage extends ConsumerStatefulWidget {
 
 class _SettingsPageState extends ConsumerState<SettingsPage> {
   bool notificationEnabled = true;
+  int _cacheSize = 0;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadCacheSize();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -43,9 +54,16 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
             _buildTile(
               icon: Icons.info_outline,
               label: '清除缓存',
-              onTap: () {
-                Navigator.pushNamed(context, '/about');
+              onTap: () async {
+                await _clearAllCache(context);
+                await _loadCacheSize();
               },
+              trailing: Text(
+                _cacheSize > 0
+                  ? '${(_cacheSize / 1024 / 1024).toStringAsFixed(1)} MB'
+                  : '0 MB',
+                style: TextStyle(color: Colors.grey, fontSize: 13),
+              ),
             ),
             _buildTile(
               icon: Icons.logout,
@@ -110,6 +128,7 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
     required String label,
     required VoidCallback onTap,
     Color? color,
+    Widget? trailing,
   }) {
     final iconColor = color ?? const Color(0xFF5C6BC0);
     return InkWell(
@@ -129,6 +148,7 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
                 ),
               ),
             ),
+            if (trailing != null) trailing,
             const Icon(Icons.arrow_forward_ios, size: 16, color: Colors.grey),
           ],
         ),
@@ -212,5 +232,62 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
 
   void _showToast(BuildContext context, String message) {
     ToastUtils.showToast(message);
+  }
+
+  Future<int> getCacheSize() async {
+    int total = 0;
+    final tempDir = await getTemporaryDirectory();
+    total += await _getFolderSize(tempDir);
+    return total;
+  }
+
+  Future<int> _getFolderSize(Directory dir) async {
+    int size = 0;
+    try {
+      if (await dir.exists()) {
+        await for (var entity in dir.list(recursive: true, followLinks: false)) {
+          if (entity is File) {
+            size += await entity.length();
+          }
+        }
+      }
+    } catch (_) {}
+    return size;
+  }
+
+  Future<void> _clearAllCache(BuildContext context) async {
+    try {
+      // 清理图片缓存
+      await CachedNetworkImage.evictFromCache('');
+      PaintingBinding.instance.imageCache.clear();
+      PaintingBinding.instance.imageCache.clearLiveImages();
+
+      // 清理临时文件夹
+      final tempDir = await getTemporaryDirectory();
+      if (await tempDir.exists()) {
+        await tempDir.delete(recursive: true);
+      }
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('缓存已清除')),
+        );
+      }
+      // 清理后刷新显示
+      setState(() {});
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('清除缓存失败: $e')),
+        );
+      }
+    }
+  }
+
+  Future<void> _loadCacheSize() async {
+    final size = await getCacheSize();
+    setState(() {
+      _cacheSize = size;
+    });
   }
 }

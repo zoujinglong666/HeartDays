@@ -10,16 +10,9 @@ class LogInterceptorHandler extends Interceptor {
     super.onRequest(options, handler);
   }
 
-  @override
-  void onResponse(Response response, ResponseInterceptorHandler handler) {
-    print("✅ 响应: ${response.data}");
-    super.onResponse(response, handler);
-  }
 
   @override
   void onError(DioException err, ErrorInterceptorHandler handler) {
-    print("❌ Dio 错误: $err");
-
     final response = err.response;
     String errorMessage = "请求失败，请稍后重试";
 

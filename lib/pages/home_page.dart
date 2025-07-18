@@ -34,6 +34,9 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
   int _currentStackIndex = 0;
   Offset _dragOffset = Offset.zero;
   late final AnimationController _animationController;
+  late AnimationController _reboundController;
+  late Animation<Offset> _reboundAnimation;
+  bool _isAnimating = false;
   List<Map<String, dynamic>> getBuiltinAnniversaries() {
     final now = DateTime.now();
     final today = DateTime(now.year, now.month, now.day);
@@ -160,6 +163,15 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
       duration: const Duration(seconds: 8),
       vsync: this,
     )..repeat(); // 循环动画
+    _reboundController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 350),
+    );
+    _reboundController.addListener(() {
+      setState(() {
+        _dragOffset = _reboundAnimation.value;
+      });
+    });
     _loadData();
     // ✅ 监听纪念日列表更新事件
     _anniversarySubscription = eventBus.on<AnniversaryListUpdated>().listen((
@@ -184,11 +196,48 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
   @override
   void dispose() {
     // 清理事件监听器，避免内存泄漏
-    _anniversarySubscription?.cancel();
+    _reboundController.dispose();
     _animationController.dispose();
+    _anniversarySubscription?.cancel();
     super.dispose();
   }
 
+  void _startRebound() {
+    _reboundAnimation = Tween<Offset>(
+      begin: _dragOffset,
+      end: Offset.zero,
+    ).animate(CurvedAnimation(
+      parent: _reboundController,
+      curve: Curves.elasticOut,
+    ));
+    _reboundController.forward(from: 0);
+  }
+
+  void _startSlideOut(bool toLeft) async {
+    if (_isAnimating) return;
+    _isAnimating = true;
+    final endOffset = Offset(toLeft ? -MediaQuery.of(context).size.width : MediaQuery.of(context).size.width, 0);
+    final controller = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 250),
+    );
+    final animation = Tween<Offset>(
+      begin: _dragOffset,
+      end: endOffset,
+    ).animate(CurvedAnimation(parent: controller, curve: Curves.easeOut));
+    controller.addListener(() {
+      setState(() {
+        _dragOffset = animation.value;
+      });
+    });
+    await controller.forward();
+    controller.dispose();
+    setState(() {
+      _dragOffset = Offset.zero;
+      _currentStackIndex += toLeft ? 1 : -1;
+      _isAnimating = false;
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -472,26 +521,35 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
     // 旋转角度范围（左右滑动最大 ±10 度）
     final rotation = isCurrent ? dragDx / 300 * 0.2 : 0.0;
 
-    // 缩放 + Y 偏移，让卡片形成层叠视觉（后面的卡片越小、越低）
-    final scale = 1.0 - (0.05 * stackIndex);
-    final offsetY = 12.0 * stackIndex;
+    // 计算拖动进度
+    double dragProgress = (_dragOffset.dx.abs() / 120.0).clamp(0.0, 1.0);
+
+    // 多层堆叠
+    double baseScale = 1.0 - (0.05 * stackIndex);
+    double baseOffsetY = 12.0 * stackIndex;
+
+    // 多层跟随：后面2~3张卡片也跟随
+    if (stackIndex > _currentStackIndex && stackIndex <= _currentStackIndex + 3) {
+      final followIndex = stackIndex - _currentStackIndex;
+      baseScale = (1.0 - 0.05 * followIndex) + 0.05 * dragProgress * (1 - (followIndex - 1) * 0.3);
+      baseOffsetY = 12.0 * (followIndex - dragProgress * (1 - (followIndex - 1) * 0.3));
+    }
 
     Widget card = AnniversaryCard(anniversary: item);
 
     // 包裹缩放和偏移
     card = Transform.translate(
-      offset: Offset(0, offsetY),
+      offset: Offset(0, baseOffsetY),
       child: Transform.scale(
-        scale: scale,
+        scale: baseScale,
         alignment: Alignment.topCenter,
         child: card,
       ),
     );
 
     if (isCurrent) {
-      // AnimatedBuilder 实现旋转动画 + 拖拽
       card = AnimatedBuilder(
-        animation: Listenable.merge([_animationController]),
+        animation: Listenable.merge([_animationController, _reboundController]),
         builder: (_, child) {
           return Transform.translate(
             offset: _dragOffset,
@@ -501,36 +559,31 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
         child: card,
       );
 
-      // 包裹手势
       card = GestureDetector(
         onPanUpdate: (details) {
+          if (_isAnimating) return;
           setState(() {
             _dragOffset += details.delta;
           });
         },
         onPanEnd: (details) {
+          if (_isAnimating) return;
           final velocity = details.velocity.pixelsPerSecond.dx;
-          const threshold = 300.0;
+          const velocityThreshold = 300.0;
+          const distanceThreshold = 100.0;
 
-          if (velocity < -threshold &&
+          if ((_dragOffset.dx < -distanceThreshold || velocity < -velocityThreshold) &&
               _currentStackIndex < anniversaries.length - 1) {
-            setState(() {
-              _currentStackIndex++;
-              _dragOffset = Offset.zero;
-            });
-          } else if (velocity > threshold && _currentStackIndex > 0) {
-            setState(() {
-              _currentStackIndex--;
-              _dragOffset = Offset.zero;
-            });
+            _startSlideOut(true);
+          } else if ((_dragOffset.dx > distanceThreshold || velocity > velocityThreshold) &&
+              _currentStackIndex > 0) {
+            _startSlideOut(false);
           } else {
-            // 回弹动画
-            setState(() {
-              _dragOffset = Offset.zero;
-            });
+            _startRebound();
           }
         },
         onTap: () {
+          if (_isAnimating) return;
           Navigator.push(
             context,
             MaterialPageRoute(

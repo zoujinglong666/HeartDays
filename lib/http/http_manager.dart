@@ -16,7 +16,6 @@ class HttpManager {
       queryParameters: queryParameters,
       options: options,
     );
-    print("✅ 响应数据: ${res.data}");
     return ApiResponse<T>.fromJson(res.data, fromJson);
   }
 
@@ -27,7 +26,6 @@ class HttpManager {
     Function(dynamic)? fromJson,
   }) async {
     final res = await _dio.post(path, data: data, options: options);
-    print("✅ 响应数据post: ${res.data}");
     return ApiResponse<T>.fromJson(res.data, fromJson);
   }
 

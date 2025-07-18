@@ -62,6 +62,7 @@ dependencies:
   webview_flutter: ^4.2.2
   easy_refresh: ^3.4.0
   shimmer: ^3.0.0  # 加载效果
+  socket_io_client: ^2.0.3 # socket.io 
 flutter_launcher_icons:
     image_path: "lib/assets/images/icon.png"
     image_path_android: "lib/assets/images/icon.png"

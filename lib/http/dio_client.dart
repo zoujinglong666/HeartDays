@@ -25,7 +25,6 @@ class DioClient {
     );
 
     dio = Dio(options);
-
     // 配置缓存拦截器
     _setupCacheInterceptor();
 

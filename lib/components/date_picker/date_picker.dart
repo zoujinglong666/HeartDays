@@ -108,7 +108,6 @@ class DatePickerOverlay extends StatefulWidget {
   final Function(dynamic) onChange;
   final Function(dynamic) onConfirm;
   final Function() onCancel;
-
   const DatePickerOverlay({
     super.key,
     required this.mode,
@@ -153,7 +152,6 @@ class _DatePickerOverlayState extends State<DatePickerOverlay> with SingleTicker
       parent: _animationController,
       curve: Curves.easeOut,
     );
-
     // 启动动画
     _animationController.forward();
   }
@@ -189,8 +187,6 @@ class _DatePickerOverlayState extends State<DatePickerOverlay> with SingleTicker
         } else if (widget.filterType == FilterType.month) {
           _selectionResult = {"year": _selectedDateTime.year, "month": _selectedDateTime.month};
         } else { // week
-          // 需要一个工具函数来获取初始日期所在的周
-          // 这里暂时用 initialDateTime 模拟，实际应在 FilterDate 中处理
           _selectionResult = {
             "startTime": _selectedDateTime,
             "endTime": _selectedDateTime,
@@ -242,49 +238,25 @@ class _DatePickerOverlayState extends State<DatePickerOverlay> with SingleTicker
     return Stack(
       children: [
         // 半透明遮罩，使用动画控制透明度，添加模糊效果
-        // Positioned.fill(
-        //   child: GestureDetector(
-        //     onTap: _handleCancel,
-        //     child: AnimatedBuilder(
-        //       animation: _animation,
-        //       builder: (context, child) {
-        //         final opacity = _animation.value;
-        //         return Container(
-        //           color: Colors.black.withOpacity(0.3 * opacity),
-        //           child: Container(
-        //             decoration: BoxDecoration(
-        //               gradient: LinearGradient(
-        //                 begin: Alignment.topCenter,
-        //                 end: Alignment.bottomCenter,
-        //                 colors: [
-        //                   Colors.black.withOpacity(0.2 * opacity),
-        //                   Colors.black.withOpacity(0.5 * opacity),
-        //                 ],
-        //               ),
-        //             ),
-        //           ),
-        //         );
-        //       },
-        //     ),
-        //   ),
-        // ),
-
         Positioned.fill(
           child: GestureDetector(
             onTap: _handleCancel,
             child: AnimatedBuilder(
               animation: _animation,
               builder: (context, child) {
+                final opacity = _animation.value;
                 return Container(
-                  decoration: BoxDecoration(
-                    gradient: LinearGradient(
-                      begin: Alignment.topCenter,
-                      end: Alignment.bottomCenter,
-                      colors: [
-                        Colors.black.withOpacity(0.4 * _animation.value),
-                        Colors.black.withOpacity(0.6 * _animation.value),
-                      ],
-                      stops: const [0.0, 1.0],
+                  color: Colors.black.withOpacity(0.3 * opacity),
+                  child: Container(
+                    decoration: BoxDecoration(
+                      gradient: LinearGradient(
+                        begin: Alignment.topCenter,
+                        end: Alignment.bottomCenter,
+                        colors: [
+                          Colors.black.withOpacity(0.2 * opacity),
+                          Colors.black.withOpacity(0.5 * opacity),
+                        ],
+                      ),
                     ),
                   ),
                 );
@@ -292,6 +264,30 @@ class _DatePickerOverlayState extends State<DatePickerOverlay> with SingleTicker
             ),
           ),
         ),
+
+        // Positioned.fill(
+        //   child: GestureDetector(
+        //     onTap: _handleCancel,
+        //     child: AnimatedBuilder(
+        //       animation: _animation,
+        //       builder: (context, child) {
+        //         return Container(
+        //           decoration: BoxDecoration(
+        //             gradient: LinearGradient(
+        //               begin: Alignment.topCenter,
+        //               end: Alignment.bottomCenter,
+        //               colors: [
+        //                 Colors.black.withOpacity(0.4 * _animation.value),
+        //                 Colors.black.withOpacity(0.6 * _animation.value),
+        //               ],
+        //               stops: const [0.0, 1.0],
+        //             ),
+        //           ),
+        //         );
+        //       },
+        //     ),
+        //   ),
+        // ),
         // 主内容面板，使用动画控制位置
         AnimatedBuilder(
           animation: _animation,

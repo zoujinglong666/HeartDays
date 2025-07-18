@@ -1,0 +1,215 @@
+import 'package:heart_days/common/decode.dart';
+import 'package:heart_days/http/http_manager.dart';
+import 'package:heart_days/http/model/api_response.dart';
+
+class ChatSession {
+  final String sessionId;
+  final String type; // 'single' or 'group'
+  final String name;
+  final String? avatar;
+  final LastMessage? lastMessage;
+  final int unreadCount;
+  final bool isPinned;
+  final bool isMuted;
+
+  ChatSession({
+    required this.sessionId,
+    required this.type,
+    required this.name,
+    this.avatar,
+    this.lastMessage,
+    required this.unreadCount,
+    required this.isPinned,
+    required this.isMuted,
+  });
+
+  factory ChatSession.fromJson(Map<String, dynamic> json) {
+    return ChatSession(
+      sessionId: json['sessionId'] as String,
+      type: json['type'] as String,
+      name: json['name'] as String,
+      avatar: json['avatar'] as String?,
+      lastMessage:
+          json['lastMessage'] != null
+              ? LastMessage.fromJson(json['lastMessage'])
+              : null,
+      unreadCount: json['unreadCount'] as int,
+      isPinned: json['isPinned'] as bool,
+      isMuted: json['isMuted'] as bool,
+    );
+  }
+
+  Map<String, dynamic> toJson() {
+    return {
+      'sessionId': sessionId,
+      'type': type,
+      'name': name,
+      'avatar': avatar,
+      'lastMessage': lastMessage?.toJson(),
+      'unreadCount': unreadCount,
+      'isPinned': isPinned,
+      'isMuted': isMuted,
+    };
+  }
+}
+
+class LastMessage {
+  final String content;
+  final String type;
+  final String createdAt;
+  final String senderId;
+  final String status;
+
+  LastMessage({
+    required this.content,
+    required this.type,
+    required this.createdAt,
+    required this.senderId,
+    required this.status,
+  });
+
+  factory LastMessage.fromJson(Map<String, dynamic> json) {
+    return LastMessage(
+      content: json['content'] as String,
+      type: json['type'] as String,
+      createdAt: json['createdAt'] as String,
+      senderId: json['senderId'] as String,
+      status: json['status'] as String,
+    );
+  }
+
+  Map<String, dynamic> toJson() {
+    return {
+      'content': content,
+      'type': type,
+      'createdAt': createdAt,
+      'senderId': senderId,
+      'status': status,
+    };
+  }
+}
+
+class ChatMessage {
+  final String id;
+  final String sessionId;
+  final String senderId;
+  final String content;
+  final String type;
+  final String createdAt;
+  final String status;
+
+  ChatMessage({
+    required this.id,
+    required this.sessionId,
+    required this.senderId,
+    required this.content,
+    required this.type,
+    required this.createdAt,
+    required this.status,
+  });
+
+  factory ChatMessage.fromJson(Map<String, dynamic> json) {
+    return ChatMessage(
+      id: json['id'] as String,
+      sessionId: json['sessionId'] as String,
+      senderId: json['senderId'] as String,
+      content: json['content'] as String,
+      type: json['type'] as String,
+      createdAt: json['createdAt'] as String,
+      status: json['status'] as String,
+    );
+  }
+
+  Map<String, dynamic> toJson() {
+    return {
+      'id': id,
+      'sessionId': sessionId,
+      'senderId': senderId,
+      'content': content,
+      'type': type,
+      'createdAt': createdAt,
+      'status': status,
+    };
+  }
+}
+
+class GroupMember {
+  final String userId;
+  final String nickname;
+  final String? avatar;
+  final String joinedAt;
+
+  GroupMember({
+    required this.userId,
+    required this.nickname,
+    this.avatar,
+    required this.joinedAt,
+  });
+
+  factory GroupMember.fromJson(Map<String, dynamic> json) {
+    return GroupMember(
+      userId: json['userId'] as String,
+      nickname: json['nickname'] as String,
+      avatar: json['avatar'] as String?,
+      joinedAt: json['joinedAt'] as String,
+    );
+  }
+
+  Map<String, dynamic> toJson() {
+    return {
+      'userId': userId,
+      'nickname': nickname,
+      'avatar': avatar,
+      'joinedAt': joinedAt,
+    };
+  }
+}
+
+class ReadMember {
+  final String userId;
+  final String nickname;
+  final String? avatar;
+  final String readAt;
+
+  ReadMember({
+    required this.userId,
+    required this.nickname,
+    this.avatar,
+    required this.readAt,
+  });
+
+  factory ReadMember.fromJson(Map<String, dynamic> json) {
+    return ReadMember(
+      userId: json['userId'] as String,
+      nickname: json['nickname'] as String,
+      avatar: json['avatar'] as String?,
+      readAt: json['readAt'] as String,
+    );
+  }
+
+  Map<String, dynamic> toJson() {
+    return {
+      'userId': userId,
+      'nickname': nickname,
+      'avatar': avatar,
+      'readAt': readAt,
+    };
+  }
+}
+
+/// 获取会话列表
+Future<ApiResponse<PaginatedData<ChatSession>>> listChatSession(
+  Map<String, dynamic> data,
+) async {
+  return await HttpManager.get<PaginatedData<ChatSession>>(
+    "/chat/session-list",
+    queryParameters: data,
+    fromJson: (json) {
+      print('🔍 解析 PaginatedData: $json');
+      return PaginatedData<ChatSession>.fromJson(
+        json,
+        (e) => ChatSession.fromJson(e),
+      );
+    },
+  );
+}

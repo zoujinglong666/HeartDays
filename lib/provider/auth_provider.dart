@@ -45,14 +45,12 @@ class AuthNotifier extends StateNotifier<AuthState> {
   static const _storageKey = 'auth_data';
   bool _isRefreshing = false; // 防止重复刷新
   TokenManager? _tokenManager;
-
   AuthNotifier() : super(AuthState());
 
   /// 设置TokenManager
   void setTokenManager(TokenManager tokenManager) {
     _tokenManager = tokenManager;
   }
-
   /// ✅ 从本地加载登录信息
   Future<void> loadFromStorage() async {
     final prefs = await SharedPreferences.getInstance();
@@ -106,7 +104,6 @@ class AuthNotifier extends StateNotifier<AuthState> {
         final newRefreshToken = data['refreshToken'] as String?;
         final accessTokenExpiry = data['accessTokenExpiry'] as int?;
         final refreshTokenExpiry = data['refreshTokenExpiry'] as int?;
-        
         if (newAccessToken != null && newRefreshToken != null) {
           // 更新token
           state = AuthState(

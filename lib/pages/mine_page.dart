@@ -5,6 +5,7 @@ import 'package:heart_days/pages/about_page.dart';
 import 'package:heart_days/pages/setting_page.dart';
 import 'package:heart_days/provider/auth_provider.dart';
 import 'package:heart_days/pages/user_edit_page.dart';
+import 'package:heart_days/pages/chat_list_page.dart';
 
 class MinePage extends ConsumerStatefulWidget {
   const MinePage({super.key});
@@ -317,7 +318,17 @@ class _MinePageState extends ConsumerState<MinePage> {
               child: Material(
                 color: Colors.transparent,
                 child: InkWell(
-                  onTap: () => print('跳转到 ${item['label']}'),
+                  onTap: () {
+                    if (item['label'] == '聊天') {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(builder: (_) => const ChatListPage()),
+                      );
+                    } else {
+                      // 其他功能
+                      print('跳转到 ${item['label']}');
+                    }
+                  },
                   borderRadius: BorderRadius.circular(16),
                   child: Column(
                     mainAxisAlignment: MainAxisAlignment.center,
