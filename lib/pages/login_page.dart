@@ -2,6 +2,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:heart_days/pages/register_page.dart';
 import 'package:heart_days/provider/auth_provider.dart';
+import 'package:heart_days/services/ChatSocketService.dart';
 import 'package:heart_days/utils/ToastUtils.dart';
 import 'package:heart_days/utils/simpleEncryptor_utils.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -177,7 +178,7 @@ class _LoginPageState extends ConsumerState<LoginPage>
             final prefs = await SharedPreferences.getInstance();
             await prefs.setString('token', token);
             await prefs.setString('refresh_token', refreshToken!);
-
+            ChatSocketService().connect(token!, user.id);
             Navigator.of(
               context,
             ).pushNamedAndRemoveUntil('/main', (route) => false);

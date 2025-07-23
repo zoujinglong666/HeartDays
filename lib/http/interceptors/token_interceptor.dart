@@ -74,7 +74,7 @@ class TokenInterceptorHandler extends Interceptor {
 
       // ✅ 如果没有 refresh_token，直接退出登录
       if (oldRefreshToken == null || oldRefreshToken.isEmpty) {
-        print("⚠️ 无有效 Refresh Token，退出登录");
+        print("⚠️  Refresh Token 失效，退出登录");
         await _logout();
         handler.reject(err); // 拒绝当前请求
         return;

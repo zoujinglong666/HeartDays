@@ -20,7 +20,6 @@ class AuthState {
   });
 
   bool get isLoggedIn => token != null && user != null;
-
   Map<String, dynamic> toJson() => {
     'token': token,
     'refreshToken': refreshToken,
@@ -46,6 +45,7 @@ class AuthNotifier extends StateNotifier<AuthState> {
   bool _isRefreshing = false; // 防止重复刷新
   TokenManager? _tokenManager;
   AuthNotifier() : super(AuthState());
+  User? globalCurrentUser;
 
   /// 设置TokenManager
   void setTokenManager(TokenManager tokenManager) {
@@ -79,7 +79,7 @@ class AuthNotifier extends StateNotifier<AuthState> {
     );
     final prefs = await SharedPreferences.getInstance();
     await prefs.setString(_storageKey, jsonEncode(state.toJson()));
-    
+    globalCurrentUser=user;
     // 启动token检查
     _tokenManager?.startTokenCheck();
   }
@@ -166,6 +166,7 @@ class AuthNotifier extends StateNotifier<AuthState> {
     final prefs = await SharedPreferences.getInstance();
     await prefs.remove(_storageKey);
     await prefs.remove('token');
+    // await prefs.remove('refreshToken');
   }
 
   // ✅ Getter

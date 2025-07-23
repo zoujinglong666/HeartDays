@@ -26,11 +26,8 @@ class _MinePageState extends ConsumerState<MinePage> {
         systemNavigationBarIconBrightness: Brightness.dark,
       ),
     );
-    final signature = '你是我最甜的纪念日';
     // 定义高级感配色
-    const Color primaryColor = Color(0xFF5C6BC0); // 主色调：靛蓝色
     const Color backgroundColor = Color(0xFFF8F9FA); // 背景色：浅灰色
-    const Color cardColor = Colors.white; // 卡片色：纯白色
 
     final List<Map<String, dynamic>> shortcuts = [
       {
@@ -87,99 +84,89 @@ class _MinePageState extends ConsumerState<MinePage> {
       backgroundColor: backgroundColor,
       extendBody: true,
       // 使用自定义滚动视图
-      body: CustomScrollView(
-        slivers: [
-          // 顶部弹性头部
-          SliverAppBar(
-            expandedHeight: 120,
-            pinned: true,
-            backgroundColor: primaryColor,
-            flexibleSpace: FlexibleSpaceBar(
-              title: Text(
-                '个人中心',
-                style: TextStyle(
-                  color: Colors.white,
-                  fontSize: 18,
-                  fontWeight: FontWeight.w600,
-                ),
-              ),
-              background: Container(
-                decoration: BoxDecoration(
-                  gradient: LinearGradient(
-                    colors: [
-                      const Color(0xFFF48FB1), // 浅粉色
-                      const Color(0xFFCE93D8), // 浅紫色
-                    ],
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
-                  ),
-                ),
+      body: Column(
+        children: [
+          Container(
+            height: 120,
+            decoration: const BoxDecoration(
+              gradient: LinearGradient(
+                colors: [Color(0xFFF48FB1), Color(0xFFCE93D8)],
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
               ),
             ),
-            actions: [
-              IconButton(
-                icon: Icon(Icons.settings, color: Colors.white),
-                onPressed: () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(builder: (_) => const SettingsPage()),
-                  );
-                },
-              ),
-            ],
-            systemOverlayStyle: SystemUiOverlayStyle.light,
+            padding: const EdgeInsets.only(top: 40, left: 16, right: 16),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                const Text(
+                  '个人中心',
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontSize: 18,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+                IconButton(
+                  icon: const Icon(Icons.settings, color: Colors.white),
+                  onPressed: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (_) => const SettingsPage()),
+                    );
+                  },
+                ),
+              ],
+            ),
           ),
 
-          // 内容区域
-          SliverToBoxAdapter(
-            child: Padding(
-              padding: const EdgeInsets.all(16.0),
+          // 内容区域滚动视图
+          Expanded(
+            child: SingleChildScrollView(
+              padding: const EdgeInsets.all(16),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  // 个人资料卡片 - 高级设计
-                  buildProfileCard(signature, cardColor),
-
+                  // 个人资料卡片
+                  buildProfileCard('你是我最甜的纪念日', Colors.white),
                   const SizedBox(height: 24),
 
-                  // 分类标题
-                  Padding(
-                    padding: const EdgeInsets.only(left: 8, bottom: 0),
+                  // 快捷功能标题
+                  const Padding(
+                    padding: EdgeInsets.only(left: 8, bottom: 0),
                     child: Text(
                       '快捷功能',
                       style: TextStyle(
                         fontSize: 18,
                         fontWeight: FontWeight.bold,
-                        color: primaryColor,
+                        color: Color(0xFF5C6BC0),
                       ),
                     ),
                   ),
 
-                  // 快捷功能区 - 高级设计
+                  // 快捷功能 Grid
                   buildShortcutsGrid(shortcuts, context),
-
                   const SizedBox(height: 24),
 
-                  // 分类标题
-                  Padding(
-                    padding: const EdgeInsets.only(left: 8, bottom: 16),
+                  // 更多功能标题
+                  const Padding(
+                    padding: EdgeInsets.only(left: 8, bottom: 16),
                     child: Text(
                       '更多功能',
                       style: TextStyle(
                         fontSize: 18,
                         fontWeight: FontWeight.bold,
-                        color: primaryColor,
+                        color: Color(0xFF5C6BC0),
                       ),
                     ),
                   ),
 
-                  // 功能列表 - 高级设计
+                  // 功能列表
                   ...buildCells(cells),
-
                   const SizedBox(height: 24),
 
                   // 版本信息
-                  Center(
+                  const Center(
                     child: Text(
                       'Heart Days v1.0.0',
                       style: TextStyle(fontSize: 12, color: Colors.grey),
@@ -192,6 +179,7 @@ class _MinePageState extends ConsumerState<MinePage> {
           ),
         ],
       ),
+
     );
   }
 
@@ -220,18 +208,6 @@ class _MinePageState extends ConsumerState<MinePage> {
             padding: const EdgeInsets.all(3),
             decoration: BoxDecoration(
               shape: BoxShape.circle,
-              gradient: LinearGradient(
-                colors: [Color(0xFF64B5F6), Color(0xFF5C6BC0)],
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-              ),
-              boxShadow: [
-                BoxShadow(
-                  color: Color(0xFF5C6BC0).withOpacity(0.3),
-                  blurRadius: 8,
-                  offset: const Offset(0, 2),
-                ),
-              ],
             ),
             child: CircleAvatar(
               radius: 32,

@@ -1,16 +1,45 @@
 import 'package:flutter/material.dart';
 import 'package:heart_days/apis/chat.dart';
+import 'package:heart_days/pages/chat_detail_page.dart';
 import 'package:heart_days/pages/friend_list_page.dart';
-import 'package:flutter/cupertino.dart';
+import 'package:heart_days/services/ChatSocketService.dart';
 
-class ChatListPage extends StatefulWidget {
+class ChatListPage extends StatelessWidget {
   const ChatListPage({super.key});
 
   @override
-  State<ChatListPage> createState() => _ChatListPageState();
+  Widget build(BuildContext context) {
+    return DefaultTabController(
+      length: 2,
+      child: Scaffold(
+        appBar: AppBar(
+          backgroundColor: const Color(0xFFEDEDED),
+          foregroundColor: Colors.black,
+          bottom: const TabBar(
+            labelColor: Color(0xFF07C160),
+            unselectedLabelColor: Colors.black54,
+            indicatorColor: Color(0xFF07C160),
+            tabs: [
+              Tab(text: '聊天', icon: Icon(Icons.chat_bubble_outline)),
+              Tab(text: '通讯录', icon: Icon(Icons.contacts_outlined)),
+            ],
+          ),
+        ),
+        backgroundColor: const Color(0xFFEDEDED),
+        body: const TabBarView(children: [ChatListTab(), FriendListPage()]),
+      ),
+    );
+  }
 }
 
-class _ChatListPageState extends State<ChatListPage> {
+class ChatListTab extends StatefulWidget {
+  const ChatListTab({super.key});
+
+  @override
+  State<ChatListTab> createState() => _ChatListTabState();
+}
+
+class _ChatListTabState extends State<ChatListTab> {
   List<ChatSession> chats = [];
   bool _isLoading = true;
 
@@ -65,7 +94,15 @@ class _ChatListPageState extends State<ChatListPage> {
       }
       // 一周内的消息
       else if (difference.inDays < 7) {
-        const List<String> weekdays = ['周一', '周二', '周三', '周四', '周五', '周六', '周日'];
+        const List<String> weekdays = [
+          '周一',
+          '周二',
+          '周三',
+          '周四',
+          '周五',
+          '周六',
+          '周日',
+        ];
         // 注意：DateTime中的weekday是1-7，其中7代表周日
         int weekdayIndex = messageTime.weekday - 1;
         return weekdays[weekdayIndex];
@@ -91,32 +128,13 @@ class _ChatListPageState extends State<ChatListPage> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('微信', style: TextStyle(fontWeight: FontWeight.bold)),
-        backgroundColor: const Color(0xFFEDEDED),
-        foregroundColor: Colors.black,
-        elevation: 0,
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.search, color: Colors.black87),
-            onPressed: () {
-              // 搜索功能
-            },
-          ),
-          IconButton(
-            icon: const Icon(Icons.add_circle_outline, color: Colors.black87),
-            onPressed: _navigateToFriendList,
-          ),
-        ],
-      ),
-      backgroundColor: const Color(0xFFEDEDED),
-      body: _isLoading
-          ? const Center(child: CircularProgressIndicator(color: Color(0xFF07C160)))
-          : chats.isEmpty
-          ? _buildEmptyView()
-          : _buildChatList(),
-    );
+    return _isLoading
+        ? const Center(
+          child: CircularProgressIndicator(color: Color(0xFF07C160)),
+        )
+        : chats.isEmpty
+        ? _buildEmptyView()
+        : _buildChatList();
   }
 
   Widget _buildEmptyView() {
@@ -137,14 +155,11 @@ class _ChatListPageState extends State<ChatListPage> {
               backgroundColor: const Color(0xFF07C160),
               foregroundColor: Colors.white,
               padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(6)),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(6),
+              ),
             ),
             child: const Text('添加好友开始聊天'),
-          ),
-          const SizedBox(height: 12),
-          TextButton(
-            onPressed: fetchChats,
-            child: const Text('刷新', style: TextStyle(color: Color(0xFF07C160))),
           ),
         ],
       ),
@@ -183,24 +198,26 @@ class _ChatListPageState extends State<ChatListPage> {
                       color: Colors.grey[200],
                       borderRadius: BorderRadius.circular(4),
                     ),
-                    child: chat.avatar != null && chat.avatar!.isNotEmpty
-                        ? ClipRRect(
-                      borderRadius: BorderRadius.circular(4),
-                      child: Image.network(
-                        chat.avatar!,
-                        fit: BoxFit.cover,
-                        errorBuilder: (_, __, ___) => const Icon(
-                          Icons.person,
-                          size: 28,
-                          color: Colors.grey,
-                        ),
-                      ),
-                    )
-                        : const Icon(
-                      Icons.person,
-                      size: 28,
-                      color: Colors.grey,
-                    ),
+                    child:
+                        chat.avatar != null && chat.avatar!.isNotEmpty
+                            ? ClipRRect(
+                              borderRadius: BorderRadius.circular(4),
+                              child: Image.network(
+                                chat.avatar!,
+                                fit: BoxFit.cover,
+                                errorBuilder:
+                                    (_, __, ___) => const Icon(
+                                      Icons.person,
+                                      size: 28,
+                                      color: Colors.grey,
+                                    ),
+                              ),
+                            )
+                            : const Icon(
+                              Icons.person,
+                              size: 28,
+                              color: Colors.grey,
+                            ),
                   ),
                   if (chat.unreadCount > 0)
                     Positioned(
@@ -218,7 +235,9 @@ class _ChatListPageState extends State<ChatListPage> {
                         ),
                         child: Center(
                           child: Text(
-                            chat.unreadCount > 99 ? '99+' : chat.unreadCount.toString(),
+                            chat.unreadCount > 99
+                                ? '99+'
+                                : chat.unreadCount.toString(),
                             style: const TextStyle(
                               color: Colors.white,
                               fontSize: 10,
@@ -263,10 +282,7 @@ class _ChatListPageState extends State<ChatListPage> {
                   const SizedBox(width: 8),
                   Text(
                     _formatTime(chat.lastMessage?.createdAt),
-                    style: TextStyle(
-                      fontSize: 12,
-                      color: Colors.grey[500],
-                    ),
+                    style: TextStyle(fontSize: 12, color: Colors.grey[500]),
                   ),
                 ],
               ),
@@ -277,7 +293,10 @@ class _ChatListPageState extends State<ChatListPage> {
                     if (chat.isPinned)
                       Container(
                         margin: const EdgeInsets.only(right: 4),
-                        padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 1),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 4,
+                          vertical: 1,
+                        ),
                         decoration: BoxDecoration(
                           color: Colors.grey[300],
                           borderRadius: BorderRadius.circular(2),
@@ -292,7 +311,10 @@ class _ChatListPageState extends State<ChatListPage> {
                         chat.lastMessage?.content ?? '',
                         style: TextStyle(
                           fontSize: 13,
-                          color: chat.isMuted ? Colors.grey[400] : Colors.grey[600],
+                          color:
+                              chat.isMuted
+                                  ? Colors.grey[400]
+                                  : Colors.grey[600],
                         ),
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
@@ -302,6 +324,16 @@ class _ChatListPageState extends State<ChatListPage> {
                 ),
               ),
               onTap: () {
+                if (chat.sessionId.isEmpty) {
+                  return;
+                }
+                ChatSocketService().joinSession(chat.sessionId);
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => ChatDetailPage(chatSession: chat),
+                  ),
+                );
                 // 跳转到聊天详情页
               },
               onLongPress: () {

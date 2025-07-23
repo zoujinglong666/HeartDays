@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:heart_days/provider/auth_provider.dart';
+import 'package:heart_days/services/ChatSocketService.dart';
 
 class SplashPage extends ConsumerStatefulWidget {
   const SplashPage({super.key});
@@ -48,11 +49,12 @@ class _SplashPageState extends ConsumerState<SplashPage> {
       await Future.delayed(const Duration(milliseconds: 50)); // 进一步减少到50ms
 
       if (authState.token != null && authState.user != null) {
+        final userId = authState.user!.id;
+        ChatSocketService().connect(authState.token!, userId);
         Navigator.of(context).pushReplacementNamed('/main');
       } else {
         Navigator.of(context).pushReplacementNamed('/login');
       }
-      
     } catch (e) {
       print('启动检查失败: $e');
       // 出错时默认跳转到登录页
@@ -68,7 +70,7 @@ class _SplashPageState extends ConsumerState<SplashPage> {
     while (!ref.read(authProvider).isInitialized && timeoutCount < maxTimeout) {
       await Future.delayed(const Duration(milliseconds: checkInterval));
       timeoutCount++;
-      
+
       // 每5次检查更新一次加载文本（更频繁更新）
       if (timeoutCount % 5 == 0) {
         _updateLoadingState('正在初始化... (${timeoutCount * checkInterval}ms)', 1);
@@ -121,15 +123,11 @@ class _SplashPageState extends ConsumerState<SplashPage> {
                   ),
                 ],
               ),
-              child: Icon(
-                Icons.favorite,
-                size: 60,
-                color: primaryColor,
-              ),
+              child: Icon(Icons.favorite, size: 60, color: primaryColor),
             ),
-            
+
             const SizedBox(height: 40),
-            
+
             // App Name
             const Text(
               '甜甜纪念日',
@@ -140,9 +138,9 @@ class _SplashPageState extends ConsumerState<SplashPage> {
                 letterSpacing: 1.2,
               ),
             ),
-            
+
             const SizedBox(height: 60),
-            
+
             // Loading Indicator
             Column(
               children: [
@@ -151,25 +149,20 @@ class _SplashPageState extends ConsumerState<SplashPage> {
                   height: 40,
                   child: CircularProgressIndicator(
                     strokeWidth: 3,
-                    valueColor: const AlwaysStoppedAnimation<Color>(
-                      cardColor,
-                    ),
+                    valueColor: const AlwaysStoppedAnimation<Color>(cardColor),
                   ),
                 ),
-                
+
                 const SizedBox(height: 20),
-                
+
                 // Loading Text
                 Text(
                   _loadingText,
-                  style: const TextStyle(
-                    fontSize: 16,
-                    color: cardColor,
-                  ),
+                  style: const TextStyle(fontSize: 16, color: cardColor),
                 ),
-                
+
                 const SizedBox(height: 10),
-                
+
                 // Progress Steps
                 Row(
                   mainAxisAlignment: MainAxisAlignment.center,
@@ -180,9 +173,10 @@ class _SplashPageState extends ConsumerState<SplashPage> {
                       height: 8,
                       decoration: BoxDecoration(
                         shape: BoxShape.circle,
-                        color: index < _loadingStep 
-                          ? cardColor 
-                          : cardColor.withOpacity(0.3),
+                        color:
+                            index < _loadingStep
+                                ? cardColor
+                                : cardColor.withOpacity(0.3),
                       ),
                     );
                   }),

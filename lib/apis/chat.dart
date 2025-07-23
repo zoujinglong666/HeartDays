@@ -26,7 +26,8 @@ class ChatSession {
   factory ChatSession.fromJson(Map<String, dynamic> json) {
     return ChatSession(
       sessionId: json['sessionId'] as String,
-      type: json['type'] as String,
+      type: (json['type'] as String?) ?? 'single',
+      // 默认值或抛出错误
       name: json['name'] as String,
       avatar: json['avatar'] as String?,
       lastMessage:
@@ -197,6 +198,54 @@ class ReadMember {
   }
 }
 
+class ChatSessionResponse {
+  final String id;
+  final String type;
+  final String? name; // 根据响应，name 可能为 null
+  final String createdAt;
+  final String updatedAt;
+
+  ChatSessionResponse({
+    required this.id,
+    required this.type,
+    this.name,
+    required this.createdAt,
+    required this.updatedAt,
+  });
+
+  factory ChatSessionResponse.fromJson(Map<String, dynamic> json) {
+    return ChatSessionResponse(
+      id: json['id'],
+      type: json['type'],
+      name: json['name'] ?? '',
+      // 可为 null，所以类型为 dynamic
+      createdAt: json['createdAt'],
+      updatedAt: json['updatedAt'],
+    );
+  }
+
+  Map<String, dynamic> toJson() {
+    return {
+      'id': id,
+      'type': type,
+      'name': name,
+      'createdAt': createdAt,
+      'updatedAt': updatedAt,
+    };
+  }
+}
+
+/// 创建会话
+Future<ApiResponse<ChatSessionResponse>> createChatSession(
+  Map<String, dynamic> data,
+) async {
+  return await HttpManager.post<ChatSessionResponse>(
+    "/chat/session",
+    data: data,
+    fromJson: (json) => ChatSessionResponse.fromJson(json),
+  );
+}
+
 /// 获取会话列表
 Future<ApiResponse<PaginatedData<ChatSession>>> listChatSession(
   Map<String, dynamic> data,
@@ -211,5 +260,54 @@ Future<ApiResponse<PaginatedData<ChatSession>>> listChatSession(
         (e) => ChatSession.fromJson(e),
       );
     },
+  );
+}
+
+/// 获取聊天记录
+Future<ApiResponse<PaginatedData<ChatMessage>>> getChatHistoryApi(
+  Map<String, dynamic> data,
+) async {
+  final String sessionId = data['id'];
+  return await HttpManager.get<PaginatedData<ChatMessage>>(
+    "/chat/session/$sessionId/messages", // 路径格式对应后端
+    queryParameters: {
+      'limit': data['limit'] ?? 100,
+      'offset': data['offset'] ?? 0,
+    },
+    fromJson: (json) {
+      print('🔍 解析 ChatMessage: $json');
+      return PaginatedData<ChatMessage>.fromJson(
+        json,
+        (e) => ChatMessage.fromJson(e),
+      );
+    },
+  );
+}
+
+/// 获取会话详情
+Future<ApiResponse<ChatSessionResponse>> getChatSessionById(
+  String sessionId,
+) async {
+  return await HttpManager.get<ChatSessionResponse>(
+    "/chat/session/$sessionId", // 注意路径要与后端一致
+    fromJson: (json) => ChatSessionResponse.fromJson(json),
+  );
+}
+
+Future<ApiResponse<ChatSessionResponse>> getChatSessionDetail(
+  String sessionId,
+) async {
+  return await HttpManager.get<ChatSessionResponse>(
+    "/chat/session/$sessionId", // 注意路径要与后端一致
+    fromJson: (json) => ChatSessionResponse.fromJson(json),
+  );
+}
+
+/// 标记消息已读
+Future<ApiResponse<void>> markMessageReadApi(String messageId) async {
+  print('标记消息已读');
+  return await HttpManager.post<void>(
+    "/chat/message/$messageId/read",
+    fromJson: (_) => null,
   );
 }

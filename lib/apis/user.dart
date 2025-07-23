@@ -192,6 +192,42 @@ class RefreshTokenRequest {
     'refresh_token': refreshToken,
   };
 }
+class UserVO {
+  final String id;
+  final String name;
+  final String email;
+  final String avatar;
+  final String userAccount;
+
+  UserVO({
+    required this.id,
+    required this.name,
+    required this.email,
+    required this.avatar,
+    required this.userAccount,
+  });
+
+  factory UserVO.fromJson(Map<String, dynamic> json) {
+    return UserVO(
+      id: json['id'] ?? '',
+      name: json['name'] ?? '无名',
+      email: json['email'] ?? '',
+      avatar: json['avatar'] ?? 'https://fastly.jsdelivr.net/npm/@vant/assets/logo.png',
+      userAccount: json['userAccount'] ?? '',
+    );
+  }
+
+  Map<String, dynamic> toJson() {
+    return {
+      'id': id,
+      'name': name,
+      'email': email,
+      'avatar': avatar,
+      'userAccount': userAccount,
+    };
+  }
+}
+
 
 /// 刷新token
 Future<ApiResponse<Map<String, dynamic>>> refreshTokenApi(Map<String, dynamic> data) async {
@@ -201,6 +237,23 @@ Future<ApiResponse<Map<String, dynamic>>> refreshTokenApi(Map<String, dynamic> d
     fromJson: (json) => json,
   );
 }
+
+/// 获取未添加的用户列表
+Future<ApiResponse<List<UserVO>>> listUnaddedUsers(Map<String, dynamic> data) async {
+  return await HttpManager.get<List<UserVO>>(
+    "/users/unadded",
+    queryParameters: data,
+    fromJson: (json) {
+      if (json is List) {
+        return json.map((item) => UserVO.fromJson(item)).toList();
+      }
+      return [];
+    },
+  );
+}
+
+
+
 
 
 
