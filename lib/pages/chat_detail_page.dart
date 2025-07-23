@@ -138,14 +138,21 @@ class _ChatDetailPageState extends State<ChatDetailPage> {
 
   Future<void> _loadMoreHistory() async {
     if (!_hasMore || _loadingMore) return;
+    if (_offset >= totalMessages) return; // 防止offset超出
 
     setState(() => _loadingMore = true);
+
+    // 记录加载前的滚动位置和最大可滚动距离
+    double oldScrollOffset = _scrollController.hasClients ? _scrollController.offset : 0.0;
+    double oldMaxExtent = _scrollController.hasClients ? _scrollController.position.maxScrollExtent : 0.0;
+
     _offset += _pageSize;
-    await _loadPage(_offset);
+    await _loadPage(_offset, oldScrollOffset: oldScrollOffset, oldMaxExtent: oldMaxExtent);
+
     setState(() => _loadingMore = false);
   }
 
-  Future<void> _loadPage(int offset, {bool scrollToBottom = false}) async {
+  Future<void> _loadPage(int offset, {bool scrollToBottom = false, double? oldScrollOffset, double? oldMaxExtent}) async {
     final res = await getChatHistoryApi({
       'id': widget.chatSession.sessionId,
       'limit': _pageSize,
@@ -155,10 +162,6 @@ class _ChatDetailPageState extends State<ChatDetailPage> {
     if (res.code == 200 && res.data != null) {
       List<ChatMessage> records = res.data!.records;
 
-      double prevOffset = 0.0;
-      if (_scrollController.hasClients) {
-        prevOffset = _scrollController.offset;
-      }
       setState(() {
         totalMessages = res.data!.total;
         final newMsgs =
@@ -179,7 +182,8 @@ class _ChatDetailPageState extends State<ChatDetailPage> {
           messages.insertAll(0, newMsgs ?? []);
         }
 
-        _hasMore = records.length == _pageSize;
+        // 只要 hasNext==false 或 records.length < _pageSize，就不能再加载
+        _hasMore = (res.data!.hasNext == true) && (records.length == _pageSize);
         _loading = false;
       });
 
@@ -189,11 +193,11 @@ class _ChatDetailPageState extends State<ChatDetailPage> {
             _scrollController.jumpTo(
               _scrollController.position.maxScrollExtent,
             );
-          } else {
-            _scrollController.jumpTo(
-              _scrollController.offset +
-                  (_scrollController.position.maxScrollExtent - prevOffset),
-            );
+          } else if (oldScrollOffset != null && oldMaxExtent != null) {
+            // 计算新offset，保持视觉停留在原地
+            double newMaxExtent = _scrollController.position.maxScrollExtent;
+            double newOffset = newMaxExtent - (oldMaxExtent - oldScrollOffset);
+            _scrollController.jumpTo(newOffset);
           }
         }
       });
@@ -283,73 +287,70 @@ class _ChatDetailPageState extends State<ChatDetailPage> {
           FocusScope.of(context).unfocus();
           setState(() { selectedMessageLocalId = null; });
         },
-        child: RefreshIndicator(
-          onRefresh: _loadInitialHistory,
-          child: Column(
-            children: [
-              Expanded(
-                child:
-                    _loading
-                        ? const Center(child: CircularProgressIndicator())
-                        : ListView.builder(
-                          controller: _scrollController,
-                          padding: const EdgeInsets.all(12),
-                          itemCount: messages.length + 1,
-                          itemBuilder: (context, index) {
-                            if (index == 0) {
-                              if (_loadingMore) {
-                                return Padding(
-                                  padding: const EdgeInsets.symmetric(
-                                    vertical: 8,
-                                  ),
-                                  child: Row(
-                                    mainAxisAlignment: MainAxisAlignment.center,
-                                    children: const [
-                                      SizedBox(
-                                        width: 16,
-                                        height: 16,
-                                        child: CircularProgressIndicator(
-                                          strokeWidth: 2,
-                                        ),
+        child: Column(
+          children: [
+            Expanded(
+              child:
+                  _loading
+                      ? const Center(child: CircularProgressIndicator())
+                      : ListView.builder(
+                        controller: _scrollController,
+                        padding: const EdgeInsets.all(12),
+                        itemCount: messages.length + 1,
+                        itemBuilder: (context, index) {
+                          if (index == 0) {
+                            if (_loadingMore) {
+                              return Padding(
+                                padding: const EdgeInsets.symmetric(
+                                  vertical: 8,
+                                ),
+                                child: Row(
+                                  mainAxisAlignment: MainAxisAlignment.center,
+                                  children: const [
+                                    SizedBox(
+                                      width: 16,
+                                      height: 16,
+                                      child: CircularProgressIndicator(
+                                        strokeWidth: 2,
                                       ),
-                                      SizedBox(width: 8),
-                                      Text(
-                                        '正在获取信息中...',
-                                        style: TextStyle(
-                                          fontSize: 12,
-                                          color: Colors.grey,
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                );
-                              } else if (!_hasMore) {
-                                return const Padding(
-                                  padding: EdgeInsets.symmetric(vertical: 8),
-                                  child: Center(
-                                    child: Text(
-                                      '没有更多消息了',
+                                    ),
+                                    SizedBox(width: 8),
+                                    Text(
+                                      '正在获取信息中...',
                                       style: TextStyle(
                                         fontSize: 12,
                                         color: Colors.grey,
                                       ),
                                     ),
+                                  ],
+                                ),
+                              );
+                            } else if (!_hasMore) {
+                              return const Padding(
+                                padding: EdgeInsets.symmetric(vertical: 8),
+                                child: Center(
+                                  child: Text(
+                                    '没有更多消息了',
+                                    style: TextStyle(
+                                      fontSize: 12,
+                                      color: Colors.grey,
+                                    ),
                                   ),
-                                );
-                              }
-                              return const SizedBox.shrink();
+                                ),
+                              );
                             }
+                            return const SizedBox.shrink();
+                          }
 
-                            final msg = messages[index - 1];
-                            final isMe = msg['fromMe'] as bool;
+                          final msg = messages[index - 1];
+                          final isMe = msg['fromMe'] as bool;
 
-                            return _buildMessageItem(msg, isMe, myUser);
-                          },
-                        ),
-              ),
-              _buildMessageInput(),
-            ],
-          ),
+                          return _buildMessageItem(msg, isMe, myUser);
+                        },
+                      ),
+            ),
+            _buildMessageInput(),
+          ],
         ),
       ),
     );
