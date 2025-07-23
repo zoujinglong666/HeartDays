@@ -90,49 +90,6 @@ class LastMessage {
   }
 }
 
-class ChatMessage {
-  final String id;
-  final String sessionId;
-  final String senderId;
-  final String content;
-  final String type;
-  final String createdAt;
-  final String status;
-
-  ChatMessage({
-    required this.id,
-    required this.sessionId,
-    required this.senderId,
-    required this.content,
-    required this.type,
-    required this.createdAt,
-    required this.status,
-  });
-
-  factory ChatMessage.fromJson(Map<String, dynamic> json) {
-    return ChatMessage(
-      id: json['id'] as String,
-      sessionId: json['sessionId'] as String,
-      senderId: json['senderId'] as String,
-      content: json['content'] as String,
-      type: json['type'] as String,
-      createdAt: json['createdAt'] as String,
-      status: json['status'] as String,
-    );
-  }
-
-  Map<String, dynamic> toJson() {
-    return {
-      'id': id,
-      'sessionId': sessionId,
-      'senderId': senderId,
-      'content': content,
-      'type': type,
-      'createdAt': createdAt,
-      'status': status,
-    };
-  }
-}
 
 class GroupMember {
   final String userId;
@@ -235,6 +192,61 @@ class ChatSessionResponse {
   }
 }
 
+
+class ChatMessage {
+  final String id;
+  final String sessionId;
+  final String senderId;
+  final String? receiverId;
+  final String content;
+  final String type;
+  final String createdAt;
+  final String status;
+  final bool? isRead; // 修改为可空 bool
+
+  ChatMessage({
+    required this.id,
+    required this.sessionId,
+    required this.senderId,
+    this.receiverId,
+    required this.content,
+    required this.type,
+    required this.createdAt,
+    required this.status,
+    this.isRead, // 修改为可空
+  });
+
+  factory ChatMessage.fromJson(Map<String, dynamic> json) {
+    return ChatMessage(
+      id: json['id'],
+      sessionId: json['sessionId'],
+      senderId: json['senderId'],
+      receiverId: json['receiverId'],
+      content: json['content'],
+      type: json['type'],
+      createdAt: json['createdAt'],
+      status: json['status'],
+      isRead: json['isRead'] as bool?, // 显式转换为 bool?
+    );
+  }
+
+  Map<String, dynamic> toJson() {
+    final Map<String, dynamic> data = <String, dynamic>{};
+    data['id'] = id;
+    data['sessionId'] = sessionId;
+    data['senderId'] = senderId;
+    data['receiverId'] = receiverId;
+    data['content'] = content;
+    data['type'] = type;
+    data['createdAt'] = createdAt;
+    data['status'] = status;
+    data['isRead'] = isRead; // 保持可空
+    return data;
+  }
+}
+
+
+
 /// 创建会话
 Future<ApiResponse<ChatSessionResponse>> createChatSession(
   Map<String, dynamic> data,
@@ -309,5 +321,6 @@ Future<ApiResponse<void>> markMessageReadApi(String messageId) async {
   return await HttpManager.post<void>(
     "/chat/message/$messageId/read",
     fromJson: (_) => null,
+
   );
 }

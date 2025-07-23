@@ -17,18 +17,8 @@ class MinePage extends ConsumerStatefulWidget {
 class _MinePageState extends ConsumerState<MinePage> {
   @override
   Widget build(BuildContext context) {
-    // ✅ 保证每次进入时设置系统 UI 样式
-    SystemChrome.setSystemUIOverlayStyle(
-      const SystemUiOverlayStyle(
-        statusBarColor: Colors.transparent,
-        statusBarIconBrightness: Brightness.dark,
-        systemNavigationBarColor: Colors.transparent,
-        systemNavigationBarIconBrightness: Brightness.dark,
-      ),
-    );
     // 定义高级感配色
     const Color backgroundColor = Color(0xFFF8F9FA); // 背景色：浅灰色
-
     final List<Map<String, dynamic>> shortcuts = [
       {
         'icon': Icons.calendar_today,
@@ -87,38 +77,39 @@ class _MinePageState extends ConsumerState<MinePage> {
       body: Column(
         children: [
           Container(
-            height: 120,
-            decoration: const BoxDecoration(
-              gradient: LinearGradient(
-                colors: [Color(0xFFF48FB1), Color(0xFFCE93D8)],
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-              ),
-            ),
-            padding: const EdgeInsets.only(top: 40, left: 16, right: 16),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                const Text(
-                  '个人中心',
-                  style: TextStyle(
-                    color: Colors.white,
-                    fontSize: 18,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-                IconButton(
-                  icon: const Icon(Icons.settings, color: Colors.white),
-                  onPressed: () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(builder: (_) => const SettingsPage()),
-                    );
-                  },
-                ),
-              ],
-            ),
-          ),
+  decoration: const BoxDecoration(
+    gradient: LinearGradient(
+      colors: [Color(0xFFF48FB1), Color(0xFFCE93D8)],
+      begin: Alignment.topLeft,
+      end: Alignment.bottomRight,
+    ),
+  ),
+  padding: const EdgeInsets.only(top: 40, left: 16, right: 16),
+  child: Row(
+    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+    crossAxisAlignment: CrossAxisAlignment.center, // ✅ 关键修复
+    children: [
+      const Text(
+        '个人中心',
+        style: TextStyle(
+          color: Colors.white,
+          fontSize: 18,
+          fontWeight: FontWeight.w600,
+        ),
+      ),
+      IconButton(
+        icon: const Icon(Icons.settings, color: Colors.white),
+        onPressed: () {
+          Navigator.push(
+            context,
+            MaterialPageRoute(builder: (_) => const SettingsPage()),
+          );
+        },
+      ),
+    ],
+  ),
+),
+
 
           // 内容区域滚动视图
           Expanded(

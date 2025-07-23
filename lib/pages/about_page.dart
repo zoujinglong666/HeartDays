@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:heart_days/common/toast.dart';
+import 'package:heart_days/components/selectable/index.dart';
 import 'package:heart_days/pages/MyListPage.dart';
 import 'package:heart_days/pages/mqtt_page.dart';
 
@@ -9,6 +11,7 @@ class AboutPage extends StatelessWidget {
   Widget build(BuildContext context) {
     const Color primaryColor = Color(0xFF5C6BC0);
     const Color backgroundColor = Color(0xFFF8F9FA);
+    Option<int>? gender;
 
     final List<Map<String, String>> highlights = [
       {'title': '纪念日提醒', 'description': '每一个特别的日子，我们都替你牢牢记住，温暖提示，不再错过。'},
@@ -62,15 +65,17 @@ class AboutPage extends StatelessWidget {
                     style: TextStyle(fontSize: 14, color: Colors.grey.shade600),
                   ),
 
-                  GestureDetector(child: MaterialButton(onPressed: (){
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (context) => MyListPage(),
-                      ),
-                    );
-
-                  },child: Text('MyListPage'),))
+                  GestureDetector(
+                    child: MaterialButton(
+                      onPressed: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(builder: (context) => MyListPage()),
+                        );
+                      },
+                      child: Text('MyListPage'),
+                    ),
+                  ),
                 ],
               ),
             ),
@@ -141,10 +146,24 @@ class AboutPage extends StatelessWidget {
 
             GestureDetector(
               onTap: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(builder: (context) => const MqttPage()),
-                );
+                // Navigator.push(
+                //   context,
+                //   MaterialPageRoute(builder: (context) => const MqttPage()),
+                // );
+                Toast.showToast('1111111111111111');
+                Toast.showSuccess('1111111111111111');
+                Toast.showError('1111111111111111');
+                // Selectable<int>(
+                //   context: context,
+                //   title: "请选择",
+                //   showClose: true,
+                //   initialValue: gender == null ? null : [gender!.value],
+                //   options: const [
+                //     Option(label: "男生", value: 1),
+                //     Option(label: "女生", value: 2),
+                //     Option(label: "其他", value: 3),
+                //   ],
+                // ).show();
               },
               child: // 开发者信息
                   const Text(

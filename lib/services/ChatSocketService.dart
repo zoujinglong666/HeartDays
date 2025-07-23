@@ -77,7 +77,7 @@ class ChatSocketService {
     String type = 'text',
   }) {
     socket.emit('sendMessage', {
-      'sessionId': sessionId,
+     'sessionId': sessionId,
       'content': content,
       'type': type,
     });

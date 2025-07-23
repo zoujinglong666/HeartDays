@@ -1,3 +1,4 @@
+import 'package:bot_toast/bot_toast.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:heart_days/common/event_bus.dart';
@@ -37,7 +38,7 @@ void main() async {
     ),
   );
 }
-
+final botToastBuilder = BotToastInit();
 class MyApp extends ConsumerWidget {
   const MyApp({super.key});
   
@@ -47,6 +48,7 @@ class MyApp extends ConsumerWidget {
     return MaterialApp(
       title: '甜甜纪念日',
       navigatorKey: NavigationService.navigatorKey,
+      navigatorObservers: [BotToastNavigatorObserver()], // 第二步：注册路由观察器
       theme: ThemeData(
         colorScheme: ColorScheme.fromSeed(
           seedColor: Colors.blue,
@@ -60,6 +62,7 @@ class MyApp extends ConsumerWidget {
         '/startup_debug': (context) => const StartupDebugPage(),
       },
       builder: (context, child) {
+        child = botToastBuilder(context, child);
         return MediaQuery(
           data: MediaQuery.of(context).copyWith(textScaleFactor: 1.0),
           child: child!,

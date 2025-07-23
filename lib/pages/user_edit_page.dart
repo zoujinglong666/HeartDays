@@ -98,7 +98,7 @@ class _UserEditPageState extends ConsumerState<UserEditPage> {
         });
       }
     } catch (e) {
-      _showErrorDialog('选择图片失败: $e');
+      print('选择图片失败: $e');
     }
   }
 
@@ -223,25 +223,7 @@ class _UserEditPageState extends ConsumerState<UserEditPage> {
     );
   }
 
-  void _showErrorDialog(String message) {
-    showDialog(
-      context: context,
-      builder:
-          (context) => AlertDialog(
-            title: const Text('错误', style: TextStyle(color: primaryColor)),
-            content: Text(message),
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(16),
-            ),
-            actions: [
-              TextButton(
-                onPressed: () => Navigator.pop(context),
-                child: const Text('确定', style: TextStyle(color: primaryColor)),
-              ),
-            ],
-          ),
-    );
-  }
+
 
   Future<void> _saveUserData() async {
     if (!_formKey.currentState!.validate()) return;
@@ -256,7 +238,9 @@ class _UserEditPageState extends ConsumerState<UserEditPage> {
       final user = authNotifier.user;
 
       if (user == null) {
-        _showErrorDialog('用户未登录或已失效');
+        setState(() {
+          _isLoading = false;
+        });
         return;
       }
 
@@ -302,12 +286,9 @@ class _UserEditPageState extends ConsumerState<UserEditPage> {
           ToastUtils.showToast('保存成功！');
           Navigator.pop(context, true); // 返回并标记"已保存"
         }
-      } else {
-        // 后端返回失败
-        _showErrorDialog('保存失败: ${res.message ?? '未知错误'}');
       }
     } catch (e) {
-      _showErrorDialog('保存失败: $e');
+      print('保存失败: $e');
     } finally {
       if (mounted) {
         setState(() {
@@ -430,8 +411,9 @@ class _UserEditPageState extends ConsumerState<UserEditPage> {
                                             child,
                                             loadingProgress,
                                           ) {
-                                            if (loadingProgress == null)
+                                            if (loadingProgress == null) {
                                               return child;
+                                            }
                                             return Center(
                                               child: CircularProgressIndicator(
                                                 value:

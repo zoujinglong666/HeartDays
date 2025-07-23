@@ -9,7 +9,6 @@ import 'package:shared_preferences/shared_preferences.dart';
 import '../utils/app_theme_controller.dart';
 import 'package:heart_days/apis/user.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-
 class LoginPage extends ConsumerStatefulWidget {
   const LoginPage({super.key});
 
@@ -29,8 +28,6 @@ class _LoginPageState extends ConsumerState<LoginPage>
   final FocusNode _usernameFocusNode = FocusNode();
   final FocusNode _passwordFocusNode = FocusNode();
   final ScrollController _scrollController = ScrollController();
-
-  bool _isPasswordMode = false;
   bool _showConfirmPassword = false;
   bool _isLoading = false;
   bool _isAgreed = false;
@@ -120,13 +117,6 @@ class _LoginPageState extends ConsumerState<LoginPage>
     _tabAnimationController.dispose();
     _contentAnimationController.dispose();
     super.dispose();
-  }
-
-  void _toggleLoginMode() {
-    setState(() {
-      _isPasswordMode = !_isPasswordMode;
-      _codeController.clear();
-    });
   }
 
   void _toggleAgreement() async {

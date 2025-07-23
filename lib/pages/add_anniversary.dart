@@ -1,15 +1,11 @@
-import 'dart:convert';
-
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:heart_days/apis/anniversary.dart';
 import 'package:heart_days/common/event_bus.dart';
 import 'package:heart_days/components/date_picker/date_picker.dart';
-import 'package:heart_days/utils/Notifier.dart';
 import 'package:heart_days/utils/ToastUtils.dart';
 import 'package:heart_days/utils/dateUtils.dart';
 import 'package:intl/intl.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 
 class AddAnniversaryPage extends StatefulWidget {
   final Anniversary? anniversaryItem;
@@ -314,7 +310,7 @@ class _AddAnniversaryPageState extends State<AddAnniversaryPage> {
                   return jsonMap;
                 }
 
-                Future<void> _handleSave() async {
+                Future<void> handleSave() async {
                   final isEdit = widget.anniversaryItem != null;
                   final payload = {
                     ...filterFields(newAnniversary.toJson()),
@@ -338,7 +334,7 @@ class _AddAnniversaryPageState extends State<AddAnniversaryPage> {
                   }
                 }
 
-                _handleSave();
+                handleSave();
               }
             },
             label: Text(
