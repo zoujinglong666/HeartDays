@@ -6,23 +6,11 @@ import 'package:heart_days/pages/SplashPage.dart';
 import 'package:heart_days/pages/main_page.dart';
 import 'package:heart_days/pages/login_page.dart';
 import 'package:heart_days/pages/startup_debug_page.dart';
-import 'package:flutter/services.dart';
 import 'package:heart_days/utils/navigation_service.dart';
 
 void main() async {
   // 确保Flutter绑定初始化
   WidgetsFlutterBinding.ensureInitialized();
-  // SystemChrome.setSystemUIOverlayStyle(
-  //   const SystemUiOverlayStyle(
-  //     statusBarColor: Colors.white,
-  //     statusBarIconBrightness: Brightness.dark,
-  //     statusBarBrightness: Brightness.light,
-  //     systemNavigationBarColor: Colors.white,
-  //     systemNavigationBarIconBrightness: Brightness.dark,
-  //   ),
-  // );
-
-  print('🚀 应用启动中...');
   // ✅ 监听 Token 过期事件
   eventBus.on<TokenExpiredEvent>().listen((event) {
     print("📢 Token 过期事件触发，跳转登录页");
@@ -44,7 +32,6 @@ class MyApp extends ConsumerWidget {
   
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-
     return MaterialApp(
       title: '甜甜纪念日',
       navigatorKey: NavigationService.navigatorKey,
