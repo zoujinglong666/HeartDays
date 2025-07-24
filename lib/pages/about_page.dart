@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:heart_days/common/toast.dart';
 import 'package:heart_days/components/selectable/index.dart';
 import 'package:heart_days/pages/MyListPage.dart';
-import 'package:heart_days/pages/mqtt_page.dart';
 
 class AboutPage extends StatelessWidget {
   const AboutPage({super.key});
@@ -150,9 +149,7 @@ class AboutPage extends StatelessWidget {
                 //   context,
                 //   MaterialPageRoute(builder: (context) => const MqttPage()),
                 // );
-                Toast.showToast('1111111111111111');
-                Toast.showSuccess('1111111111111111');
-                Toast.showError('1111111111111111');
+
                 // Selectable<int>(
                 //   context: context,
                 //   title: "请选择",

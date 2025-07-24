@@ -9,6 +9,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import '../utils/app_theme_controller.dart';
 import 'package:heart_days/apis/user.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+
 class LoginPage extends ConsumerStatefulWidget {
   const LoginPage({super.key});
 
@@ -149,14 +150,18 @@ class _LoginPageState extends ConsumerState<LoginPage>
         _isLoading = true;
       });
       try {
-
         final secret = 'mySecret';
-        final encrypted = SimpleEncryptor.encryptText(_passwordController.text, secret);
+        final encrypted = SimpleEncryptor.encryptText(
+          _passwordController.text,
+          secret,
+        );
         print("密文: $encrypted");
         final response = await userLogin({
           "userAccount": _usernameController.text,
           "password": encrypted,
         });
+        print("--------------------------------------------");
+        print(response);
 
         if (response.code == 200) {
           final user = response.data?.user;

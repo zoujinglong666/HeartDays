@@ -96,11 +96,13 @@ class _ChatDetailPageState extends State<ChatDetailPage> {
       final createdAt = data['createdAt'];
       final senderId = data['senderId'];
       final messageId = data['messageId'];
+      final localId = data['localId'];
       // 优先查找本地发送的消息（fromMe==true, text相同, 状态为sending）
       int idx = messages.indexWhere((m) =>
         m['fromMe'] == true &&
         m['text'] == content &&
-        m['sendStatus'] == MessageSendStatus.sending
+        m['sendStatus'] == MessageSendStatus.sending&&
+          m['localId'] == localId
       );
       if (idx != -1) {
         // 找到本地消息，更新状态和createdAt
@@ -227,6 +229,7 @@ class _ChatDetailPageState extends State<ChatDetailPage> {
       _socketService.sendMessage(
         sessionId: widget.chatSession.sessionId,
         content: text,
+        localId: localId,
       );
       // 不在这里直接设为success，等socket回包
     } catch (e) {
@@ -255,6 +258,7 @@ class _ChatDetailPageState extends State<ChatDetailPage> {
       _socketService.sendMessage(
         sessionId: widget.chatSession.sessionId,
         content: text,
+        localId: localId,
       );
       // 等socket回包再设为success
     } catch (e) {

@@ -1,8 +1,8 @@
 import 'package:bot_toast/bot_toast.dart';
 import 'package:flutter/material.dart';
 
-class Toast {
-  Toast._();
+class MyToast {
+  MyToast._();
 
   static CancelFunc showSuccess(
       String message, {
@@ -192,6 +192,7 @@ class Toast {
     return BotToast.showNotification(
       crossPage: true,
       borderRadius: 6.0,
+      duration: const Duration(seconds: 10),
       margin: const EdgeInsets.only(left: 10, right: 10),
       leading: leading == null ? null : (_) => leading,
       trailing: trailing == null ? null : (_) => trailing,

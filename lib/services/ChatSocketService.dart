@@ -1,5 +1,7 @@
+import 'package:fluttertoast/fluttertoast.dart';
 import 'package:heart_days/utils/ToastUtils.dart';
 import 'package:socket_io_client/socket_io_client.dart' as IO;
+import 'package:heart_days/common/toast.dart';
 
 class ChatSocketService {
   static final ChatSocketService _instance = ChatSocketService._internal();
@@ -10,7 +12,9 @@ class ChatSocketService {
   factory ChatSocketService() {
     return _instance;
   }
+
   bool get isConnected => socket.connected;
+
   ChatSocketService._internal();
 
   void connect(String token, String myUserId) {
@@ -42,7 +46,7 @@ class ChatSocketService {
     // 监听新消息
     socket.on('newMessage', (data) {
       print('收到新消息: $data');
-      // TODO: 通知UI层刷新消息
+      MyToast.showNotification(title: "新消息", subtitle: data['content']);
     });
 
     // 监听好友申请
@@ -74,11 +78,13 @@ class ChatSocketService {
   void sendMessage({
     required String sessionId,
     required String content,
+    required String localId,
     String type = 'text',
   }) {
     socket.emit('sendMessage', {
-     'sessionId': sessionId,
+      'sessionId': sessionId,
       'content': content,
+      'localId': localId,
       'type': type,
     });
   }
