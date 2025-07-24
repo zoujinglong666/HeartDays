@@ -55,7 +55,6 @@ class DioClient {
 
   void _setupCacheInterceptor() async {
     // 缓存配置
-    print("缓存命中，_setupCacheInterceptor");
     final dir = await getTemporaryDirectory();
     final cacheOptions = CacheOptions(
       store: HiveCacheStore(dir.path),

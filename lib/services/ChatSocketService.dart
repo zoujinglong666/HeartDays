@@ -46,7 +46,9 @@ class ChatSocketService {
     // 监听新消息
     socket.on('newMessage', (data) {
       print('收到新消息: $data');
-      MyToast.showNotification(title: "新消息", subtitle: data['content']);
+      if (data['senderId'] != myUserId) {
+        MyToast.showNotification(title: "新消息", subtitle: data['content']);
+      }
     });
 
     // 监听好友申请

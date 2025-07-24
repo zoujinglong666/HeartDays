@@ -2,6 +2,7 @@ import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:heart_days/apis/chat.dart';
 import 'package:heart_days/apis/user.dart';
+import 'package:heart_days/components/FastLongPressDetector.dart';
 import 'package:heart_days/provider/get_login_userinfo.dart';
 import 'package:heart_days/services/ChatSocketService.dart';
 import 'package:intl/intl.dart';
@@ -65,15 +66,20 @@ class _ChatDetailPageState extends State<ChatDetailPage> {
   }
 
   Future<void> _getUserInfo() async {
-    String? userId = await LoginUserInfo().getUserId();
-    String? token = await LoginUserInfo().getToken();
-    User user = await LoginUserInfo().getUser() as User;
+    final loginState = await LoginUserInfo().getLoginState();
+
+    if (loginState.token == null || loginState.userId == null || loginState.user == null) {
+      // 可跳转登录或提示异常
+      return;
+    }
+
     setState(() {
-      myUserId = userId!;
-      myUser = user;
-      myToken = token!;
+      myToken = loginState.token!;
+      myUserId = loginState.userId!;
+      myUser = loginState.user!;
     });
   }
+
 
   void _scrollToBottom({bool animated = true}) {
     if (_scrollController.hasClients) {
@@ -627,36 +633,3 @@ class _ChatDetailPageState extends State<ChatDetailPage> {
   }
 }
 
-class FastLongPressDetector extends StatelessWidget {
-  final Widget child;
-  final VoidCallback onLongPress;
-  final Duration duration;
-
-  const FastLongPressDetector({
-    super.key,
-    required this.child,
-    required this.onLongPress,
-    this.duration = const Duration(milliseconds: 200),
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return RawGestureDetector(
-      gestures: <Type, GestureRecognizerFactory>{
-        _FastLongPressGestureRecognizer: GestureRecognizerFactoryWithHandlers<_FastLongPressGestureRecognizer>(
-          () => _FastLongPressGestureRecognizer(duration: duration),
-          (_FastLongPressGestureRecognizer instance) {
-            instance.onLongPress = onLongPress;
-          },
-        ),
-      },
-      behavior: HitTestBehavior.opaque,
-      child: child,
-    );
-  }
-}
-
-class _FastLongPressGestureRecognizer extends LongPressGestureRecognizer {
-  _FastLongPressGestureRecognizer({required Duration duration})
-      : super(duration: duration);
-}

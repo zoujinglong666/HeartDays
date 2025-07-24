@@ -64,4 +64,29 @@ class LoginUserInfo {
   }
 
 
+  /// 推荐：一次性获取 token、userId、user
+  Future<({String? token, String? userId, User? user})> getLoginState() async {
+    try {
+      final prefs = await _prefsInstance;
+      final token = prefs.getString('token');
+      final authDataString = prefs.getString('auth_data');
+
+      if (authDataString == null) {
+        return (token: token, userId: null, user: null);
+      }
+
+      final Map<String, dynamic> authMap = jsonDecode(authDataString);
+      final authState = AuthState.fromJson(authMap);
+      return (
+      token: token,
+      userId: authState.user?.id,
+      user: authState.user
+      );
+    } catch (e) {
+      print('getLoginState error: $e');
+      return (token: null, userId: null, user: null);
+    }
+  }
+
+
 }
