@@ -11,8 +11,8 @@ final class Consts {
   minWaitingTime: Duration(milliseconds: 500),
   cachedTime: Duration(milliseconds: 2000),
   sendTimeout: Duration(seconds: 5),
-  connectTimeout: Duration(seconds: 5),
-  receiveTimeout: Duration(seconds: 5),
+  connectTimeout: Duration(seconds: 30),
+  receiveTimeout: Duration(seconds: 30),
   successCode: 200,
   pageSize: 10,
   );

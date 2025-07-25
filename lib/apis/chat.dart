@@ -7,6 +7,7 @@ class ChatSession {
   final String type; // 'single' or 'group'
   final String name;
   final String? avatar;
+  final String? userId; // 添加 userId 属性
   final LastMessage? lastMessage;
   final int unreadCount;
   final bool isPinned;
@@ -17,6 +18,7 @@ class ChatSession {
     required this.type,
     required this.name,
     this.avatar,
+    this.userId, // 添加 userId 参数
     this.lastMessage,
     required this.unreadCount,
     required this.isPinned,
@@ -30,6 +32,7 @@ class ChatSession {
       // 默认值或抛出错误
       name: json['name'] as String,
       avatar: json['avatar'] as String?,
+      userId: json['userId'] as String?, // 添加 userId 解析
       lastMessage:
           json['lastMessage'] != null
               ? LastMessage.fromJson(json['lastMessage'])
@@ -46,6 +49,7 @@ class ChatSession {
       'type': type,
       'name': name,
       'avatar': avatar,
+      'userId': userId, // 添加 userId 到 JSON
       'lastMessage': lastMessage?.toJson(),
       'unreadCount': unreadCount,
       'isPinned': isPinned,
@@ -283,7 +287,7 @@ Future<ApiResponse<PaginatedData<ChatMessage>>> getChatHistoryApi(
   return await HttpManager.get<PaginatedData<ChatMessage>>(
     "/chat/session/$sessionId/messages", // 路径格式对应后端
     queryParameters: {
-      'limit': data['limit'] ?? 100,
+      'limit': data['limit'] ?? 10,
       'offset': data['offset'] ?? 0,
     },
     fromJson: (json) {

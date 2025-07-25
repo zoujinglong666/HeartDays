@@ -1,7 +1,8 @@
 import 'dart:async';
 
-import 'package:flutter/gestures.dart';
+import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:heart_days/apis/chat.dart';
 import 'package:heart_days/apis/user.dart';
 import 'package:heart_days/components/FastLongPressDetector.dart';
@@ -11,11 +12,9 @@ import 'package:heart_days/services/ChatSocketService.dart';
 import 'package:heart_days/utils/ToastUtils.dart';
 import 'package:heart_days/utils/message_database.dart';
 import 'package:intl/intl.dart';
-import 'package:visibility_detector/visibility_detector.dart';
-import 'package:uuid/uuid.dart';
-import 'package:flutter/services.dart';
 import 'package:sqflite/sqflite.dart';
-import 'package:connectivity_plus/connectivity_plus.dart';
+import 'package:uuid/uuid.dart';
+import 'package:visibility_detector/visibility_detector.dart';
 
 class ChatDetailPage extends StatefulWidget {
   final ChatSession chatSession;
@@ -27,7 +26,6 @@ class ChatDetailPage extends StatefulWidget {
 }
 
 class _ChatDetailPageState extends State<ChatDetailPage> {
-  // 添加缺失的类变量声明
   final List<Map<String, dynamic>> messages = [];
   final TextEditingController _controller = TextEditingController();
   final ScrollController _scrollController = ScrollController();
@@ -50,25 +48,22 @@ class _ChatDetailPageState extends State<ChatDetailPage> {
   final MessageQueue _messageQueue = MessageQueue();
   StreamSubscription<ConnectivityResult>? _connectivitySubscription;
   Database? _messageDatabase;
-  
-  // 添加缺失的变量声明
+
   late Connectivity _connectivity;
   late bool _isOnline;
 
   @override
   void initState() {
     super.initState();
+    _getUserInfo();
     _connectivity = Connectivity();
     _isOnline = false;
     _messageDatabase = null;
     _connectivitySubscription = null;
-    _getUserInfo();
     _socketService = ChatSocketService();
-    if (myToken.isEmpty && myUserId.isNotEmpty) {
-      _socketService.connect(myToken, myUserId);
-    }
-    _socketService.joinSession(widget.chatSession.sessionId);
-    _socketService.onNewMessage(_onNewMessage);
+
+    // 注册所有事件回调
+    _registerSocketCallbacks();
 
     _scrollController.addListener(() {
       if (_scrollController.offset <= 0 &&
@@ -86,14 +81,14 @@ class _ChatDetailPageState extends State<ChatDetailPage> {
     _messageQueue.onMessageSent = _onMessageSent;
   }
 
-  // 添加缺失的_initDatabase方法
   Future<void> _initDatabase() async {
     _messageDatabase = await MessageDatabase.init();
   }
 
-  // 添加缺失的_initConnectivityListener方法
   void _initConnectivityListener() {
-    _connectivitySubscription = _connectivity.onConnectivityChanged.listen((result) {
+    _connectivitySubscription = _connectivity.onConnectivityChanged.listen((
+      result,
+    ) {
       final wasOnline = _isOnline;
       _isOnline = result != ConnectivityResult.none;
 
@@ -103,13 +98,13 @@ class _ChatDetailPageState extends State<ChatDetailPage> {
     });
   }
 
-  // 修复_loadUnsentMessages方法中的静态调用错误
   Future<void> _loadUnsentMessages() async {
     if (_messageDatabase == null) return;
 
     // 使用MessageDatabase的静态方法获取未发送消息
     final unsentMessages = await MessageDatabase.getUnsentMessages(
-      _messageDatabase!, widget.chatSession.sessionId
+      _messageDatabase!,
+      widget.chatSession.sessionId,
     );
 
     setState(() {
@@ -130,49 +125,80 @@ class _ChatDetailPageState extends State<ChatDetailPage> {
         content: message['text'],
         localId: message['localId'],
       );
-      
-      // 不再在这里更新UI状态，而是通过_onNewMessage处理
       // 因为服务器会返回确认消息，避免重复显示
-      
       // 如果有_messageDatabase实例，更新数据库中的状态
       if (_messageDatabase != null && message['localId'] != null) {
         // 使用MessageDatabase的静态方法更新状态
         await MessageDatabase.updateMessageStatus(
-          _messageDatabase!, message['localId'], MessageSendStatus.success
+          _messageDatabase!,
+          message['localId'],
+          MessageSendStatus.success,
         );
       }
-      
+
       return true;
     } catch (e) {
       // 如果有_messageDatabase实例，更新数据库中的状态
       if (_messageDatabase != null && message['localId'] != null) {
         // 使用MessageDatabase的静态方法更新状态
         await MessageDatabase.updateMessageStatus(
-          _messageDatabase!, message['localId'], MessageSendStatus.failed
+          _messageDatabase!,
+          message['localId'],
+          MessageSendStatus.failed,
         );
       }
-      
       return false;
     }
   }
 
-  // 移除重复的_actuallySendMessage方法定义
-
   Future<void> _getUserInfo() async {
     final loginState = await LoginUserInfo().getLoginState();
 
-    if (loginState.token == null || loginState.userId == null || loginState.user == null) {
+    if (loginState.token == null ||
+        loginState.userId == null ||
+        loginState.user == null) {
       // 可跳转登录或提示异常
       return;
     }
-
     setState(() {
       myToken = loginState.token!;
       myUserId = loginState.userId!;
       myUser = loginState.user!;
     });
+
+    // 连接 WebSocket
+    if (myToken.isNotEmpty && myUserId.isNotEmpty) {
+      _socketService.connect(myToken, myUserId);
+    }
+    _joinSession();
   }
 
+  void _registerSocketCallbacks() {
+    // 连接成功后再加入会话房间
+    _socketService.setOnNewMessage(_onNewMessage);
+    _socketService.setOnFriendRequest(_onFriendRequest);
+    _socketService.setOnOnlineStatus(_onOnlineStatus);
+    _socketService.setOnUserStatus(_onUserStatus);
+    _socketService.setOnFriendStatus(_onFriendStatus);
+    _socketService.setOnTyping(_onTyping);
+    _socketService.setOnStopTyping(_onStopTyping);
+    _socketService.setOnOfflineMessages(_onOfflineMessages);
+    _socketService.setOnMessageRead(_onMessageRead);
+    _socketService.setOnMessageReadConfirm(_onMessageReadConfirm);
+    _socketService.setOnMessageWithdrawn(_onMessageWithdrawn);
+    _socketService.setOnMessageWithdrawnConfirm(_onMessageWithdrawnConfirm);
+    _socketService.setOnMessageDelivered(_onMessageDelivered);
+    _socketService.setOnMessageSent(_onMessageSentWrapper);
+    _socketService.setOnMessageAck(_onMessageAck);
+    _socketService.setOnMessageAckConfirm(_onMessageAckConfirm);
+  }
+
+  // 在连接成功后调用此方法加入会话房间
+  void _joinSession() {
+    if (_socketService.isConnected) {
+      _socketService.joinSession(widget.chatSession.sessionId);
+    }
+  }
 
   void _scrollToBottom({bool animated = true}) {
     if (_scrollController.hasClients) {
@@ -196,19 +222,22 @@ class _ChatDetailPageState extends State<ChatDetailPage> {
       final senderId = data['senderId'];
       final messageId = data['messageId'];
       final localId = data['localId'];
-      
+
       // 检查是否已存在相同的消息，避免重复显示
-      bool messageExists = messages.any((m) => 
-        (m['messageId'] != null && m['messageId'] == messageId) ||
-        (m['localId'] != null && m['localId'] == localId)
+      bool messageExists = messages.any(
+        (m) =>
+            (m['messageId'] != null && m['messageId'] == messageId) ||
+            (m['localId'] != null && m['localId'] == localId),
       );
-      
+
       if (messageExists) {
         // 如果消息已存在，只更新状态（可能是发送确认）
         setState(() {
           for (int i = 0; i < messages.length; i++) {
-            if ((messages[i]['messageId'] != null && messages[i]['messageId'] == messageId) ||
-                (messages[i]['localId'] != null && messages[i]['localId'] == localId)) {
+            if ((messages[i]['messageId'] != null &&
+                    messages[i]['messageId'] == messageId) ||
+                (messages[i]['localId'] != null &&
+                    messages[i]['localId'] == localId)) {
               messages[i]['sendStatus'] = MessageSendStatus.success;
               if (createdAt != null) messages[i]['createdAt'] = createdAt;
               if (messageId != null) messages[i]['messageId'] = messageId;
@@ -233,6 +262,78 @@ class _ChatDetailPageState extends State<ChatDetailPage> {
     }
   }
 
+  // 处理好友请求
+  void _onFriendRequest(dynamic data) {
+    print('收到好友请求: $data');
+    // 可以显示通知或更新UI
+  }
+
+  // 处理在线状态变化
+  void _onOnlineStatus(dynamic data) {
+    print('在线状态变化: $data');
+    // 可以更新用户在线状态显示
+  }
+
+  // 处理用户状态变化
+  void _onUserStatus(dynamic data) {
+    print('用户状态变化: $data');
+    // 可以更新用户状态显示
+  }
+
+  // 处理好友在线状态变化
+  void _onFriendStatus(dynamic data) {
+    print('好友在线状态变化: $data');
+    // 可以更新好友在线状态显示
+  }
+
+  // 处理他人正在输入
+  void _onTyping(dynamic data) {
+    print('用户 ${data['userId']} 正在输入');
+    // 可以显示"对方正在输入"提示
+  }
+
+  // 处理他人停止输入
+  void _onStopTyping(dynamic data) {
+    print('用户 ${data['userId']} 停止输入');
+    // 可以隐藏"对方正在输入"提示
+  }
+
+  // 处理离线消息
+  void _onOfflineMessages(dynamic data) {
+    print('收到离线消息: $data');
+    // 可以处理离线消息
+  }
+
+  // 处理消息已读确认
+  void _onMessageReadConfirm(dynamic data) {
+    print('消息已读确认: ${data['messageId']}');
+    // 可以更新消息已读状态
+  }
+
+  // 处理他人消息已读
+  void _onMessageRead(dynamic data) {
+    print('用户 ${data['userId']} 已读消息: ${data['messageId']}');
+    // 可以更新消息已读状态
+  }
+
+  // 处理撤回确认
+  void _onMessageWithdrawnConfirm(dynamic data) {
+    print('消息已撤回: ${data['messageId']}');
+    // 可以从UI中移除消息
+  }
+
+  // 处理他人撤回消息
+  void _onMessageWithdrawn(dynamic data) {
+    print('用户 ${data['userId']} 撤回了消息: ${data['messageId']}');
+    // 可以从UI中移除消息
+  }
+
+  // 处理消息送达确认
+  void _onMessageDelivered(dynamic data) {
+    print('消息已送达用户: ${data['messageId']}');
+    // 可以更新消息送达状态
+  }
+
   Future<void> _loadInitialHistory() async {
     setState(() {
       _loading = true;
@@ -250,16 +351,29 @@ class _ChatDetailPageState extends State<ChatDetailPage> {
     setState(() => _loadingMore = true);
 
     // 记录加载前的滚动位置和最大可滚动距离
-    double oldScrollOffset = _scrollController.hasClients ? _scrollController.offset : 0.0;
-    double oldMaxExtent = _scrollController.hasClients ? _scrollController.position.maxScrollExtent : 0.0;
+    double oldScrollOffset =
+        _scrollController.hasClients ? _scrollController.offset : 0.0;
+    double oldMaxExtent =
+        _scrollController.hasClients
+            ? _scrollController.position.maxScrollExtent
+            : 0.0;
 
     _offset += _pageSize;
-    await _loadPage(_offset, oldScrollOffset: oldScrollOffset, oldMaxExtent: oldMaxExtent);
+    await _loadPage(
+      _offset,
+      oldScrollOffset: oldScrollOffset,
+      oldMaxExtent: oldMaxExtent,
+    );
 
     setState(() => _loadingMore = false);
   }
 
-  Future<void> _loadPage(int offset, {bool scrollToBottom = false, double? oldScrollOffset, double? oldMaxExtent}) async {
+  Future<void> _loadPage(
+    int offset, {
+    bool scrollToBottom = false,
+    double? oldScrollOffset,
+    double? oldMaxExtent,
+  }) async {
     final res = await getChatHistoryApi({
       'id': widget.chatSession.sessionId,
       'limit': _pageSize,
@@ -272,13 +386,14 @@ class _ChatDetailPageState extends State<ChatDetailPage> {
       setState(() {
         totalMessages = res.data!.total;
         final newMsgList =
-            records?.map((msg) {
+            records.map((msg) {
+              print(msg);
               return {
                 'fromMe': msg.senderId == myUserId,
                 'text': msg.content,
                 'createdAt': msg.createdAt,
                 'sendStatus': MessageSendStatus.success,
-                'localId': msg.id?.toString() ?? _uuid.v4(),
+                'localId': msg.id.toString(),
                 'messageId': msg.id,
               };
             }).toList();
@@ -316,7 +431,6 @@ class _ChatDetailPageState extends State<ChatDetailPage> {
     if (text.isEmpty) return;
     final localId = _uuid.v4();
     final now = DateTime.now().toIso8601String();
-
     // 创建消息对象
     final message = {
       'fromMe': true,
@@ -342,14 +456,15 @@ class _ChatDetailPageState extends State<ChatDetailPage> {
     _messageQueue.addMessage(message, (msg) => _actuallySendMessage(msg));
   }
 
-
-  void _onMessageSent(Map<String, dynamic> message, bool success, String? error) {
+  void _onMessageSent(
+    Map<String, dynamic> message,
+    bool success,
+    String? error,
+  ) {
     if (success) {
       _updateMessageStatus(message['localId'], MessageSendStatus.success);
       if (_messageDatabase != null && message['messageId'] != null) {
-        MessageDatabase.markAsSent(
-          _messageDatabase!, message['messageId']
-        );
+        MessageDatabase.markAsSent(_messageDatabase!, message['messageId']);
       }
     } else {
       _updateMessageStatus(message['localId'], MessageSendStatus.failed);
@@ -357,6 +472,18 @@ class _ChatDetailPageState extends State<ChatDetailPage> {
         ToastUtils.showToast('发送失败: $error');
       }
     }
+  }
+
+  void _onMessageSentWrapper(dynamic data) {}
+
+  void _onMessageAck(dynamic data) {
+    print('消息确认: $data');
+    // 可以更新消息确认状态
+  }
+
+  void _onMessageAckConfirm(dynamic data) {
+    print('消息确认回复: $data');
+    // 可以更新消息确认回复状态
   }
 
   void _updateMessageStatus(String localId, MessageSendStatus status) {
@@ -377,7 +504,6 @@ class _ChatDetailPageState extends State<ChatDetailPage> {
     setState(() {
       messages[index]['sendStatus'] = MessageSendStatus.sending;
     });
-
     _messageQueue.retryMessage(message, (msg) => _actuallySendMessage(msg));
   }
 
@@ -404,7 +530,9 @@ class _ChatDetailPageState extends State<ChatDetailPage> {
         behavior: HitTestBehavior.translucent,
         onTap: () {
           FocusScope.of(context).unfocus();
-          setState(() { selectedMessageLocalId = null; });
+          setState(() {
+            selectedMessageLocalId = null;
+          });
         },
         child: Column(
           children: [
@@ -463,7 +591,6 @@ class _ChatDetailPageState extends State<ChatDetailPage> {
 
                           final msg = messages[index - 1];
                           final isMe = msg['fromMe'] as bool;
-
                           return _buildMessageItem(msg, isMe, myUser);
                         },
                       ),
@@ -484,15 +611,20 @@ class _ChatDetailPageState extends State<ChatDetailPage> {
     return VisibilityDetector(
       key: Key('msg-${messageId ?? localId ?? UniqueKey()}'),
       onVisibilityChanged: (VisibilityInfo info) async {
+        print(msg);
+        // 优化：仅当消息发送成功、有messageId且未标记已读时才调用API
         if (info.visibleFraction > 0.5 &&
             messageId != null &&
-            !_readMessageIds.contains(messageId)) {
+            !_readMessageIds.contains(messageId) &&
+            sendStatus == MessageSendStatus.success &&
+            !isMe) {
           _readMessageIds.add(messageId);
           await markMessageReadApi(messageId); // ✅ 调用已读 API
         }
       },
       child: Column(
-        crossAxisAlignment: isMe ? CrossAxisAlignment.end : CrossAxisAlignment.start,
+        crossAxisAlignment:
+            isMe ? CrossAxisAlignment.end : CrossAxisAlignment.start,
         children: [
           Padding(
             padding: const EdgeInsets.symmetric(vertical: 8.0),
@@ -535,7 +667,9 @@ class _ChatDetailPageState extends State<ChatDetailPage> {
                     },
                     child: Column(
                       crossAxisAlignment:
-                          isMe ? CrossAxisAlignment.end : CrossAxisAlignment.start,
+                          isMe
+                              ? CrossAxisAlignment.end
+                              : CrossAxisAlignment.start,
                       children: [
                         if (!isMe)
                           Padding(
@@ -560,11 +694,18 @@ class _ChatDetailPageState extends State<ChatDetailPage> {
                                     : Colors.grey.withOpacity(0.1),
                             borderRadius: BorderRadius.circular(16),
                           ),
-                          child: Text(text, style: const TextStyle(fontSize: 15)),
+                          child: Text(
+                            text,
+                            style: const TextStyle(fontSize: 15),
+                          ),
                         ),
                         if (msg['createdAt'] != null)
                           Padding(
-                            padding: const EdgeInsets.only(top: 4, left: 4, right: 4),
+                            padding: const EdgeInsets.only(
+                              top: 4,
+                              left: 4,
+                              right: 4,
+                            ),
                             child: Text(
                               _formatTime(msg['createdAt']),
                               style: const TextStyle(
@@ -584,13 +725,14 @@ class _ChatDetailPageState extends State<ChatDetailPage> {
           ),
           AnimatedSwitcher(
             duration: const Duration(milliseconds: 180),
-            transitionBuilder: (child, animation) => FadeTransition(
-              opacity: animation,
-              child: child,
-            ),
-            child: (selectedMessageLocalId != null && selectedMessageLocalId == localId)
-                ? _buildMessageMenu(msg, isMe)
-                : const SizedBox.shrink(),
+            transitionBuilder:
+                (child, animation) =>
+                    FadeTransition(opacity: animation, child: child),
+            child:
+                (selectedMessageLocalId != null &&
+                        selectedMessageLocalId == localId)
+                    ? _buildMessageMenu(msg, isMe)
+                    : const SizedBox.shrink(),
           ),
         ],
       ),
@@ -647,9 +789,65 @@ class _ChatDetailPageState extends State<ChatDetailPage> {
     if (timeStr == null || timeStr.isEmpty) return '';
     try {
       final DateTime messageTime = DateTime.parse(timeStr).toLocal();
-      return DateFormat('HH:mm').format(messageTime);
+      final DateTime now = DateTime.now().toLocal();
+
+      // 今天
+      if (_isSameDay(messageTime, now)) {
+        return DateFormat('HH:mm').format(messageTime);
+      }
+      // 昨天
+      else if (_isYesterday(messageTime, now)) {
+        return '昨天 ${DateFormat('HH:mm').format(messageTime)}';
+      }
+      // 一周内
+      else if (_isWithinAWeek(messageTime, now)) {
+        return '${_getWeekdayString(messageTime.weekday)} ${DateFormat('HH:mm').format(messageTime)}';
+      }
+      // 超过一周
+      else {
+        return DateFormat('yyyy/MM/dd HH:mm').format(messageTime);
+      }
     } catch (e) {
       return '';
+    }
+  }
+
+  // 判断是否是同一天
+  bool _isSameDay(DateTime a, DateTime b) {
+    return a.year == b.year && a.month == b.month && a.day == b.day;
+  }
+
+  // 判断是否是昨天
+  bool _isYesterday(DateTime messageTime, DateTime now) {
+    final yesterday = DateTime(now.year, now.month, now.day - 1);
+    return _isSameDay(messageTime, yesterday);
+  }
+
+  // 判断是否在一周内
+  bool _isWithinAWeek(DateTime messageTime, DateTime now) {
+    final oneWeekAgo = now.subtract(const Duration(days: 7));
+    return messageTime.isAfter(oneWeekAgo);
+  }
+
+  // 获取星期几的中文名称
+  String _getWeekdayString(int weekday) {
+    switch (weekday) {
+      case 1:
+        return '周一';
+      case 2:
+        return '周二';
+      case 3:
+        return '周三';
+      case 4:
+        return '周四';
+      case 5:
+        return '周五';
+      case 6:
+        return '周六';
+      case 7:
+        return '周日';
+      default:
+        return '';
     }
   }
 
@@ -662,11 +860,7 @@ class _ChatDetailPageState extends State<ChatDetailPage> {
         color: Colors.white,
         borderRadius: BorderRadius.circular(16),
         boxShadow: [
-          BoxShadow(
-            color: Colors.black12,
-            blurRadius: 6,
-            offset: Offset(0, 2),
-          ),
+          BoxShadow(color: Colors.black12, blurRadius: 6, offset: Offset(0, 2)),
         ],
       ),
       child: Row(
@@ -693,11 +887,17 @@ class _ChatDetailPageState extends State<ChatDetailPage> {
     );
   }
 
-  Widget _buildMenuIcon({required IconData icon, required String label, required VoidCallback onTap}) {
+  Widget _buildMenuIcon({
+    required IconData icon,
+    required String label,
+    required VoidCallback onTap,
+  }) {
     return GestureDetector(
       onTap: () {
         onTap();
-        setState(() { selectedMessageLocalId = null; });
+        setState(() {
+          selectedMessageLocalId = null;
+        });
       },
       child: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 12),
@@ -706,7 +906,10 @@ class _ChatDetailPageState extends State<ChatDetailPage> {
           children: [
             Icon(icon, size: 22, color: Colors.pink),
             const SizedBox(height: 2),
-            Text(label, style: const TextStyle(fontSize: 12, color: Colors.black87)),
+            Text(
+              label,
+              style: const TextStyle(fontSize: 12, color: Colors.black87),
+            ),
           ],
         ),
       ),
@@ -715,29 +918,19 @@ class _ChatDetailPageState extends State<ChatDetailPage> {
 
   void _copyMessage(String text) {
     Clipboard.setData(ClipboardData(text: text));
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('已复制到剪贴板')),
-    );
+    ToastUtils.showToast('已复制到剪贴板');
   }
 
   void _deleteMessage(String localId) {
     setState(() {
-      messages.removeWhere((m) => m['localId'] == localId);
     });
   }
 
   void _recallMessage(String localId) async {
-    // 这里可调用撤回API，演示直接本地移除
     setState(() {
-      messages.removeWhere((m) => m['localId'] == localId);
     });
-    // TODO: 如有撤回API，调用后再移除
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('消息已撤回')),
-    );
   }
 }
-
 
 // 新增消息队列管理类
 class MessageQueue {
@@ -750,17 +943,25 @@ class MessageQueue {
   Function(Map<String, dynamic>, bool, String?)? onMessageSent;
 
   void initWithMessages(List<Map<String, dynamic>> messages) {
-    _queue.addAll(messages.where((m) => m['sendStatus'] == MessageSendStatus.failed));
+    _queue.addAll(
+      messages.where((m) => m['sendStatus'] == MessageSendStatus.failed),
+    );
   }
 
-  void addMessage(Map<String, dynamic> message, Future<bool> Function(Map<String, dynamic>) sender) {
+  void addMessage(
+    Map<String, dynamic> message,
+    Future<bool> Function(Map<String, dynamic>) sender,
+  ) {
     _queue.add(message);
     if (!_isSending) {
       _startProcessing(sender);
     }
   }
 
-  void retryMessage(Map<String, dynamic> message, Future<bool> Function(Map<String, dynamic>) sender) {
+  void retryMessage(
+    Map<String, dynamic> message,
+    Future<bool> Function(Map<String, dynamic>) sender,
+  ) {
     final localId = message['localId'];
     _queue.removeWhere((m) => m['localId'] == localId);
     _processing.removeWhere((m) => m['localId'] == localId);
@@ -768,7 +969,9 @@ class MessageQueue {
     addMessage(message, sender);
   }
 
-  Future<void> _startProcessing(Future<bool> Function(Map<String, dynamic>) sender) async {
+  Future<void> _startProcessing(
+    Future<bool> Function(Map<String, dynamic>) sender,
+  ) async {
     if (_isSending || _queue.isEmpty) return;
 
     _isSending = true;
@@ -791,7 +994,8 @@ class MessageQueue {
         success = await sender(message);
         if (!success) {
           _retryCounts[localId] = retryCount + 1;
-          if (retryCount >= 5) { // 最大重试5次
+          if (retryCount >= 5) {
+            // 最大重试5次
             error = '超过最大重试次数';
             success = true; // 不再重试
           } else {
@@ -852,4 +1056,3 @@ class MessageQueue {
     _processing.clear();
   }
 }
-

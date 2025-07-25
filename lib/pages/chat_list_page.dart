@@ -1,8 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:heart_days/apis/chat.dart';
+import 'package:heart_days/pages/add_friend_page.dart';
 import 'package:heart_days/pages/chat_detail_page.dart';
 import 'package:heart_days/pages/friend_list_page.dart';
+import 'package:heart_days/pages/friend_request_page.dart';
 import 'package:heart_days/services/ChatSocketService.dart';
+import 'package:heart_days/provider/get_login_userinfo.dart';
 
 class ChatListPage extends StatelessWidget {
   const ChatListPage({super.key});
@@ -15,6 +18,28 @@ class ChatListPage extends StatelessWidget {
         appBar: AppBar(
           backgroundColor: const Color(0xFFEDEDED),
           foregroundColor: Colors.black,
+          actions: [
+            IconButton(
+              icon: const Icon(Icons.add, size: 24),
+              onPressed: () {
+                // 跳转到添加好友页面
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (_) => const AddFriendPage()),
+                );
+              },
+            ),
+            IconButton(
+              icon: const Icon(Icons.request_page, size: 24),
+              onPressed: () {
+                // 跳转到好友申请页面
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (_) => const FriendRequestPage()),
+                );
+              },
+            ),
+          ],
           bottom: const TabBar(
             labelColor: Color(0xFF07C160),
             unselectedLabelColor: Colors.black54,
@@ -46,7 +71,44 @@ class _ChatListTabState extends State<ChatListTab> {
   @override
   void initState() {
     super.initState();
+    _connectSocket();
     fetchChats();
+  }
+  
+  void _connectSocket() async {
+    // 获取用户信息并连接WebSocket
+    final loginState = await LoginUserInfo().getLoginState();
+    
+    if (loginState.token != null && loginState.userId != null) {
+      final socketService = ChatSocketService();
+      socketService.connect(loginState.token!, loginState.userId!);
+      
+      // 注册事件回调
+      socketService.setOnNewMessage(_onNewMessage);
+      socketService.setOnFriendRequest(_onFriendRequest);
+      socketService.setOnOnlineStatus(_onOnlineStatus);
+    }
+  }
+  
+  // 处理新消息
+  void _onNewMessage(dynamic data) {
+
+
+
+    // print('收到新消息: $data');
+    // 可以更新聊天列表或显示通知
+  }
+  
+  // 处理好友请求
+  void _onFriendRequest(dynamic data) {
+    print('收到好友请求: $data');
+    // 可以显示通知或更新UI
+  }
+  
+  // 处理在线状态变化
+  void _onOnlineStatus(dynamic data) {
+    print('在线状态变化: $data');
+    // 可以更新用户在线状态显示
   }
 
   Future<void> fetchChats() async {
