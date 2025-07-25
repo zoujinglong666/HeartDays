@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:math';
 
 import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:flutter/material.dart';
@@ -51,6 +52,8 @@ class _ChatDetailPageState extends State<ChatDetailPage> {
 
   late Connectivity _connectivity;
   late bool _isOnline;
+  Timer? _heartbeatRetryTimer;
+  static const int _heartbeatRetryInterval = 60000; // 60秒心跳重试间隔
 
   @override
   void initState() {
@@ -79,6 +82,7 @@ class _ChatDetailPageState extends State<ChatDetailPage> {
     _initConnectivityListener();
     _loadUnsentMessages();
     _messageQueue.onMessageSent = _onMessageSent;
+    _startHeartbeatRetry();
   }
 
   Future<void> _initDatabase() async {
@@ -96,6 +100,23 @@ class _ChatDetailPageState extends State<ChatDetailPage> {
         _messageQueue.resumeSending(_actuallySendMessage);
       }
     });
+  }
+
+  /// 开始心跳重试机制
+  void _startHeartbeatRetry() {
+    _stopHeartbeatRetry(); // 先停止已有的心跳重试
+    _heartbeatRetryTimer = Timer.periodic(Duration(milliseconds: _heartbeatRetryInterval), (timer) {
+      // 检查是否有未发送的消息，如果有则尝试重新发送
+      if (_isOnline && _messageQueue != null && _messageQueue.hasPendingMessages) {
+        _messageQueue.resumeSending(_actuallySendMessage);
+      }
+    });
+  }
+
+  /// 停止心跳重试机制
+  void _stopHeartbeatRetry() {
+    _heartbeatRetryTimer?.cancel();
+    _heartbeatRetryTimer = null;
   }
 
   Future<void> _loadUnsentMessages() async {
@@ -220,7 +241,7 @@ class _ChatDetailPageState extends State<ChatDetailPage> {
       final content = data['content'];
       final createdAt = data['createdAt'];
       final senderId = data['senderId'];
-      final messageId = data['messageId'];
+      final messageId = data['id'];
       final localId = data['localId'];
 
       // 检查是否已存在相同的消息，避免重复显示
@@ -241,6 +262,10 @@ class _ChatDetailPageState extends State<ChatDetailPage> {
               messages[i]['sendStatus'] = MessageSendStatus.success;
               if (createdAt != null) messages[i]['createdAt'] = createdAt;
               if (messageId != null) messages[i]['messageId'] = messageId;
+              // 修复：确保fromMe字段正确设置，只在messageId匹配时更新
+              if (messageId != null) {
+                messages[i]['fromMe'] = senderId == myUserId;
+              }
               break;
             }
           }
@@ -312,25 +337,25 @@ class _ChatDetailPageState extends State<ChatDetailPage> {
 
   // 处理他人消息已读
   void _onMessageRead(dynamic data) {
-    print('用户 ${data['userId']} 已读消息: ${data['messageId']}');
+    print('用户 ${data['userId']} 已读消息: ${data['id']}');
     // 可以更新消息已读状态
   }
 
   // 处理撤回确认
   void _onMessageWithdrawnConfirm(dynamic data) {
-    print('消息已撤回: ${data['messageId']}');
+    print('消息已撤回: ${data['id']}');
     // 可以从UI中移除消息
   }
 
   // 处理他人撤回消息
   void _onMessageWithdrawn(dynamic data) {
-    print('用户 ${data['userId']} 撤回了消息: ${data['messageId']}');
+    print('用户 ${data['userId']} 撤回了消息: ${data['id']}');
     // 可以从UI中移除消息
   }
 
   // 处理消息送达确认
   void _onMessageDelivered(dynamic data) {
-    print('消息已送达用户: ${data['messageId']}');
+    print('消息已送达用户: ${data['id']}');
     // 可以更新消息送达状态
   }
 
@@ -510,6 +535,7 @@ class _ChatDetailPageState extends State<ChatDetailPage> {
   @override
   void dispose() {
     _connectivitySubscription?.cancel();
+    _stopHeartbeatRetry();
     _messageQueue.dispose();
     _messageDatabase?.close();
     _socketService.socket.off('newMessage', _onNewMessage);
@@ -1051,8 +1077,11 @@ class MessageQueue {
     }
   }
 
+  bool get hasPendingMessages => _queue.isNotEmpty || _processing.isNotEmpty;
+
   void dispose() {
     _queue.clear();
     _processing.clear();
+    _retryCounts.clear();
   }
 }

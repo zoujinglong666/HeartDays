@@ -1,7 +1,10 @@
+import 'dart:async';
+
 import 'package:fluttertoast/fluttertoast.dart';
 import 'package:heart_days/utils/ToastUtils.dart';
 import 'package:socket_io_client/socket_io_client.dart' as IO;
 import 'package:heart_days/common/toast.dart';
+import 'package:intl/intl.dart';
 
 class ChatSocketService {
   static final ChatSocketService _instance = ChatSocketService._internal();
@@ -35,6 +38,9 @@ class ChatSocketService {
 
   ChatSocketService._internal();
 
+  Timer? _heartbeatTimer;
+  static const int _heartbeatInterval = 30000; // 30秒心跳间隔
+
   void connect(String token, String myUserId) {
     if (_connected) return;
     userId = myUserId;
@@ -51,18 +57,26 @@ class ChatSocketService {
       print('WebSocket 连接成功，socket id: ${socket.id}');
       _connected = true;
       joinUserRoom(myUserId);
+      _startHeartbeat();
     });
 
     // 断开连接事件
     socket.on('disconnect', (_) {
       print('WebSocket 已断开');
       _connected = false;
+      _stopHeartbeat();
     });
 
     // 连接错误事件
     socket.on('connect_error', (err) {
       print('WebSocket 连接错误: $err');
       _connected = false;
+      _stopHeartbeat();
+    });
+
+    // 心跳响应
+    socket.on('pong', (data) {
+      print('收到心跳响应');
     });
 
     // 注册所有事件监听器
@@ -75,7 +89,11 @@ class ChatSocketService {
     // 监听新消息
     socket.on('newMessage', (data) {
       if (data['senderId'] != userId) {
-        MyToast.showNotification(title: "新消息", subtitle: data['content']);
+        final currentTime = DateFormat('HH:mm').format(DateTime.now());
+        MyToast.showNotification(
+          title: "新消息 $currentTime",
+          subtitle: data['content'],
+        );
       }
       onNewMessage?.call(data);
     });
@@ -261,8 +279,25 @@ class ChatSocketService {
     socket.emit('ping', {'timestamp': timestamp});
   }
 
+  /// 开始心跳
+  void _startHeartbeat() {
+    _stopHeartbeat(); // 先停止已有的心跳
+    _heartbeatTimer = Timer.periodic(Duration(milliseconds: _heartbeatInterval), (timer) {
+      if (_connected) {
+        sendPing(DateTime.now().millisecondsSinceEpoch);
+      }
+    });
+  }
+
+  /// 停止心跳
+  void _stopHeartbeat() {
+    _heartbeatTimer?.cancel();
+    _heartbeatTimer = null;
+  }
+
   void disconnect() {
     print('手动断开 WebSocket 连接');
+    _stopHeartbeat();
     socket.disconnect();
     _connected = false;
   }
