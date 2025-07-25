@@ -491,48 +491,48 @@ class _ChatDetailPageState extends State<ChatDetailPage> {
           await markMessageReadApi(messageId); // ✅ 调用已读 API
         }
       },
-      child: FastLongPressDetector(
-        duration: const Duration(milliseconds: 200),
-        onLongPress: () {
-          setState(() {
-            selectedMessageLocalId = localId;
-          });
-        },
-        child: Column(
-          crossAxisAlignment: isMe ? CrossAxisAlignment.end : CrossAxisAlignment.start,
-          children: [
-            Padding(
-              padding: const EdgeInsets.symmetric(vertical: 8.0),
-              child: Row(
-                mainAxisAlignment:
-                    isMe ? MainAxisAlignment.end : MainAxisAlignment.start,
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  if (!isMe) _buildAvatar(avatarUrl),
-                  if (!isMe) const SizedBox(width: 8),
-                  // 状态指示器（发送loading和重试图标）放在消息外面的左侧
-                  if (isMe && sendStatus == MessageSendStatus.sending)
-                    const Padding(
-                      padding: EdgeInsets.only(right: 4),
-                      child: SizedBox(
-                        width: 12,
-                        height: 12,
-                        child: CircularProgressIndicator(strokeWidth: 2),
+      child: Column(
+        crossAxisAlignment: isMe ? CrossAxisAlignment.end : CrossAxisAlignment.start,
+        children: [
+          Padding(
+            padding: const EdgeInsets.symmetric(vertical: 8.0),
+            child: Row(
+              mainAxisAlignment:
+                  isMe ? MainAxisAlignment.end : MainAxisAlignment.start,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                if (!isMe) _buildAvatar(avatarUrl),
+                if (!isMe) const SizedBox(width: 8),
+                // 状态指示器（发送loading和重试图标）放在消息外面的左侧
+                if (isMe && sendStatus == MessageSendStatus.sending)
+                  const Padding(
+                    padding: EdgeInsets.only(right: 4),
+                    child: SizedBox(
+                      width: 12,
+                      height: 12,
+                      child: CircularProgressIndicator(strokeWidth: 2),
+                    ),
+                  ),
+                if (isMe && sendStatus == MessageSendStatus.failed)
+                  Padding(
+                    padding: const EdgeInsets.only(right: 4),
+                    child: GestureDetector(
+                      onTap: () => _retrySend(localId),
+                      child: const Icon(
+                        Icons.error_outline,
+                        color: Colors.red,
+                        size: 16,
                       ),
                     ),
-                  if (isMe && sendStatus == MessageSendStatus.failed)
-                    Padding(
-                      padding: const EdgeInsets.only(right: 4),
-                      child: GestureDetector(
-                        onTap: () => _retrySend(localId),
-                        child: const Icon(
-                          Icons.error_outline,
-                          color: Colors.red,
-                          size: 16,
-                        ),
-                      ),
-                    ),
-                  Flexible(
+                  ),
+                Flexible(
+                  child: FastLongPressDetector(
+                    duration: const Duration(milliseconds: 200),
+                    onLongPress: () {
+                      setState(() {
+                        selectedMessageLocalId = localId;
+                      });
+                    },
                     child: Column(
                       crossAxisAlignment:
                           isMe ? CrossAxisAlignment.end : CrossAxisAlignment.start,
@@ -576,23 +576,23 @@ class _ChatDetailPageState extends State<ChatDetailPage> {
                       ],
                     ),
                   ),
-                  if (isMe) const SizedBox(width: 8),
-                  if (isMe) _buildAvatar(avatarUrl),
-                ],
-              ),
+                ),
+                if (isMe) const SizedBox(width: 8),
+                if (isMe) _buildAvatar(avatarUrl),
+              ],
             ),
-            AnimatedSwitcher(
-              duration: const Duration(milliseconds: 180),
-              transitionBuilder: (child, animation) => FadeTransition(
-                opacity: animation,
-                child: child,
-              ),
-              child: (selectedMessageLocalId != null && selectedMessageLocalId == localId)
-                  ? _buildMessageMenu(msg, isMe)
-                  : const SizedBox.shrink(),
+          ),
+          AnimatedSwitcher(
+            duration: const Duration(milliseconds: 180),
+            transitionBuilder: (child, animation) => FadeTransition(
+              opacity: animation,
+              child: child,
             ),
-          ],
-        ),
+            child: (selectedMessageLocalId != null && selectedMessageLocalId == localId)
+                ? _buildMessageMenu(msg, isMe)
+                : const SizedBox.shrink(),
+          ),
+        ],
       ),
     );
   }
@@ -631,6 +631,7 @@ class _ChatDetailPageState extends State<ChatDetailPage> {
                 ),
               ),
               onSubmitted: (_) => _sendMessage(),
+              onTap: _scrollToBottom, // 点击输入框时滚动到底部
             ),
           ),
           IconButton(

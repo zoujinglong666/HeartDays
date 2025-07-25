@@ -1,10 +1,7 @@
 import 'package:flutter/material.dart';
-import 'package:heart_days/apis/chat.dart';
 import 'package:heart_days/apis/friends.dart';
 import 'package:heart_days/apis/user.dart';
-import 'package:heart_days/pages/chat_detail_page.dart';
 import 'package:heart_days/pages/friend_detail_page.dart';
-import 'package:heart_days/provider/get_login_userinfo.dart';
 
 class FriendListPage extends StatefulWidget {
   const FriendListPage({super.key});
@@ -47,7 +44,7 @@ class _FriendListPageState extends State<FriendListPage> {
                       (f.name ?? '').toLowerCase().contains(
                         searchText.toLowerCase(),
                       ) ||
-                      (f.userAccount ?? '').toLowerCase().contains(
+                      (f.userAccount).toLowerCase().contains(
                         searchText.toLowerCase(),
                       ),
                 )
@@ -93,7 +90,7 @@ class _FriendListPageState extends State<FriendListPage> {
                   ),
                   title: Text(f.name ?? ''),
                   subtitle: Text(
-                    '账号: ${f.userAccount ?? ''}',
+                    '账号: ${f.userAccount}',
                     style: const TextStyle(fontSize: 13),
                   ),
                   onTap: () {
