@@ -237,15 +237,53 @@ Future<ApiResponse<Map<String, dynamic>>> refreshTokenApi(Map<String, dynamic> d
     fromJson: (json) => json,
   );
 }
+class UnaddedUserVO {
+  final String id;
+  final String name;
+  final String email;
+  final String avatar;
+  final String userAccount;
+  final String friendshipStatus;
 
+  UnaddedUserVO({
+    required this.id,
+    required this.name,
+    required this.email,
+    required this.avatar,
+    required this.userAccount,
+    required this.friendshipStatus,
+  });
+
+  factory UnaddedUserVO.fromJson(Map<String, dynamic> json) {
+    return UnaddedUserVO(
+      id: json['id'] ?? '',
+      name: json['name'] ?? '无名',
+      email: json['email'] ?? '',
+      avatar: json['avatar'] ?? 'https://fastly.jsdelivr.net/npm/@vant/assets/logo.png',
+      userAccount: json['userAccount'] ?? '',
+      friendshipStatus: json['friendshipStatus'] ?? '',
+    );
+  }
+
+  Map<String, dynamic> toJson() {
+    return {
+      'id': id,
+      'name': name,
+      'email': email,
+      'avatar': avatar,
+      'userAccount': userAccount,
+      'friendshipStatus': friendshipStatus,
+    };
+  }
+}
 /// 获取未添加的用户列表
-Future<ApiResponse<List<UserVO>>> listUnaddedUsers(Map<String, dynamic> data) async {
-  return await HttpManager.get<List<UserVO>>(
+Future<ApiResponse<List<UnaddedUserVO>>> listUnaddedUsers(Map<String, dynamic> data) async {
+  return await HttpManager.get<List<UnaddedUserVO>>(
     "/users/unadded",
     queryParameters: data,
     fromJson: (json) {
       if (json is List) {
-        return json.map((item) => UserVO.fromJson(item)).toList();
+        return json.map((item) => UnaddedUserVO.fromJson(item)).toList();
       }
       return [];
     },

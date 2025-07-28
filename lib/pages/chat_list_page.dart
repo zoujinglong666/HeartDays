@@ -424,16 +424,23 @@ class _ChatListTabState extends State<ChatListTab> {
     final RenderBox overlay = Overlay.of(context).context.findRenderObject() as RenderBox;
     final Size screenSize = overlay.size;
 
-    final double menuWidth = 220;
+    final double menuWidth = 160;
     final double menuHeight = 200;
 
-    final double left = (screenSize.width - tapPosition.dx) < menuWidth
+    final double leftRaw = (screenSize.width - tapPosition.dx) < menuWidth
         ? screenSize.width - menuWidth - 8.0
         : tapPosition.dx;
 
-    final double top = (screenSize.height - tapPosition.dy) < menuHeight
+// 只对右边界限制，左边界允许更小，不用clamp左边最小8了
+    final double left = leftRaw > 0 ? leftRaw : tapPosition.dx;
+
+    final double topRaw = (screenSize.height - tapPosition.dy) < menuHeight
         ? tapPosition.dy - menuHeight
         : tapPosition.dy;
+
+// 仍然限制上下不超屏幕
+    final double top = topRaw.clamp(8.0, screenSize.height - menuHeight - 8.0);
+
 
     showGeneralDialog(
       context: context,

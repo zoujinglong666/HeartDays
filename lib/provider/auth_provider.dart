@@ -166,7 +166,7 @@ class AuthNotifier extends StateNotifier<AuthState> {
     final prefs = await SharedPreferences.getInstance();
     await prefs.remove(_storageKey);
     await prefs.remove('token');
-    // await prefs.remove('refreshToken');
+    await prefs.remove('refreshToken');
   }
 
   // ✅ Getter

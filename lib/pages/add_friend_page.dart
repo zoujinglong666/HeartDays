@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:heart_days/apis/friends.dart';
 import 'package:heart_days/apis/user.dart';
-import 'package:heart_days/services/ChatSocketService.dart';
+import 'package:heart_days/components/input_text/index.dart';
 
 class AddFriendPage extends StatefulWidget {
   const AddFriendPage({super.key});
@@ -14,16 +14,16 @@ class _AddFriendPageState extends State<AddFriendPage> {
   final TextEditingController _searchController = TextEditingController();
   List<String> searchHistory = [];
   List<Map<String, String>> friends = [];
-  List<UserVO> filteredFriends = [];
+  List<UnaddedUserVO> filteredFriends = [];
+
+  // 跟踪每个好友的添加状态
+  Map<String, bool> _addingStatus = {};
 
   @override
   void initState() {
     super.initState();
     _loadData();
   }
-
-
-
   Future<void> _loadData() async {
     final res = await listUnaddedUsers({'page': 1, 'size': 20});
     setState(() {
@@ -32,27 +32,77 @@ class _AddFriendPageState extends State<AddFriendPage> {
   }
 
   Future<void> _onSearch(String value) async {
-    if (value.trim().isEmpty) return;
     final res = await listUnaddedUsers({
       'page': 1,
       'size': 20,
-      'keyword': value,
+      if (value
+          .trim()
+          .isNotEmpty) 'keyword': value,
     });
     setState(() {
       filteredFriends = res.data!;
     });
   }
 
+
   void _onSelectHistory(String value) {
     _searchController.text = value;
     _onSearch(value);
   }
 
-  Future<void> _addFriend(UserVO friend) async {
-    // 发送好友请求给后端
-    ChatSocketService().sendFriendRequest(friend.id);
-    final _ = await friendsRequestApi({'friendId': friend.id});
+  Future<void> _addFriend(UnaddedUserVO friend) async {
+    // 设置添加状态为正在添加
+    setState(() {
+      _addingStatus[friend.id] = true;
+    });
+
+    try {
+      // ChatSocketService().sendFriendRequest(friend.id);
+      await friendsRequestApi({'friendId': friend.id});
+
+      // 更新好友列表以反映新状态
+      await _loadData();
+    } finally {
+      // 无论成功还是失败，都清除添加状态
+      setState(() {
+        _addingStatus.remove(friend.id);
+      });
+    }
   }
+
+  // 根据状态返回相应的Widget
+  Widget _getStatusWidget(String status) {
+    switch (status) {
+      case 'pending':
+        return const Text(
+          '已申请',
+          style: TextStyle(
+            color: Colors.orange,
+            fontSize: 12,
+          ),
+        );
+      case 'accepted':
+        return const Text(
+          '已接受',
+          style: TextStyle(
+            color: Colors.green,
+            fontSize: 12,
+          ),
+        );
+      case 'rejected':
+        return const Text(
+          '已拒绝',
+          style: TextStyle(
+            color: Colors.red,
+            fontSize: 12,
+          ),
+        );
+      default:
+        return const SizedBox.shrink();
+    }
+  }
+
+
 
   @override
   Widget build(BuildContext context) {
@@ -65,34 +115,18 @@ class _AddFriendPageState extends State<AddFriendPage> {
       ),
       body: Column(
         children: [
+
+
           Padding(
             padding: const EdgeInsets.all(12.0),
-            child: TextField(
+            child: InputText(
+              label: "用户名",
               controller: _searchController,
-              decoration: InputDecoration(
-                hintText: '搜索朋友',
-                prefixIcon: const Icon(Icons.search),
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(24),
-                ),
-                contentPadding: const EdgeInsets.symmetric(
-                  vertical: 0,
-                  horizontal: 16,
-                ),
-                suffixIcon:
-                    _searchController.text.isNotEmpty
-                        ? IconButton(
-                          icon: const Icon(Icons.clear),
-                          onPressed: () {
-                            setState(() {
-                              _searchController.clear();
-                              filteredFriends = List.from(friends);
-                            });
-                          },
-                        )
-                        : null,
-              ),
+              icon: const Icon(Icons.search),
+              placeholder: "请输入",
+              showBorder: true,
               onSubmitted: _onSearch,
+              borderRadius: BorderRadius.circular(50),
             ),
           ),
           if (searchHistory.isNotEmpty)
@@ -119,6 +153,8 @@ class _AddFriendPageState extends State<AddFriendPage> {
               separatorBuilder: (_, __) => const Divider(height: 1, indent: 72),
               itemBuilder: (context, index) {
                 final friend = filteredFriends[index];
+                final isAdding = _addingStatus[friend.id] ?? false;
+
                 return ListTile(
                   leading: CircleAvatar(
                     backgroundImage:
@@ -131,8 +167,26 @@ class _AddFriendPageState extends State<AddFriendPage> {
                             : null,
                   ),
                   title: Text(friend.name ?? ''),
-                  subtitle: Text(friend.userAccount ?? ''),
-                  trailing: IconButton(
+                  subtitle: Row(
+                    children: [
+                      Text(friend.userAccount ?? ''),
+                      if (friend.friendshipStatus.isNotEmpty)
+                        Padding(
+                          padding: const EdgeInsets.only(left: 8.0),
+                          child: _getStatusWidget(friend.friendshipStatus),
+                        ),
+                    ],
+                  ),
+                  trailing: isAdding
+                      ? const SizedBox(
+                    width: 20,
+                    height: 20,
+                    child: CircularProgressIndicator(strokeWidth: 2),
+                  )
+                      : (friend.friendshipStatus == 'pending' ||
+                      friend.friendshipStatus == 'accepted')
+                      ? const SizedBox.shrink()
+                      : IconButton(
                     icon: const Icon(Icons.person_add),
                     onPressed: () {
                       // 在这里处理添加好友的逻辑
@@ -141,7 +195,6 @@ class _AddFriendPageState extends State<AddFriendPage> {
                   ),
                   onTap: () {
                     // 点击用户进入详情页
-
                   },
                 );
               },

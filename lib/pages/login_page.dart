@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:heart_days/pages/register_page.dart';
 import 'package:heart_days/provider/auth_provider.dart';
@@ -155,14 +156,10 @@ class _LoginPageState extends ConsumerState<LoginPage>
           _passwordController.text,
           secret,
         );
-        print("密文: $encrypted");
         final response = await userLogin({
           "userAccount": _usernameController.text,
           "password": encrypted,
         });
-        print("--------------------------------------------");
-        print(response);
-
         if (response.code == 200) {
           final user = response.data?.user;
           final token = response.data?.accessToken;
@@ -545,7 +542,10 @@ class _LoginPageState extends ConsumerState<LoginPage>
                   color: textSecondary,
                 ),
                 children: [
-                  const TextSpan(text: '我已阅读并同意'),
+                  TextSpan(
+                    text: '我已阅读并同意',
+                    recognizer: TapGestureRecognizer()..onTap = _toggleAgreement,
+                  ),
                   TextSpan(
                     text: '《用户协议》',
                     style: const TextStyle(

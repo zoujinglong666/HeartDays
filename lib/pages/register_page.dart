@@ -1,3 +1,4 @@
+import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:heart_days/apis/user.dart';
 
@@ -559,7 +560,10 @@ class _RegisterPageState extends State<RegisterPage>
                   color: textSecondary,
                 ),
                 children: [
-                  const TextSpan(text: '我已阅读并同意'),
+                  TextSpan(
+                    text: '我已阅读并同意',
+                    recognizer: TapGestureRecognizer()..onTap = _toggleAgreement,
+                  ),
                   TextSpan(
                     text: '《用户协议》',
                     style: const TextStyle(
@@ -584,4 +588,5 @@ class _RegisterPageState extends State<RegisterPage>
       ],
     );
   }
+
 }

@@ -321,10 +321,18 @@ Future<ApiResponse<ChatSessionResponse>> getChatSessionDetail(
 
 /// 标记消息已读
 Future<ApiResponse<void>> markMessageReadApi(String messageId) async {
-  print('标记消息已读');
   return await HttpManager.post<void>(
     "/chat/message/$messageId/read",
     fromJson: (_) => null,
 
   );
 }
+
+Future<ApiResponse<void>> withdrawMessageApi(String messageId) async {
+  return await HttpManager.post<void>(
+    "/chat/message/$messageId/withdraw",
+    fromJson: (_) => null,
+  );
+}
+
+

@@ -11,6 +11,7 @@ import 'package:heart_days/models/message.dart';
 import 'package:heart_days/provider/get_login_userinfo.dart';
 import 'package:heart_days/services/ChatSocketService.dart';
 import 'package:heart_days/utils/ToastUtils.dart';
+import 'package:heart_days/utils/date_utils.dart';
 import 'package:heart_days/utils/message_database.dart';
 import 'package:intl/intl.dart';
 import 'package:sqflite/sqflite.dart';
@@ -733,7 +734,7 @@ class _ChatDetailPageState extends State<ChatDetailPage> {
                               right: 4,
                             ),
                             child: Text(
-                              _formatTime(msg['createdAt']),
+                              formatMsgTime(msg['createdAt']),
                               style: const TextStyle(
                                 color: Colors.grey,
                                 fontSize: 11,
@@ -811,71 +812,8 @@ class _ChatDetailPageState extends State<ChatDetailPage> {
     );
   }
 
-  String _formatTime(String? timeStr) {
-    if (timeStr == null || timeStr.isEmpty) return '';
-    try {
-      final DateTime messageTime = DateTime.parse(timeStr).toLocal();
-      final DateTime now = DateTime.now().toLocal();
 
-      // 今天
-      if (_isSameDay(messageTime, now)) {
-        return DateFormat('HH:mm').format(messageTime);
-      }
-      // 昨天
-      else if (_isYesterday(messageTime, now)) {
-        return '昨天 ${DateFormat('HH:mm').format(messageTime)}';
-      }
-      // 一周内
-      else if (_isWithinAWeek(messageTime, now)) {
-        return '${_getWeekdayString(messageTime.weekday)} ${DateFormat('HH:mm').format(messageTime)}';
-      }
-      // 超过一周
-      else {
-        return DateFormat('yyyy/MM/dd HH:mm').format(messageTime);
-      }
-    } catch (e) {
-      return '';
-    }
-  }
 
-  // 判断是否是同一天
-  bool _isSameDay(DateTime a, DateTime b) {
-    return a.year == b.year && a.month == b.month && a.day == b.day;
-  }
-
-  // 判断是否是昨天
-  bool _isYesterday(DateTime messageTime, DateTime now) {
-    final yesterday = DateTime(now.year, now.month, now.day - 1);
-    return _isSameDay(messageTime, yesterday);
-  }
-
-  // 判断是否在一周内
-  bool _isWithinAWeek(DateTime messageTime, DateTime now) {
-    final oneWeekAgo = now.subtract(const Duration(days: 7));
-    return messageTime.isAfter(oneWeekAgo);
-  }
-
-  // 获取星期几的中文名称
-  String _getWeekdayString(int weekday) {
-    switch (weekday) {
-      case 1:
-        return '周一';
-      case 2:
-        return '周二';
-      case 3:
-        return '周三';
-      case 4:
-        return '周四';
-      case 5:
-        return '周五';
-      case 6:
-        return '周六';
-      case 7:
-        return '周日';
-      default:
-        return '';
-    }
-  }
 
   Widget _buildMessageMenu(Map<String, dynamic> msg, bool isMe) {
     final localId = msg['localId'];

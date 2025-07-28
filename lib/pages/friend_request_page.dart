@@ -187,31 +187,14 @@ class _FriendRequestPageState extends State<FriendRequestPage> {
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Image.asset(
-            'lib/assets/images/splash.png',
-            width: 120,
-            height: 120,
-            color: Colors.grey[300],
-            colorBlendMode: BlendMode.modulate,
-          ),
-          const SizedBox(height: 24),
           const Text(
             '暂无好友申请',
             style: TextStyle(
-              fontSize: 18,
-              fontWeight: FontWeight.w500,
+              fontSize: 16,
+              fontWeight: FontWeight.w400,
               color: Colors.grey,
             ),
           ),
-          const SizedBox(height: 8),
-          const Text(
-            '快去添加好友吧',
-            style: TextStyle(
-              fontSize: 14,
-              color: Colors.grey,
-            ),
-          ),
-          const SizedBox(height: 24),
           ElevatedButton.icon(
             onPressed: () {
               Navigator.push(

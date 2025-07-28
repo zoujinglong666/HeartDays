@@ -1,12 +1,13 @@
+import 'dart:io';
+
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:heart_days/apis/user.dart';
 import 'package:heart_days/provider/auth_provider.dart';
 import 'package:heart_days/utils/ToastUtils.dart';
-import 'dart:io';
+import 'package:heart_days/utils/network_utils.dart';
 import 'package:path_provider/path_provider.dart';
-import 'package:cached_network_image/cached_network_image.dart';
-import 'package:flutter/painting.dart';
 
 class SettingsPage extends ConsumerStatefulWidget {
   const SettingsPage({super.key});
@@ -61,7 +62,7 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
               trailing: Text(
                 _cacheSize > 0
                   ? '${(_cacheSize / 1024 / 1024).toStringAsFixed(1)} MB'
-                  : '0 MB',
+                  : '',
                 style: TextStyle(color: Colors.grey, fontSize: 13),
               ),
             ),
@@ -212,14 +213,26 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
               ),
               TextButton(
                 onPressed: () async {
-                  await userLogoutApi();
-                  await ref.read(authProvider.notifier).logout();
-                  // 退出登录，清除导航栈并跳转到登录页面
-                  Navigator.of(context).pushNamedAndRemoveUntil(
-                    '/login',
-                    (route) => false, // 清除所有路由
-                  );
+                  try {
+                    if (await NetworkUtils.isConnected()) {
+                      await userLogoutApi();
+                    }
+                    await ref.read(authProvider.notifier).logout();
+                    // 退出登录，清除导航栈并跳转到登录页面
+                    Navigator.of(context).pushNamedAndRemoveUntil(
+                      '/login',
+                          (route) => false, // 清除所有路由
+                    );
+                  } catch (e) {
+                    // 如果登出失败，仍需要确保本地状态清除
+                    await ref.read(authProvider.notifier).logout();
+                    Navigator.of(context).pushNamedAndRemoveUntil(
+                      '/login',
+                          (route) => false,
+                    );
+                  }
                 },
+
                 child: const Text(
                   '确定',
                   style: TextStyle(color: Colors.redAccent),
@@ -230,9 +243,7 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
     );
   }
 
-  void _showToast(BuildContext context, String message) {
-    ToastUtils.showToast(message);
-  }
+
 
   Future<int> getCacheSize() async {
     int total = 0;
@@ -269,17 +280,14 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
       }
 
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('缓存已清除')),
-        );
+        ToastUtils.showToast("缓存已清除");
       }
       // 清理后刷新显示
       setState(() {});
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('清除缓存失败: $e')),
-        );
+        print('清除缓存失败: $e');
+
       }
     }
   }
