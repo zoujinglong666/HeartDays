@@ -59,7 +59,8 @@ class PaginatedData<T> {
       rethrow;
     }
   }
-
+  /// ✅ 派生字段：是否还有更多数据（推荐使用）
+  bool get hasMore => current < pages;
   factory PaginatedData.empty() => PaginatedData<T>(
     total: 0,
     size: 10,
@@ -69,4 +70,21 @@ class PaginatedData<T> {
     hasPrev: false,
     records: [],
   );
+
+  Map<String, dynamic> toJson(Map<String, dynamic> Function(T) toJsonT) {
+    return {
+      'total': total,
+      'size': size,
+      'current': current,
+      'pages': pages,
+      'hasNext': hasNext,
+      'hasPrev': hasPrev,
+      'records': records.map((e) => toJsonT(e)).toList(),
+    };
+  }
+
+
 }
+
+
+

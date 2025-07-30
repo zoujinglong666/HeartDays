@@ -1,15 +1,9 @@
+import 'package:easy_refresh/easy_refresh.dart';
 import 'package:flutter/material.dart';
+import 'package:heart_days/common/decode.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:shimmer/shimmer.dart';
-import 'package:easy_refresh/easy_refresh.dart';
 
-// 分页结构类
-class PageResult<T> {
-  final List<T> list;
-  final bool hasMore;
-
-  PageResult({required this.list, required this.hasMore});
-}
 
 // 自定义样式配置
 class PaginatedListStyle {
@@ -28,9 +22,9 @@ class PaginatedListStyle {
 typedef ItemBuilder<T> =
     Widget Function(BuildContext context, T item, int index);
 typedef PageFetcher<T> =
-    Future<PageResult<T>> Function(int pageNum, int pageSize);
+    Future<PaginatedData<T>> Function(int pageNum, int pageSize);
 
-class PaginatedListView<T> extends StatefulWidget {
+class LoadMoreList<T> extends StatefulWidget {
   final PageFetcher<T> fetchPage;
   final ItemBuilder<T> itemBuilder;
   final int pageSize;
@@ -39,11 +33,11 @@ class PaginatedListView<T> extends StatefulWidget {
   final bool useGrid;
   final int gridCrossAxisCount;
 
-  const PaginatedListView({
+  const LoadMoreList({
     super.key,
     required this.fetchPage,
     required this.itemBuilder,
-    this.pageSize = 20,
+    this.pageSize = 10,
     this.cacheKey,
     this.style,
     this.useGrid = false,
@@ -51,19 +45,21 @@ class PaginatedListView<T> extends StatefulWidget {
   });
 
   @override
-  State<PaginatedListView<T>> createState() => _PaginatedListViewState<T>();
+  State<LoadMoreList<T>> createState() => _LoadMoreListState<T>();
 }
 
-class _PaginatedListViewState<T> extends State<PaginatedListView<T>> {
+class _LoadMoreListState<T> extends State<LoadMoreList<T>> {
   final List<T> _items = [];
   int _pageNum = 1;
   bool _hasMore = true;
   bool _loading = true;
   bool _error = false;
+  late EasyRefreshController _controller;
 
   @override
   void initState() {
     super.initState();
+    _controller = EasyRefreshController(controlFinishLoad: true);
     _loadCachedData();
     _onRefresh();
   }
@@ -92,14 +88,17 @@ class _PaginatedListViewState<T> extends State<PaginatedListView<T>> {
     });
     try {
       final res = await widget.fetchPage(1, widget.pageSize);
+
       setState(() {
         _items.clear();
-        _items.addAll(res.list);
-        _hasMore = res.hasMore;
+        _items.addAll(res.records);
+        _hasMore = res.hasNext;
         _pageNum = 2;
         _loading = false;
       });
-      _cacheData(res.list);
+      _controller.finishRefresh(); // 通知刷新完成
+      _controller.resetFooter();   // 重置 footer 状态
+      _cacheData(res.records);
     } catch (e) {
       setState(() {
         _error = true;
@@ -108,18 +107,26 @@ class _PaginatedListViewState<T> extends State<PaginatedListView<T>> {
   }
 
   Future<void> _onLoad() async {
-    if (!_hasMore) return;
+    if (!_hasMore) {
+      _controller.finishLoad(IndicatorResult.noMore);
+      return;
+    }
     try {
       final res = await widget.fetchPage(_pageNum, widget.pageSize);
+      final newItems = res.records.where((e) => !_items.contains(e)).toList();
       setState(() {
-        _items.addAll(res.list);
-        _hasMore = res.hasMore;
+        _items.addAll(newItems);
+        _hasMore = res.hasNext;
         _pageNum++;
       });
+      _controller.finishLoad(_hasMore ? IndicatorResult.success : IndicatorResult.noMore);
     } catch (e) {
+      print('加载错误: $e');
       _error = true;
+      _controller.finishLoad(IndicatorResult.fail);
     }
   }
+
 
   @override
   Widget build(BuildContext context) {

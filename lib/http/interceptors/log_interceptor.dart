@@ -1,4 +1,3 @@
-import 'dart:ffi';
 import 'dart:io';
 
 import 'package:dio/dio.dart';
@@ -12,6 +11,15 @@ class LogInterceptorHandler extends Interceptor {
   }
 
 
+  /// 处理 token 相关错误 (40101-40109)
+  /// 返回 true 表示已处理，false 表示需要继续处理
+  bool _handleTokenError(DioException err, ErrorInterceptorHandler handler,
+      ApiResponse apiResponse) {
+    if (apiResponse.code >= 40101 && apiResponse.code <= 40109) {
+      return true;
+    }
+    return false;
+  }
 
   @override
   void onError(DioException err, ErrorInterceptorHandler handler) {
@@ -64,8 +72,10 @@ class LogInterceptorHandler extends Interceptor {
       print('❌ 服务器返回: $apiResponse');
       errorMessage = apiResponse.message;
     }
+    if (!_handleTokenError(err, handler, apiResponse)) {
+      ToastUtils.showToast(errorMessage);
+    }
 
-  ToastUtils.showToast(errorMessage);
     super.onError(err, handler);
   }
 }

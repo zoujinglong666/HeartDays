@@ -1,4 +1,5 @@
 import 'dart:convert';
+
 import 'package:flutter/material.dart';
 import 'package:heart_days/apis/plan.dart';
 import 'package:heart_days/pages/calendar_page.dart';
@@ -7,6 +8,7 @@ import 'package:heart_days/provider/auth_provider.dart';
 import 'package:heart_days/utils/ToastUtils.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:table_calendar/table_calendar.dart';
+
 import 'plan_detail_page.dart';
 import 'plan_edit_page.dart';
 import 'pomodoro_timer_page.dart';
@@ -516,9 +518,16 @@ class _PlanPageState extends State<PlanPage> with RouteAware {
                 ],
               ),
             )
-            : ListView.builder(
-              physics: const NeverScrollableScrollPhysics(),
-              shrinkWrap: true,
+            :
+// physics: const NeverScrollableScrollPhysics(),
+//               shrinkWrap: true,
+
+        ConstrainedBox(
+          constraints: BoxConstraints(
+            minHeight: 120,
+            maxHeight: 360, // 最大高度
+          ),
+          child: ListView.builder(
               itemCount: _plans.length,
               itemBuilder: (context, index) {
                 final plan = _plans[index];
@@ -557,7 +566,8 @@ class _PlanPageState extends State<PlanPage> with RouteAware {
                     return await showDialog(
                       context: context,
                       builder:
-                          (context) => AlertDialog(
+                          (context) =>
+                          AlertDialog(
                             shape: RoundedRectangleBorder(
                               borderRadius: BorderRadius.circular(16),
                             ),
@@ -762,7 +772,7 @@ class _PlanPageState extends State<PlanPage> with RouteAware {
                                     ),
                                     child: Icon(
                                       intToStatus(plan.status) ==
-                                              PlanStatus.completed
+                                          PlanStatus.completed
                                           ? Icons.check_circle
                                           : Icons.radio_button_unchecked,
                                       color: _getStatusColor(
@@ -782,6 +792,7 @@ class _PlanPageState extends State<PlanPage> with RouteAware {
                 );
               },
             ),
+        )
       ],
     );
   }

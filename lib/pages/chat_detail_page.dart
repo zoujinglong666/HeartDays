@@ -1,6 +1,4 @@
 import 'dart:async';
-import 'dart:math';
-
 import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -13,7 +11,6 @@ import 'package:heart_days/services/ChatSocketService.dart';
 import 'package:heart_days/utils/ToastUtils.dart';
 import 'package:heart_days/utils/date_utils.dart';
 import 'package:heart_days/utils/message_database.dart';
-import 'package:intl/intl.dart';
 import 'package:sqflite/sqflite.dart';
 import 'package:uuid/uuid.dart';
 import 'package:visibility_detector/visibility_detector.dart';
@@ -65,10 +62,8 @@ class _ChatDetailPageState extends State<ChatDetailPage> {
     _messageDatabase = null;
     _connectivitySubscription = null;
     _socketService = ChatSocketService();
-
     // 注册所有事件回调
     _registerSocketCallbacks();
-
     _scrollController.addListener(() {
       if (_scrollController.offset <= 0 &&
           !_loadingMore &&
@@ -108,7 +103,7 @@ class _ChatDetailPageState extends State<ChatDetailPage> {
     _stopHeartbeatRetry(); // 先停止已有的心跳重试
     _heartbeatRetryTimer = Timer.periodic(Duration(milliseconds: _heartbeatRetryInterval), (timer) {
       // 检查是否有未发送的消息，如果有则尝试重新发送
-      if (_isOnline && _messageQueue != null && _messageQueue.hasPendingMessages) {
+      if (_isOnline && _messageQueue.hasPendingMessages) {
         _messageQueue.resumeSending(_actuallySendMessage);
       }
     });

@@ -1,4 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:heart_days/common/toast.dart';
+import 'package:heart_days/components/selectable/index.dart';
+import 'package:heart_days/pages/MyListPage.dart';
 
 class AboutPage extends StatelessWidget {
   const AboutPage({super.key});
@@ -7,6 +10,7 @@ class AboutPage extends StatelessWidget {
   Widget build(BuildContext context) {
     const Color primaryColor = Color(0xFF5C6BC0);
     const Color backgroundColor = Color(0xFFF8F9FA);
+    Option<int>? gender;
 
     final List<Map<String, String>> highlights = [
       {'title': '纪念日提醒', 'description': '每一个特别的日子，我们都替你牢牢记住，温暖提示，不再错过。'},
@@ -37,6 +41,14 @@ class AboutPage extends StatelessWidget {
                     'lib/assets/images/icon.png',
                     fit: BoxFit.contain,
                   ),
+                  // CircleAvatar(
+                  //   radius: 40,
+                  //   backgroundColor: Colors.white,
+                  //   child: const Text(
+                  //     '💖',
+                  //     style: TextStyle(fontSize: 32),
+                  //   ),
+                  // ),
                   const SizedBox(height: 16),
                   const Text(
                     'Heart Days',
@@ -50,6 +62,18 @@ class AboutPage extends StatelessWidget {
                   Text(
                     '记录爱与回忆的每一天',
                     style: TextStyle(fontSize: 14, color: Colors.grey.shade600),
+                  ),
+
+                  GestureDetector(
+                    child: MaterialButton(
+                      onPressed: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(builder: (context) => MyListPage()),
+                        );
+                      },
+                      child: Text('MyListPage'),
+                    ),
                   ),
                 ],
               ),
@@ -120,8 +144,26 @@ class AboutPage extends StatelessWidget {
             const SizedBox(height: 32),
 
             GestureDetector(
+              onTap: () {
+                // Navigator.push(
+                //   context,
+                //   MaterialPageRoute(builder: (context) => const MqttPage()),
+                // );
+
+                // Selectable<int>(
+                //   context: context,
+                //   title: "请选择",
+                //   showClose: true,
+                //   initialValue: gender == null ? null : [gender!.value],
+                //   options: const [
+                //     Option(label: "男生", value: 1),
+                //     Option(label: "女生", value: 2),
+                //     Option(label: "其他", value: 3),
+                //   ],
+                // ).show();
+              },
               child: // 开发者信息
-                  const Text(
+              const Text(
                 '👨‍💻 关于开发者',
                 style: TextStyle(
                   fontSize: 18,

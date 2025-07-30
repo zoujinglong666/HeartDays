@@ -129,19 +129,8 @@ class _PickerBottomSheetState<T> extends State<_PickerBottomSheet<T>> with Singl
       child: SafeArea(
         child: Container(
           decoration: BoxDecoration(
-            gradient: LinearGradient(
-              begin: Alignment.topCenter,
-              end: Alignment.bottomCenter,
-              colors: [Colors.white, Colors.white.withOpacity(0.95)],
-            ),
+            color: Colors.white,
             borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withOpacity(0.08),
-                blurRadius: 24,
-                offset: const Offset(0, -4),
-              ),
-            ],
           ),
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
           child: Column(

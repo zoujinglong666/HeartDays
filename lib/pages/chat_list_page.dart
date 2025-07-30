@@ -27,7 +27,7 @@ class _ChatListPageState extends State<ChatListPage> {
         appBar: AppBar(
           backgroundColor: const Color(0xFFEDEDED),
           foregroundColor: Colors.black,
-          title: const Text('Heart Days Chat  '),
+          title: const Text('微聊'),
           actions: [
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 20.0),
@@ -35,7 +35,6 @@ class _ChatListPageState extends State<ChatListPage> {
                 pressType: PressType.singleClick,
                 menuBuilder: _buildBasicMenu(),
                 child: const Icon(Icons.add, size: 24),
-                menuOnChange: (show) => print('菜单状态: $show'),
               ),
             ),
           ],
