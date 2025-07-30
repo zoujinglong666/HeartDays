@@ -18,18 +18,14 @@ class ChatSocketProvider extends ChangeNotifier {
 
   bool get isConnected => _connected;
 
-  void connect(String token, String myUserId) {
-    _userId = myUserId;
+  void connect(String token, String loginUserId) {
+    _userId = loginUserId;
     _token = token;
-    print(myUserId);
-
     _socket = IO.io('http://10.9.17.94:8888', <String, dynamic>{
       'transports': ['websocket'],
       'autoConnect': false,
       'extraHeaders': {'Authorization': 'Bearer $token'},
     });
-    print(_socket);
-
     _socket.on('connect', (_) {
       _connected = true;
       _retryCount = 0;

@@ -1,12 +1,14 @@
 import 'dart:async';
+
 import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:heart_days/apis/chat.dart';
 import 'package:heart_days/apis/user.dart';
 import 'package:heart_days/components/FastLongPressDetector.dart';
 import 'package:heart_days/models/message.dart';
-import 'package:heart_days/provider/get_login_userinfo.dart';
+import 'package:heart_days/provider/auth_provider.dart';
 import 'package:heart_days/services/ChatSocketService.dart';
 import 'package:heart_days/utils/ToastUtils.dart';
 import 'package:heart_days/utils/date_utils.dart';
@@ -15,25 +17,23 @@ import 'package:sqflite/sqflite.dart';
 import 'package:uuid/uuid.dart';
 import 'package:visibility_detector/visibility_detector.dart';
 
-class ChatDetailPage extends StatefulWidget {
+class ChatDetailPage extends ConsumerStatefulWidget {
   final ChatSession chatSession;
 
   const ChatDetailPage({super.key, required this.chatSession});
 
   @override
-  State<ChatDetailPage> createState() => _ChatDetailPageState();
+  ConsumerState<ChatDetailPage> createState() => _ChatDetailPageState();
 }
 
-class _ChatDetailPageState extends State<ChatDetailPage> {
+class _ChatDetailPageState extends ConsumerState<ChatDetailPage> {
   final List<Map<String, dynamic>> messages = [];
   final TextEditingController _controller = TextEditingController();
   final ScrollController _scrollController = ScrollController();
   final Uuid _uuid = Uuid();
 
   late final ChatSocketService _socketService;
-  String myUserId = '';
-  String myToken = '';
-  User? myUser;
+  User? loginUser;
 
   bool _loading = true;
   bool _loadingMore = false;
@@ -56,12 +56,12 @@ class _ChatDetailPageState extends State<ChatDetailPage> {
   @override
   void initState() {
     super.initState();
-    _getUserInfo();
     _connectivity = Connectivity();
     _isOnline = false;
     _messageDatabase = null;
     _connectivitySubscription = null;
     _socketService = ChatSocketService();
+    _initConnect();
     // 注册所有事件回调
     _registerSocketCallbacks();
     _scrollController.addListener(() {
@@ -79,6 +79,17 @@ class _ChatDetailPageState extends State<ChatDetailPage> {
     _loadUnsentMessages();
     _messageQueue.onMessageSent = _onMessageSent;
     _startHeartbeatRetry();
+  }
+
+  void _initConnect() async {
+    final authState = ref.read(authProvider);
+    final user = authState.user;
+    final token = authState.token;
+    setState(() {
+      loginUser = user;
+    });
+    _socketService.connect(token!, user!.id);
+    _joinSession();
   }
 
   Future<void> _initDatabase() async {
@@ -168,28 +179,6 @@ class _ChatDetailPageState extends State<ChatDetailPage> {
     }
   }
 
-  Future<void> _getUserInfo() async {
-    final loginState = await LoginUserInfo().getLoginState();
-
-    if (loginState.token == null ||
-        loginState.userId == null ||
-        loginState.user == null) {
-      // 可跳转登录或提示异常
-      return;
-    }
-    setState(() {
-      myToken = loginState.token!;
-      myUserId = loginState.userId!;
-      myUser = loginState.user!;
-    });
-
-    // 连接 WebSocket
-    if (myToken.isNotEmpty && myUserId.isNotEmpty) {
-      _socketService.connect(myToken, myUserId);
-    }
-    _joinSession();
-  }
-
   void _registerSocketCallbacks() {
     // 连接成功后再加入会话房间
     _socketService.setOnNewMessage(_onNewMessage);
@@ -260,7 +249,7 @@ class _ChatDetailPageState extends State<ChatDetailPage> {
               if (messageId != null) messages[i]['messageId'] = messageId;
               // 修复：确保fromMe字段正确设置，只在messageId匹配时更新
               if (messageId != null) {
-                messages[i]['fromMe'] = senderId == myUserId;
+                messages[i]['fromMe'] = senderId == loginUser?.id;
               }
               break;
             }
@@ -270,7 +259,7 @@ class _ChatDetailPageState extends State<ChatDetailPage> {
         // 消息不存在，添加新消息
         setState(() {
           messages.add({
-            'fromMe': senderId == myUserId,
+            'fromMe': senderId == loginUser?.id,
             'text': content,
             'createdAt': createdAt,
             'sendStatus': MessageSendStatus.success,
@@ -410,7 +399,7 @@ class _ChatDetailPageState extends State<ChatDetailPage> {
             records.map((msg) {
               print(msg);
               return {
-                'fromMe': msg.senderId == myUserId,
+                'fromMe': msg.senderId == loginUser?.id,
                 'text': msg.content,
                 'createdAt': msg.createdAt,
                 'sendStatus': MessageSendStatus.success,
@@ -420,9 +409,9 @@ class _ChatDetailPageState extends State<ChatDetailPage> {
             }).toList();
 
         if (scrollToBottom || messages.isEmpty) {
-          messages.addAll(newMsgList ?? []);
+          messages.addAll(newMsgList);
         } else {
-          messages.insertAll(0, newMsgList ?? []);
+          messages.insertAll(0, newMsgList);
         }
 
         // 只要 hasNext==false 或 records.length < _pageSize，就不能再加载
@@ -613,7 +602,7 @@ class _ChatDetailPageState extends State<ChatDetailPage> {
 
                           final msg = messages[index - 1];
                           final isMe = msg['fromMe'] as bool;
-                          return _buildMessageItem(msg, isMe, myUser);
+                          return _buildMessageItem(msg, isMe, loginUser);
                         },
                       ),
             ),

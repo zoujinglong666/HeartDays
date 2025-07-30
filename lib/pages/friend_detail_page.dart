@@ -1,19 +1,27 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:heart_days/apis/chat.dart';
 import 'package:heart_days/apis/user.dart';
 import 'package:heart_days/components/AnimatedCardWrapper.dart';
 import 'package:heart_days/components/Clickable.dart';
 import 'package:heart_days/pages/chat_detail_page.dart';
-import 'package:heart_days/provider/get_login_userinfo.dart';
-class FriendDetailPage extends StatelessWidget {
+import 'package:heart_days/provider/auth_provider.dart';
+
+class FriendDetailPage extends ConsumerStatefulWidget {
   final UserVO friend;
+
   const FriendDetailPage({super.key, required this.friend});
 
   @override
+  ConsumerState<FriendDetailPage> createState() => _FriendDetailPageState();
+}
+
+class _FriendDetailPageState extends ConsumerState<FriendDetailPage> {
+  @override
   Widget build(BuildContext context) {
-    final avatar = friend.avatar ?? '';
-    final name = friend.name ?? '';
-    final userAccount = friend.userAccount ?? '';
+    final avatar = widget.friend.avatar ?? '';
+    final name = widget.friend.name ?? '';
+    final userAccount = widget.friend.userAccount ?? '';
     final theme = Theme.of(context);
     final primaryColor = theme.primaryColor;
 
@@ -40,7 +48,7 @@ class FriendDetailPage extends StatelessWidget {
                 child: GestureDetector(
                   onTap: () => _showAvatarPreview(context, avatar),
                   child: Hero(
-                    tag: 'avatar_${friend.id}',
+                    tag: 'avatar_${widget.friend.id}',
                     child: Container(
                       decoration: BoxDecoration(
                         shape: BoxShape.circle,
@@ -130,18 +138,14 @@ class FriendDetailPage extends StatelessWidget {
                     backgroundColor: primaryColor,
                     onTap: () async {
                       // 保留原有的发消息逻辑
-                      final userId = await LoginUserInfo().getUserId();
-                      if (userId == null) {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(content: Text('用户未登录'))
-                        );
-                        return;
-                      }
+
+                      final authState = ref.read(authProvider);
+                      final user = authState.user;
                       try {
                         final res = await createChatSession({
                           "type": "single",
-                          "name": friend.name,
-                          "userIds": [friend.id, userId],
+                          "name": widget.friend.name,
+                          "userIds": [widget.friend.id, user?.id],
                         });
 
                         if (res.success && res.data != null) {
@@ -167,12 +171,11 @@ class FriendDetailPage extends StatelessWidget {
                       } catch (e) {
                         print(e);
                         ScaffoldMessenger.of(context).showSnackBar(
-                            SnackBar(content: Text('发生错误: $e'))
-                        );
+                            SnackBar(content: Text('发生错误: $e')));
                       }
                     },
                   ),
-                  Divider(height: 1, indent: 72, color: Colors.grey[100]),
+                  Divider(height: 0.5, indent: 72, color: Colors.grey[100]),
                   _buildFunctionItem(
                     icon: Icons.videocam,
                     iconColor: Colors.white,
@@ -180,7 +183,7 @@ class FriendDetailPage extends StatelessWidget {
                     backgroundColor: Colors.blue,
                     onTap: () {},
                   ),
-                  Divider(height: 1, indent: 72, color: Colors.grey[100]),
+                  Divider(height: 0.5, indent: 72, color: Colors.grey[100]),
                   _buildFunctionItem(
                     icon: Icons.phone,
                     iconColor: Colors.white,
@@ -188,7 +191,7 @@ class FriendDetailPage extends StatelessWidget {
                     backgroundColor: Colors.green,
                     onTap: () {},
                   ),
-                  Divider(height: 1, indent: 72, color: Colors.grey[100]),
+                  Divider(height: 0.5, indent: 72, color: Colors.grey[100]),
                   _buildFunctionItem(
                     icon: Icons.edit,
                     iconColor: Colors.white,
@@ -205,7 +208,7 @@ class FriendDetailPage extends StatelessWidget {
     );
   }
 
-  // 构建信息项
+
   Widget _buildInfoItem(String label, String value, Color primaryColor) {
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -232,7 +235,6 @@ class FriendDetailPage extends StatelessWidget {
     );
   }
 
-  // 构建功能项
   Widget _buildFunctionItem({
     required IconData icon,
     required Color iconColor,
@@ -271,9 +273,7 @@ class FriendDetailPage extends StatelessWidget {
     );
   }
 
-  // 显示头像预览 - 保留原有的头像预览逻辑
   void _showAvatarPreview(BuildContext context, String avatarUrl) {
-    // 保留原有的头像预览实现
     showGeneralDialog(
       context: context,
       barrierDismissible: true,
@@ -286,7 +286,7 @@ class FriendDetailPage extends StatelessWidget {
             onTap: () => Navigator.of(context).pop(),
             child: Center(
               child: Hero(
-                tag: 'avatar_${friend.id}',
+                tag: 'avatar_${widget.friend.id}',
                 child: InteractiveViewer(
                   child: CircleAvatar(
                     radius: 120,

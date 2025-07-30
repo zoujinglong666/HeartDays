@@ -6,7 +6,6 @@ import 'package:heart_days/pages/add_friend_page.dart';
 import 'package:heart_days/pages/chat_detail_page.dart';
 import 'package:heart_days/pages/friend_list_page.dart';
 import 'package:heart_days/pages/friend_request_page.dart';
-import 'package:heart_days/provider/get_login_userinfo.dart';
 import 'package:heart_days/services/ChatSocketService.dart';
 
 class ChatListPage extends StatefulWidget {
@@ -120,22 +119,22 @@ class _ChatListTabState extends State<ChatListTab> {
   @override
   void initState() {
     super.initState();
-    _connectSocket();
+    // _connectSocket();
     fetchChats();
   }
   
-  void _connectSocket() async {
-    // 获取用户信息并连接WebSocket
-    final loginState = await LoginUserInfo().getLoginState();
-    if (loginState.token != null && loginState.userId != null) {
-      final socketService = ChatSocketService();
-      socketService.connect(loginState.token!, loginState.userId!);
-      // 注册事件回调
-      socketService.setOnNewMessage(_onNewMessage);
-      socketService.setOnFriendRequest(_onFriendRequest);
-      socketService.setOnOnlineStatus(_onOnlineStatus);
-    }
-  }
+  // void _connectSocket() async {
+  //   // 获取用户信息并连接WebSocket
+  //   final loginState = await LoginUserInfo().getLoginState();
+  //   if (loginState.token != null && loginState.userId != null) {
+  //     final socketService = ChatSocketService();
+  //     socketService.connect(loginState.token!, loginState.userId!);
+  //     // 注册事件回调
+  //     socketService.setOnNewMessage(_onNewMessage);
+  //     socketService.setOnFriendRequest(_onFriendRequest);
+  //     socketService.setOnOnlineStatus(_onOnlineStatus);
+  //   }
+  // }
   
   // 处理新消息
   void _onNewMessage(dynamic data) {

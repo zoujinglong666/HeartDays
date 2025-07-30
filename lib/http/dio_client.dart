@@ -1,17 +1,11 @@
 import 'package:dio/dio.dart';
-import 'package:dio/io.dart';
 import 'package:heart_days/Consts/index.dart';
 import 'package:heart_days/provider/auth_provider.dart'; // 添加导入
-import 'package:http_cache_hive_store/http_cache_hive_store.dart';
-import 'dart:io';
 import 'package:flutter_riverpod/flutter_riverpod.dart'; // 添加导入
-
 import 'interceptors/log_interceptor.dart';
 import 'interceptors/loading_interceptor.dart';
 import 'interceptors/token_interceptor.dart';
 import 'interceptors/adapter_interceptor.dart';
-import 'package:dio_cache_interceptor/dio_cache_interceptor.dart';
-import 'package:path_provider/path_provider.dart';
 
 class DioClient {
   static final DioClient _instance = DioClient._internal();
