@@ -31,7 +31,7 @@ class DioClient {
 
     dio = Dio(options);
     // 配置缓存拦截器
-    _setupCacheInterceptor();
+    // _setupCacheInterceptor();
 
     /// 在不同环境下加载不同的请求基础路径
     void changeBaseUrl(String url) => dio.options.baseUrl = url;
@@ -48,27 +48,18 @@ class DioClient {
       LoadingInterceptorHandler(),
       TokenInterceptorHandler(dio, authNotifier), // 传递 authNotifier
     ]);
-
-    dio.httpClientAdapter =
-        DefaultHttpClientAdapter()
-          ..onHttpClientCreate = (client) {
-            client.findProxy = (uri) => "DIRECT";
-            client.badCertificateCallback =
-                (X509Certificate cert, String host, int port) => true;
-            return client;
-          };
   }
 
-  void _setupCacheInterceptor() async {
-    // 缓存配置
-    final dir = await getTemporaryDirectory();
-    final cacheOptions = CacheOptions(
-      store: HiveCacheStore(dir.path),
-      policy: CachePolicy.request, // 可设为 CachePolicy.forceCache 等
-      priority: CachePriority.normal,
-      maxStale: const Duration(days: 7),
-    );
-
-    dio.interceptors.add(DioCacheInterceptor(options: cacheOptions));
-  }
+  // void _setupCacheInterceptor() async {
+  //   // 缓存配置
+  //   final dir = await getTemporaryDirectory();
+  //   final cacheOptions = CacheOptions(
+  //     store: HiveCacheStore(dir.path),
+  //     policy: CachePolicy.request, // 可设为 CachePolicy.forceCache 等
+  //     priority: CachePriority.normal,
+  //     maxStale: const Duration(days: 7),
+  //   );
+  //
+  //   dio.interceptors.add(DioCacheInterceptor(options: cacheOptions));
+  // }
 }

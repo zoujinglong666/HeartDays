@@ -6,11 +6,11 @@ class HttpManager {
   static final Dio _dio = DioClient().dio;
 
   static Future<ApiResponse<T>> get<T>(
-    String path, {
-    Map<String, dynamic>? queryParameters,
-    Options? options,
-    Function(dynamic)? fromJson,
-  }) async {
+      String path, {
+        Map<String, dynamic>? queryParameters,
+        Options? options,
+        Function(dynamic)? fromJson,
+      }) async {
     final res = await _dio.get(
       path,
       queryParameters: queryParameters,
@@ -20,66 +20,66 @@ class HttpManager {
   }
 
   static Future<ApiResponse<T>> post<T>(
-    String path, {
-    dynamic data,
-    Options? options,
-    Function(dynamic)? fromJson,
-  }) async {
+      String path, {
+        dynamic data,
+        Options? options,
+        Function(dynamic)? fromJson,
+      }) async {
     final res = await _dio.post(path, data: data, options: options);
     return ApiResponse<T>.fromJson(res.data, fromJson);
   }
 
   static Future<ApiResponse<T>> postForm<T>(
-    String path, {
-    Map<String, dynamic>? data,
-    Options? options,
-    Function(dynamic)? fromJson,
-  }) async {
+      String path, {
+        Map<String, dynamic>? data,
+        Options? options,
+        Function(dynamic)? fromJson,
+      }) async {
     final res = await _dio.post(
       path,
       data: FormData.fromMap(data ?? {}),
       options:
-          options ?? Options(contentType: Headers.formUrlEncodedContentType),
+      options ?? Options(contentType: Headers.formUrlEncodedContentType),
     );
     return ApiResponse<T>.fromJson(res.data, fromJson);
   }
 
   static Future<ApiResponse<T>> delete<T>(
-    String path, {
-    Map<String, dynamic>? data,
-    Options? options,
-    Function(dynamic)? fromJson,
-  }) async {
+      String path, {
+        Map<String, dynamic>? data,
+        Options? options,
+        Function(dynamic)? fromJson,
+      }) async {
     final res = await _dio.delete(path, data: data, options: options);
     return ApiResponse<T>.fromJson(res.data, fromJson);
   }
 
   static Future<ApiResponse<T>> put<T>(
-    String path, {
-    dynamic data,
-    Options? options,
-    Function(dynamic)? fromJson,
-  }) async {
+      String path, {
+        dynamic data,
+        Options? options,
+        Function(dynamic)? fromJson,
+      }) async {
     final res = await _dio.put(path, data: data, options: options);
     return ApiResponse<T>.fromJson(res.data, fromJson);
   }
 
   static Future<ApiResponse<T>> patch<T>(
-    String path, {
-    dynamic data,
-    Options? options,
-    Function(dynamic)? fromJson,
-  }) async {
+      String path, {
+        dynamic data,
+        Options? options,
+        Function(dynamic)? fromJson,
+      }) async {
     final res = await _dio.patch(path, data: data, options: options);
     return ApiResponse<T>.fromJson(res.data, fromJson);
   }
 
   static Future<Response> customGet(
-    String url, {
-    Map<String, dynamic>? queryParameters,
-    Map<String, String>? headers,
-    Duration timeout = const Duration(seconds: 30),
-  }) async {
+      String url, {
+        Map<String, dynamic>? queryParameters,
+        Map<String, String>? headers,
+        Duration timeout = const Duration(seconds: 30),
+      }) async {
     final dio = Dio(
       BaseOptions(
         connectTimeout: timeout,

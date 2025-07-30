@@ -19,10 +19,8 @@ void main() async {
 
   // 确保加载认证状态
   await container.read(authProvider.notifier).loadFromStorage();
-
   // ✅ 监听 Token 过期事件
   eventBus.on<TokenExpiredEvent>().listen((event) {
-    print("📢 Token 过期事件触发，跳转登录页");
     NavigationService.navigatorKey.currentState?.pushNamedAndRemoveUntil(
       '/login',
       (route) => false,

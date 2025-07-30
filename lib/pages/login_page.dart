@@ -1,15 +1,17 @@
 import 'dart:async';
+
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:heart_days/apis/user.dart';
 import 'package:heart_days/pages/register_page.dart';
 import 'package:heart_days/provider/auth_provider.dart';
 import 'package:heart_days/services/ChatSocketService.dart';
 import 'package:heart_days/utils/ToastUtils.dart';
 import 'package:heart_days/utils/simpleEncryptor_utils.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+
 import '../utils/app_theme_controller.dart';
-import 'package:heart_days/apis/user.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 class LoginPage extends ConsumerStatefulWidget {
   const LoginPage({super.key});
@@ -169,6 +171,7 @@ class _LoginPageState extends ConsumerState<LoginPage>
       final user = response.data?.user;
 
       if (user != null) {
+        _showToast('登录成功');
         final token = response.data!.accessToken;
         final refreshToken = response.data?.refreshToken;
         await ref.read(authProvider.notifier).login(user, token);
@@ -176,7 +179,6 @@ class _LoginPageState extends ConsumerState<LoginPage>
         await prefs.setString('refresh_token', refreshToken!);
         ChatSocketService().connect(token, user.id);
         Navigator.of(context).pushNamedAndRemoveUntil('/main', (route) => false);
-        _showToast('登录成功');
       }
     }
   } catch (e) {

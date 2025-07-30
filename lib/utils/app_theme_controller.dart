@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 class AppThemeController {
-  // 单例模式（也可用 GetX / Provider 管理）
   static final AppThemeController _instance = AppThemeController._internal();
 
   factory AppThemeController() => _instance;

@@ -1,50 +1,50 @@
 import 'package:dio/dio.dart';
-import 'package:flutter/material.dart';
+import 'package:flutter/cupertino.dart';
 import 'package:heart_days/Consts/index.dart';
 import 'package:heart_days/common/helper.dart';
 
 final class CacheInterceptor extends Interceptor {
-  bool isCaching = false;
+  bool _shouldCache = false;
 
   @override
   void onRequest(RequestOptions options, RequestInterceptorHandler handler) {
-    if (options.method != "GET") {
-      return super.onRequest(options, handler);
+    if (options.method.toUpperCase() != "GET") {
+      return handler.next(options);
     }
-    isCaching = false;
 
     final cacheKey = options.uri;
-    final cache = CacheManager.observer;
-    if (cache.contains(cacheKey)) {
-      print("命中缓存 -> $cacheKey");
-      final cacheObject = cache.getValue(cacheKey);
-      final current = Helper.timestamp();
-      final cacheTime = Consts.request.cachedTime.inMilliseconds;
-      if (current - cacheObject.timestamp > cacheTime) {
-        print("缓存超时，自动清理 -> $cacheKey");
-        cache.clear(cacheKey);
-        return super.onRequest(options, handler);
+    final cacheManager = CacheManager.instance;
+
+    if (cacheManager.contains(cacheKey)) {
+      final cachedObject = cacheManager.get(cacheKey);
+      final isExpired = Helper.timestamp() - cachedObject.timestamp >
+          Consts.request.cachedTime.inMilliseconds;
+
+      if (!isExpired) {
+        debugPrint("📦 [缓存命中] -> $cacheKey");
+        return handler.resolve(cachedObject.data);
       }
-      return handler.resolve(cacheObject.data);
+
+      debugPrint("♻️ [缓存过期，清理] -> $cacheKey");
+      cacheManager.remove(cacheKey);
     }
 
-    isCaching = true;
-    super.onRequest(options, handler);
+    _shouldCache = true;
+    handler.next(options);
   }
 
   @override
   void onResponse(Response response, ResponseInterceptorHandler handler) {
-    if (isCaching) {
-      final cache = CacheManager.observer;
-      final options = response.requestOptions;
-      final cacheKey = options.uri;
-      print("设置缓存 -> $cacheKey");
-      cache.setValue(cacheKey, response);
+    if (_shouldCache) {
+      final key = response.requestOptions.uri;
+      debugPrint("✅ [缓存写入] -> $key");
+      CacheManager.instance.set(key, response);
     }
-    super.onResponse(response, handler);
+
+    _shouldCache = false; // 重置状态
+    handler.next(response);
   }
 }
-
 class CacheObject {
   final Response data;
   final int timestamp;
@@ -52,52 +52,44 @@ class CacheObject {
   const CacheObject(this.data, this.timestamp);
 }
 
-class CacheManager extends RouteObserver<Route<dynamic>> {
-  CacheManager._();
+class CacheManager {
+  CacheManager._internal();
+  static final CacheManager instance = CacheManager._internal();
 
-  static final CacheManager observer = CacheManager._();
+  final Map<Uri, CacheObject> _cache = {};
 
-  final cached = <Uri, CacheObject>{};
+  /// ✅ 是否存在缓存
+  bool contains(Uri key) => _cache.containsKey(key);
 
-  bool contains(Uri key) => cached.containsKey(key);
+  /// ✅ 获取缓存对象（请确保 contains 为 true 再调用）
+  CacheObject get(Uri key) => _cache[key]!;
 
-  CacheObject getValue(Uri key) => cached[key]!;
-
-  void setValue(Uri key, Response data) =>
-      cached[key] = CacheObject(data, Helper.timestamp());
-
-  void clear(Uri key) => cached.remove(key);
-
-
-  // ✅ 新增：根据 Uri 清理缓存
-  void clearByUri(Uri uri) {
-    cached.removeWhere((key, value) => key == uri);
+  /// ✅ 写入缓存
+  void set(Uri key, Response response) {
+    _cache[key] = CacheObject(response, Helper.timestamp());
   }
 
-  // ✅ 新增：根据路径清除缓存（如 /api/list）
+  /// ✅ 移除缓存
+  void remove(Uri key) => _cache.remove(key);
+
+  /// ✅ 清除所有缓存
+  void clearAll() => _cache.clear();
+
+  /// ✅ 精准清除（完整 URI 字符串）
+  void clearByKey(String key) => _cache.remove(Uri.tryParse(key));
+
+  /// ✅ 按路径清除，如 /api/user/info
   void clearByPath(String path) {
-    cached.removeWhere((key, value) => key.path == path);
+    _cache.removeWhere((uri, _) => uri.path == path);
   }
 
-  // ✅ 新增：清除多个路径的缓存
-  void clearMultipleByPath(List<String> paths) {
-    cached.removeWhere((key, value) => paths.contains(key.path));
+  /// ✅ 批量清除多个路径
+  void clearMultipleByPaths(List<String> paths) {
+    _cache.removeWhere((uri, _) => paths.contains(uri.path));
   }
 
-  // ✅ 新增：根据完整 key 字符串清除缓存（用于精准清除）
-  void clearByKey(String key) {
-    cached.remove(Uri.tryParse(key));
-  }
-
-  @override
-  void didPop(Route<dynamic> route, Route<dynamic>? previousRoute) {
-    super.didPop(route, previousRoute);
-    cached.clear();
-  }
-
-  @override
-  void didPush(Route<dynamic> route, Route<dynamic>? previousRoute) {
-    super.didPush(route, previousRoute);
-    cached.clear();
+  /// ✅ 可选：基于前缀模糊清除，如 `/api/user/` 开头的
+  void clearByPrefix(String prefix) {
+    _cache.removeWhere((uri, _) => uri.path.startsWith(prefix));
   }
 }

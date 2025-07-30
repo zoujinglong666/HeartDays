@@ -1,4 +1,3 @@
-import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:heart_days/apis/chat.dart';
 import 'package:heart_days/apis/user.dart';
@@ -6,10 +5,8 @@ import 'package:heart_days/components/AnimatedCardWrapper.dart';
 import 'package:heart_days/components/Clickable.dart';
 import 'package:heart_days/pages/chat_detail_page.dart';
 import 'package:heart_days/provider/get_login_userinfo.dart';
-
 class FriendDetailPage extends StatelessWidget {
   final UserVO friend;
-
   const FriendDetailPage({super.key, required this.friend});
 
   @override
@@ -63,10 +60,10 @@ class FriendDetailPage extends StatelessWidget {
                       child: CircleAvatar(
                         radius: 60,
                         backgroundImage: avatar.isNotEmpty ? NetworkImage(avatar) : null,
+                        backgroundColor: Colors.grey[100],
                         child: avatar.isEmpty
                             ? Icon(Icons.person_outline, size: 60, color: Colors.grey[300])
                             : null,
-                        backgroundColor: Colors.grey[100],
                       ),
                     ),
                   ),
@@ -147,14 +144,13 @@ class FriendDetailPage extends StatelessWidget {
                           "userIds": [friend.id, userId],
                         });
 
-                        if (res.code == 200 && res.data != null) {
+                        if (res.success && res.data != null) {
                           final response = await listChatSession({
                             "page": "1",
-                            "pageSize": "20",
+                            "pageSize": "100",
                           });
 
                           List<ChatSession> chatSessions = response.data!.records;
-
                           final chatSessionItem = chatSessions.firstWhere(
                                 (item) => item.sessionId == res.data?.id,
                           );

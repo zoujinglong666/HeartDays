@@ -1,9 +1,10 @@
 import 'dart:async';
 
-import 'package:heart_days/utils/ToastUtils.dart';
-import 'package:socket_io_client/socket_io_client.dart' as IO;
+import 'package:heart_days/Consts/index.dart';
 import 'package:heart_days/common/toast.dart';
+import 'package:heart_days/utils/ToastUtils.dart';
 import 'package:intl/intl.dart';
+import 'package:socket_io_client/socket_io_client.dart' as IO;
 
 class ChatSocketService {
   static final ChatSocketService _instance = ChatSocketService._internal();
@@ -38,15 +39,13 @@ class ChatSocketService {
   ChatSocketService._internal();
 
   Timer? _heartbeatTimer;
-  static const int _heartbeatInterval = 30000; // 30秒心跳间隔
+  static const int _heartbeatInterval = 10 * 1000; // 30秒心跳间隔
 
   void connect(String token, String myUserId) {
-    print(token);
     if (_connected) return;
     userId = myUserId;
     print('准备连接 WebSocket...');
-
-    socket = IO.io('http://10.9.17.94:8888', <String, dynamic>{
+    socket = IO.io(Consts.request.socketUrl, <String, dynamic>{
       'transports': ['websocket'],
       'autoConnect': false,
       'extraHeaders': {'Authorization': 'Bearer $token'},

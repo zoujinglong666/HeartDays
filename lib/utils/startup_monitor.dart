@@ -1,5 +1,3 @@
-import 'dart:async';
-
 class StartupMonitor {
   static final StartupMonitor _instance = StartupMonitor._internal();
   factory StartupMonitor() => _instance;

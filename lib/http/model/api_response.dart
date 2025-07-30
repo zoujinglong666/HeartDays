@@ -22,7 +22,7 @@ class ApiResponse<T> {
     );
   }
 
-  factory ApiResponse.formJsonResponse(Map<String, dynamic> json) {
+  factory ApiResponse.formJsonResponse(dynamic json) {
     return ApiResponse<T>(
       code: json['code'] ?? -1,
       message: json['message'] ?? '',

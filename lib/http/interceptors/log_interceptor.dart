@@ -1,5 +1,5 @@
+import 'dart:ffi';
 import 'dart:io';
-import 'dart:math';
 
 import 'package:dio/dio.dart';
 import 'package:heart_days/http/model/api_response.dart';
@@ -12,9 +12,20 @@ class LogInterceptorHandler extends Interceptor {
   }
 
 
+
   @override
   void onError(DioException err, ErrorInterceptorHandler handler) {
     final response = err.response;
+    final apiResponse = ApiResponse.formJsonResponse(response?.data);
+    // 40101-40109 都表示 token 相关问题
+    // 特殊处理 401 错误（如 token 过期）
+    // 这个逻辑很重要 不能删除 留给下一个错误 拦截器 去处理
+    if (apiResponse.code >= 40101 && apiResponse.code <= 40109) {
+      print("⚠️ 检测到 401 错误，跳过提示（由刷新 token 逻辑处理）");
+      super.onError(err, handler);
+      return;
+    }
+
     String errorMessage = "请求失败，请稍后重试";
     // 💥 处理 Dio 类型错误（如超时、断网、服务器无响应等）
     switch (err.type) {
@@ -50,7 +61,6 @@ class LogInterceptorHandler extends Interceptor {
 
     // 💡 如果服务器有响应，尝试提取 message
     if (response != null) {
-      final apiResponse = ApiResponse.formJsonResponse(response!.data);
       print('❌ 服务器返回: $apiResponse');
       errorMessage = apiResponse.message;
     }

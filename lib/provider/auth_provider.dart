@@ -101,7 +101,7 @@ class AuthNotifier extends StateNotifier<AuthState> {
     state = AuthState(isInitialized: true);
     final prefs = await SharedPreferences.getInstance();
     await prefs.remove(_storageKey);
-
+    await prefs.clear();
     print('🚪 用户已登出');
   }
 

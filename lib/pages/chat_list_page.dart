@@ -128,11 +128,9 @@ class _ChatListTabState extends State<ChatListTab> {
   void _connectSocket() async {
     // 获取用户信息并连接WebSocket
     final loginState = await LoginUserInfo().getLoginState();
-    
     if (loginState.token != null && loginState.userId != null) {
       final socketService = ChatSocketService();
       socketService.connect(loginState.token!, loginState.userId!);
-      
       // 注册事件回调
       socketService.setOnNewMessage(_onNewMessage);
       socketService.setOnFriendRequest(_onFriendRequest);
@@ -142,10 +140,7 @@ class _ChatListTabState extends State<ChatListTab> {
   
   // 处理新消息
   void _onNewMessage(dynamic data) {
-
-
-
-    // print('收到新消息: $data');
+    print('收到新消息: $data');
     // 可以更新聊天列表或显示通知
   }
   
