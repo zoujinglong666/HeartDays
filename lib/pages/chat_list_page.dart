@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:heart_days/apis/chat.dart';
 import 'package:heart_days/components/com_container.dart';
 import 'package:heart_days/components/com_popup_menu.dart';
@@ -6,16 +7,17 @@ import 'package:heart_days/pages/add_friend_page.dart';
 import 'package:heart_days/pages/chat_detail_page.dart';
 import 'package:heart_days/pages/friend_list_page.dart';
 import 'package:heart_days/pages/friend_request_page.dart';
+import 'package:heart_days/provider/auth_provider.dart';
 import 'package:heart_days/services/ChatSocketService.dart';
 
-class ChatListPage extends StatefulWidget {
+class ChatListPage extends ConsumerStatefulWidget {
   const ChatListPage({super.key});
 
   @override
-  State<ChatListPage> createState() => _ChatListPageState();
+  ConsumerState<ChatListPage> createState() => _ChatListPageState();
 }
 
-class _ChatListPageState extends State<ChatListPage> {
+class _ChatListPageState extends ConsumerState<ChatListPage> {
   final ComPopupMenuController _controller = ComPopupMenuController();
 
   @override
@@ -102,39 +104,35 @@ Widget _buildMenuItem(IconData icon, String text, {Color? color}) {
 }
 
 
-
-
-
-class ChatListTab extends StatefulWidget {
+class ChatListTab extends ConsumerStatefulWidget {
   const ChatListTab({super.key});
 
   @override
-  State<ChatListTab> createState() => _ChatListTabState();
+  ConsumerState<ChatListTab> createState() => _ChatListTabState();
 }
 
-class _ChatListTabState extends State<ChatListTab> {
+class _ChatListTabState extends ConsumerState<ChatListTab> {
   List<ChatSession> chats = [];
   bool _isLoading = true;
 
   @override
   void initState() {
     super.initState();
-    // _connectSocket();
+    _connectSocket();
     fetchChats();
   }
-  
-  // void _connectSocket() async {
-  //   // 获取用户信息并连接WebSocket
-  //   final loginState = await LoginUserInfo().getLoginState();
-  //   if (loginState.token != null && loginState.userId != null) {
-  //     final socketService = ChatSocketService();
-  //     socketService.connect(loginState.token!, loginState.userId!);
-  //     // 注册事件回调
-  //     socketService.setOnNewMessage(_onNewMessage);
-  //     socketService.setOnFriendRequest(_onFriendRequest);
-  //     socketService.setOnOnlineStatus(_onOnlineStatus);
-  //   }
-  // }
+
+  void _connectSocket() async {
+    final authState = ref.read(authProvider);
+    final user = authState.user;
+    final token = authState.token;
+    final socketService = ChatSocketService();
+    socketService.connect(token!, user!.id);
+    // 注册事件回调
+    socketService.setOnNewMessage(_onNewMessage);
+    socketService.setOnFriendRequest(_onFriendRequest);
+    socketService.setOnOnlineStatus(_onOnlineStatus);
+  }
   
   // 处理新消息
   void _onNewMessage(dynamic data) {
@@ -159,7 +157,7 @@ class _ChatListTabState extends State<ChatListTab> {
       _isLoading = true;
     });
 
-    final res = await listChatSession({"page": "1", "pageSize": "20"});
+    final res = await listChatSession({"page": "1", "pageSize": "100"});
     try {
       if (res.code == 200) {
         setState(() {

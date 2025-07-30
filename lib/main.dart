@@ -6,19 +6,11 @@ import 'package:heart_days/pages/SplashPage.dart';
 import 'package:heart_days/pages/main_page.dart';
 import 'package:heart_days/pages/login_page.dart';
 import 'package:heart_days/pages/startup_debug_page.dart';
-import 'package:heart_days/provider/auth_provider.dart';
 import 'package:heart_days/utils/navigation_service.dart';
 
 void main() async {
   // 确保Flutter绑定初始化
   WidgetsFlutterBinding.ensureInitialized();
-
-  WidgetsFlutterBinding.ensureInitialized();
-
-  final container = ProviderContainer();
-
-  // 确保加载认证状态
-  await container.read(authProvider.notifier).loadFromStorage();
   // ✅ 监听 Token 过期事件
   eventBus.on<TokenExpiredEvent>().listen((event) {
     NavigationService.navigatorKey.currentState?.pushNamedAndRemoveUntil(
@@ -26,7 +18,7 @@ void main() async {
       (route) => false,
     );
   });
-
+  final container = ProviderContainer();
   runApp(
     ProviderScope(
       parent: container,

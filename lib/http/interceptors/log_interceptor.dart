@@ -13,8 +13,7 @@ class LogInterceptorHandler extends Interceptor {
 
   /// 处理 token 相关错误 (40101-40109)
   /// 返回 true 表示已处理，false 表示需要继续处理
-  bool _handleTokenError(DioException err, ErrorInterceptorHandler handler,
-      ApiResponse apiResponse) {
+  bool _handleTokenError(ApiResponse apiResponse) {
     if (apiResponse.code >= 40101 && apiResponse.code <= 40109) {
       return true;
     }
@@ -72,7 +71,8 @@ class LogInterceptorHandler extends Interceptor {
       print('❌ 服务器返回: $apiResponse');
       errorMessage = apiResponse.message;
     }
-    if (!_handleTokenError(err, handler, apiResponse)) {
+    bool isMsgTip = _handleTokenError(apiResponse);
+    if (!isMsgTip) {
       ToastUtils.showToast(errorMessage);
     }
 

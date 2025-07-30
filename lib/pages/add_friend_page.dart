@@ -115,8 +115,6 @@ class _AddFriendPageState extends State<AddFriendPage> {
       ),
       body: Column(
         children: [
-
-
           Padding(
             padding: const EdgeInsets.all(12.0),
             child: InputText(

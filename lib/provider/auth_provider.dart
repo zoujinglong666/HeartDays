@@ -52,16 +52,12 @@ class AuthNotifier extends StateNotifier<AuthState> {
   Future<void> loadFromStorage() async {
     final prefs = await SharedPreferences.getInstance();
     final raw = prefs.getString(_storageKey);
-    print('📂 从存储加载认证数据: $raw');
-
     if (raw != null) {
       try {
         final map = jsonDecode(raw);
         state = AuthState.fromJson(map);
-        print('✅ 成功加载认证状态 - Token: ${state.token != null}, User: ${state.user != null}');
 
       } catch (e) {
-        print('❌ 解析认证数据失败: $e');
         state = AuthState(isInitialized: true);
       }
     } else {
