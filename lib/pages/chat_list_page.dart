@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:heart_days/apis/chat.dart';
+import 'package:heart_days/components/com_container.dart';
+import 'package:heart_days/components/com_popup_menu.dart';
 import 'package:heart_days/pages/add_friend_page.dart';
 import 'package:heart_days/pages/chat_detail_page.dart';
 import 'package:heart_days/pages/friend_list_page.dart';
@@ -7,8 +9,15 @@ import 'package:heart_days/pages/friend_request_page.dart';
 import 'package:heart_days/provider/get_login_userinfo.dart';
 import 'package:heart_days/services/ChatSocketService.dart';
 
-class ChatListPage extends StatelessWidget {
+class ChatListPage extends StatefulWidget {
   const ChatListPage({super.key});
+
+  @override
+  State<ChatListPage> createState() => _ChatListPageState();
+}
+
+class _ChatListPageState extends State<ChatListPage> {
+  final ComPopupMenuController _controller = ComPopupMenuController();
 
   @override
   Widget build(BuildContext context) {
@@ -18,28 +27,19 @@ class ChatListPage extends StatelessWidget {
         appBar: AppBar(
           backgroundColor: const Color(0xFFEDEDED),
           foregroundColor: Colors.black,
+          title: const Text('Heart Days Chat  '),
           actions: [
-            IconButton(
-              icon: const Icon(Icons.add, size: 24),
-              onPressed: () {
-                // 跳转到添加好友页面
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(builder: (_) => const AddFriendPage()),
-                );
-              },
-            ),
-            IconButton(
-              icon: const Icon(Icons.request_page, size: 24),
-              onPressed: () {
-                // 跳转到好友申请页面
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(builder: (_) => const FriendRequestPage()),
-                );
-              },
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 20.0),
+              child: ComPopupMenu(
+                pressType: PressType.singleClick,
+                menuBuilder: _buildBasicMenu(),
+                child: const Icon(Icons.add, size: 24),
+                menuOnChange: (show) => print('菜单状态: $show'),
+              ),
             ),
           ],
+
           bottom: const TabBar(
             labelColor: Color(0xFF07C160),
             unselectedLabelColor: Colors.black54,
@@ -55,7 +55,57 @@ class ChatListPage extends StatelessWidget {
       ),
     );
   }
+
+
+  Widget _buildBasicMenu() {
+    return ComContainer(
+      padding: EdgeInsets.zero,
+      width: 180,
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          _buildMenuItem(Icons.home, '添加好友'),
+          _buildMenuItem(Icons.settings, '好友申请'),
+        ],
+      ),
+    );
+  }
+
+Widget _buildMenuItem(IconData icon, String text, {Color? color}) {
+  return ListTile(
+    leading: Icon(icon, color: color),
+    title: Text(text, style: TextStyle(color: color)),
+    onTap: () {
+      // 先隐藏菜单
+      // 点击菜单项后立即关闭菜单
+      _controller.hideMenu();
+      // 使用addPostFrameCallback确保菜单关闭后再导航
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (text == '添加好友') {
+          _controller.hideMenu();
+          Navigator.push(
+            context,
+            MaterialPageRoute(builder: (_) => const AddFriendPage()),
+          );
+        }
+        if (text == '好友申请') {
+          _controller.hideMenu();
+          Navigator.push(
+            context,
+            MaterialPageRoute(builder: (_) => const FriendRequestPage()),
+          );
+        }
+      });
+    },
+  );
 }
+
+
+}
+
+
+
+
 
 class ChatListTab extends StatefulWidget {
   const ChatListTab({super.key});

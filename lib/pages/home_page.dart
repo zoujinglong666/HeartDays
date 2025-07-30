@@ -1,9 +1,9 @@
 import 'dart:async';
-import 'dart:convert';
 import 'dart:math' as math;
 import 'package:chinese_lunar_calendar/chinese_lunar_calendar.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_slidable/flutter_slidable.dart';
 import 'package:heart_days/apis/anniversary.dart';
 import 'package:heart_days/common/event_bus.dart';
@@ -15,17 +15,16 @@ import 'package:heart_days/pages/today_history_page.dart';
 import 'package:heart_days/provider/auth_provider.dart';
 import 'package:heart_days/utils/SafeNavigator.dart';
 import 'package:intl/intl.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 import '../components/BaseInfoCard.dart';
 
-class HomePage extends StatefulWidget {
+class HomePage extends ConsumerStatefulWidget {
   const HomePage({super.key});
 
   @override
-  State<HomePage> createState() => _HomePageState();
+  ConsumerState<HomePage> createState() => _HomePageState();
 }
 
-class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
+class _HomePageState extends  ConsumerState<HomePage> with TickerProviderStateMixin {
   List<Anniversary> anniversaries = [];
   String oneSentenceContent = "";
   bool _isAscending = true; // 控制升序/降序
@@ -37,52 +36,6 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
   late AnimationController _reboundController;
   late Animation<Offset> _reboundAnimation;
   bool _isAnimating = false;
-  List<Map<String, dynamic>> getBuiltinAnniversaries() {
-    final now = DateTime.now();
-    final today = DateTime(now.year, now.month, now.day);
-
-    // 离本周六
-    final daysToSaturday = (DateTime.saturday - now.weekday) % 7;
-    final saturday = today.add(Duration(days: daysToSaturday));
-
-    // 发工资：每月15号
-    DateTime salaryDate = DateTime(now.year, now.month, 15);
-    if (!salaryDate.isAfter(today)) {
-      salaryDate = DateTime(now.year, now.month + 1, 15);
-    }
-
-    // 计算春节（支持判断是否已过）
-    final lunarCalendar = LunarCalendar.from(utcDateTime: now);
-    final thisYearSpringFestival = lunarCalendar.chineseNewYear;
-    final nextSpringFestival =
-        (today.isAfter(thisYearSpringFestival))
-            ? LunarCalendar.from(
-              utcDateTime: DateTime(now.year + 1, 1, 1),
-            ).chineseNewYear
-            : thisYearSpringFestival;
-
-    return [
-      {
-        'title': '离本周六还有',
-        'date': saturday,
-        'color': const Color(0xFFB5C6E0),
-        'type': 'system',
-      },
-      {
-        'title': '离发工资还有',
-        'date': salaryDate,
-        'color': const Color(0xFFD5E4C3),
-        'type': 'system',
-      },
-      {
-        'title': '距离春节还有',
-        'date': nextSpringFestival,
-        'color': const Color(0xFFE8C4C4),
-        'type': 'system',
-      },
-    ];
-  }
-
   void _sortAnniversariesByDate() {
     setState(() {
       anniversaries.sort(
@@ -95,20 +48,9 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
 
   Future<void> loadAnniversariesFromLocal() async {
     try {
-      final prefs = await SharedPreferences.getInstance();
-      final authDataString = prefs.getString('auth_data');
-      print(authDataString);
-      if (authDataString == null) {
-        setState(() => anniversaries = []);
-        return;
-      }
-      final Map<String, dynamic> authMap = jsonDecode(authDataString);
-      final authState = AuthState.fromJson(authMap);
-      if (authState.user?.id == null) {
-        setState(() => anniversaries = []);
-        return;
-      }
-      final response = await fetchAnniversaryListByUserId(authState.user!.id);
+      final authState = ref.read(authProvider);
+      final user = authState.user;
+      final response = await fetchAnniversaryListByUserId(user!.id);
       if (response.code == 200 && response.data != null) {
         setState(() => anniversaries = response.data!);
       } else {
@@ -181,13 +123,10 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
     });
   }
 
-
-
   Future<void> _loadData() async {
     if (!mounted) return; // 避免 setState 报错
     try {
       await loadAnniversariesFromLocal();
-
     } catch (e) {
       print("❌ 加载纪念日数据失败: $e");
     }

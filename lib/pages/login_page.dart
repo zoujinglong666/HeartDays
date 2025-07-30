@@ -147,45 +147,49 @@ class _LoginPageState extends ConsumerState<LoginPage>
     }
 
     void handleLogin() async {
-      setState(() {
-        _isLoading = true;
-      });
-      try {
-        final secret = 'mySecret';
-        final encrypted = SimpleEncryptor.encryptText(
-          _passwordController.text,
-          secret,
-        );
-        final response = await userLogin({
-          "userAccount": _usernameController.text,
-          "password": encrypted,
-        });
-        if (response.code == 200) {
-          final user = response.data?.user;
-          final token = response.data?.accessToken;
-          final refreshToken = response.data?.refreshToken;
-          if (user != null && token != null) {
-            _showToast('登录成功');
-            await ref.read(authProvider.notifier).login(user, token);
-            final prefs = await SharedPreferences.getInstance();
-            await prefs.setString('token', token);
-            await prefs.setString('refresh_token', refreshToken!);
-            ChatSocketService().connect(token!, user.id);
-            Navigator.of(
-              context,
-            ).pushNamedAndRemoveUntil('/main', (route) => false);
-          }
-        }
-      } catch (e) {
-        print("网络或解析异常: $e");
-      } finally {
-        if (mounted) {
-          setState(() {
-            _isLoading = false;
-          });
-        }
+  setState(() {
+    _isLoading = true;
+  });
+  try {
+    // 登录前清除旧的认证数据
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.remove('token');
+    await prefs.remove('refresh_token');
+
+    final secret = 'mySecret';
+    final encrypted = SimpleEncryptor.encryptText(
+      _passwordController.text,
+      secret,
+    );
+    final response = await userLogin({
+      "userAccount": _usernameController.text,
+      "password": encrypted,
+    });
+    if (response.code == 200) {
+      final user = response.data?.user;
+
+      if (user != null) {
+        final token = response.data!.accessToken;
+        final refreshToken = response.data?.refreshToken;
+        await ref.read(authProvider.notifier).login(user, token);
+        await prefs.setString('token', token);
+        await prefs.setString('refresh_token', refreshToken!);
+        ChatSocketService().connect(token, user.id);
+        Navigator.of(context).pushNamedAndRemoveUntil('/main', (route) => false);
+        _showToast('登录成功');
       }
     }
+  } catch (e) {
+    print("网络或解析异常: $e");
+  } finally {
+    if (mounted) {
+      setState(() {
+        _isLoading = false;
+      });
+    }
+  }
+}
+
 
     handleLogin();
   }

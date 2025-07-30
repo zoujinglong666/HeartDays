@@ -1,11 +1,10 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:heart_days/pages/about_page.dart';
-import 'package:heart_days/pages/setting_page.dart';
-import 'package:heart_days/provider/auth_provider.dart';
-import 'package:heart_days/pages/user_edit_page.dart';
 import 'package:heart_days/pages/chat_list_page.dart';
+import 'package:heart_days/pages/setting_page.dart';
+import 'package:heart_days/pages/user_edit_page.dart';
+import 'package:heart_days/provider/auth_provider.dart';
 
 class MinePage extends ConsumerStatefulWidget {
   const MinePage({super.key});
@@ -176,7 +175,7 @@ class _MinePageState extends ConsumerState<MinePage> {
 
   // 个人资料卡片
   Widget buildProfileCard(String signature, Color cardColor) {
-    final authState = ref.watch(authProvider);
+    final authState = ref.read(authProvider);
     final user = authState.user;
     return Container(
       margin: const EdgeInsets.only(top: 8),

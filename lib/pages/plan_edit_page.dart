@@ -76,7 +76,6 @@ class _PlanEditPageState extends State<PlanEditPage> {
     _descriptionController = TextEditingController(
       text: widget.plan?.description ?? '',
     );
-    print(widget.plan?.remarks);
     _remarksController = TextEditingController(
       text: widget.plan?.remarks ?? '',
     );
@@ -178,7 +177,6 @@ class _PlanEditPageState extends State<PlanEditPage> {
         // 例如弹toast提示失败
       }
     } catch (e) {
-      // 捕获异常，给用户友好提示
       ToastUtils.showToast('保存失败，请稍后重试');
     }
   }

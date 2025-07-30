@@ -128,7 +128,7 @@ class Anniversary {
 
 /// 获取指定 ID 的纪念日
 Future<Anniversary> fetchById(int id) async {
-  final res = await HttpManager.get('/anniversaries/$id');
+  final res = await HttpManager.get('/anniversaries/$id', fromJson: (json) {  });
   if (res.code != 200 || res.data == null) throw Exception(res.message);
   return Anniversary.fromJson(res.data);
 }

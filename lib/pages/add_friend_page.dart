@@ -17,7 +17,7 @@ class _AddFriendPageState extends State<AddFriendPage> {
   List<UnaddedUserVO> filteredFriends = [];
 
   // 跟踪每个好友的添加状态
-  Map<String, bool> _addingStatus = {};
+  final Map<String, bool> _addingStatus = {};
 
   @override
   void initState() {

@@ -3,10 +3,8 @@ import 'dart:io';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:heart_days/apis/user.dart';
 import 'package:heart_days/provider/auth_provider.dart';
 import 'package:heart_days/utils/ToastUtils.dart';
-import 'package:heart_days/utils/network_utils.dart';
 import 'package:path_provider/path_provider.dart';
 
 class SettingsPage extends ConsumerStatefulWidget {
@@ -213,24 +211,12 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
               ),
               TextButton(
                 onPressed: () async {
-                  try {
-                    if (await NetworkUtils.isConnected()) {
-                      await userLogoutApi();
-                    }
                     await ref.read(authProvider.notifier).logout();
                     // 退出登录，清除导航栈并跳转到登录页面
                     Navigator.of(context).pushNamedAndRemoveUntil(
                       '/login',
                           (route) => false, // 清除所有路由
                     );
-                  } catch (e) {
-                    // 如果登出失败，仍需要确保本地状态清除
-                    await ref.read(authProvider.notifier).logout();
-                    Navigator.of(context).pushNamedAndRemoveUntil(
-                      '/login',
-                          (route) => false,
-                    );
-                  }
                 },
 
                 child: const Text(

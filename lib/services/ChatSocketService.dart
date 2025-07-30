@@ -41,6 +41,7 @@ class ChatSocketService {
   static const int _heartbeatInterval = 30000; // 30秒心跳间隔
 
   void connect(String token, String myUserId) {
+    print(token);
     if (_connected) return;
     userId = myUserId;
     print('准备连接 WebSocket...');

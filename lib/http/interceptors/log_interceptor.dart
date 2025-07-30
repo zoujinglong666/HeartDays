@@ -1,12 +1,13 @@
 import 'dart:io';
+import 'dart:math';
 
 import 'package:dio/dio.dart';
+import 'package:heart_days/http/model/api_response.dart';
 import 'package:heart_days/utils/ToastUtils.dart';
 
 class LogInterceptorHandler extends Interceptor {
   @override
   void onRequest(RequestOptions options, RequestInterceptorHandler handler) {
-    print("➡️ 请求: ${options.uri}");
     super.onRequest(options, handler);
   }
 
@@ -15,14 +16,6 @@ class LogInterceptorHandler extends Interceptor {
   void onError(DioException err, ErrorInterceptorHandler handler) {
     final response = err.response;
     String errorMessage = "请求失败，请稍后重试";
-
-    // 特殊处理 401 错误（如 token 过期）
-    if (response?.statusCode == 401) {
-      print("⚠️ 检测到 401 错误，跳过提示（由刷新 token 逻辑处理）");
-      super.onError(err, handler);
-      return;
-    }
-
     // 💥 处理 Dio 类型错误（如超时、断网、服务器无响应等）
     switch (err.type) {
       case DioExceptionType.connectionTimeout:
@@ -57,24 +50,9 @@ class LogInterceptorHandler extends Interceptor {
 
     // 💡 如果服务器有响应，尝试提取 message
     if (response != null) {
-      print("⚠️ 状态码: ${response.statusCode}");
-      print("⚠️ 返回体: ${response.data}");
-
-      final data = response.data;
-      if (data is Map<String, dynamic>) {
-        final innerMessage = data['message'];
-        if (innerMessage is String) {
-          errorMessage = innerMessage;
-        } else if (innerMessage is Map<String, dynamic>) {
-          if (innerMessage.containsKey('message')) {
-            errorMessage = innerMessage['message'];
-          } else if (innerMessage.containsKey('error')) {
-            errorMessage = innerMessage['error'];
-          }
-        }
-      } else if (data is String) {
-        errorMessage = data;
-      }
+      final apiResponse = ApiResponse.formJsonResponse(response!.data);
+      print('❌ 服务器返回: $apiResponse');
+      errorMessage = apiResponse.message;
     }
 
   ToastUtils.showToast(errorMessage);

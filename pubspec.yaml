@@ -72,6 +72,7 @@ dependencies:
   bot_toast: ^4.1.0
   json_annotation: ^4.9.0
   sqflite: ^2.4.2
+  omni_calendar_view: ^1.0.1
 
 
 

@@ -1,9 +1,10 @@
 import 'package:dio/dio.dart';
 import 'package:dio/io.dart';
 import 'package:heart_days/Consts/index.dart';
-import 'package:heart_days/http/interceptors/cache_interceptor.dart';
+import 'package:heart_days/provider/auth_provider.dart'; // 添加导入
 import 'package:http_cache_hive_store/http_cache_hive_store.dart';
 import 'dart:io';
+import 'package:flutter_riverpod/flutter_riverpod.dart'; // 添加导入
 
 import 'interceptors/log_interceptor.dart';
 import 'interceptors/loading_interceptor.dart';
@@ -18,6 +19,7 @@ class DioClient {
   factory DioClient() => _instance;
 
   late final Dio dio;
+  static final ProviderContainer _container = ProviderContainer(); // 添加 ProviderContainer
 
   DioClient._internal() {
     BaseOptions options = BaseOptions(
@@ -36,11 +38,15 @@ class DioClient {
 
     /// 重置基础路径
     void resetBaseUrl() => changeBaseUrl(Consts.request.baseUrl);
+
+    // 获取 AuthNotifier 实例
+    final authNotifier = _container.read(authProvider.notifier);
+
     dio.interceptors.addAll([
       AdapterInterceptorHandler(),
       LogInterceptorHandler(),
       LoadingInterceptorHandler(),
-      TokenInterceptorHandler(dio),
+      TokenInterceptorHandler(dio, authNotifier), // 传递 authNotifier
     ]);
 
     dio.httpClientAdapter =

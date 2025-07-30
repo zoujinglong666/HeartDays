@@ -1,15 +1,21 @@
+import 'dart:convert';
+import 'dart:math';
+
 import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:dio/dio.dart';
 import 'package:heart_days/apis/user.dart';
 import 'package:heart_days/common/event_bus.dart';
+import 'package:heart_days/http/model/api_response.dart';
+import 'package:heart_days/provider/auth_provider.dart';
 import 'package:heart_days/utils/ToastUtils.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 class TokenInterceptorHandler extends Interceptor {
   SharedPreferences? _prefs;
   final Dio _dio;
+  final AuthNotifier _authNotifier; // 添加 AuthNotifier 引用
 
-  TokenInterceptorHandler(this._dio);
+  TokenInterceptorHandler(this._dio, this._authNotifier);
 
   final List<String> authWhitelist = [
     '/login',
@@ -46,9 +52,8 @@ class TokenInterceptorHandler extends Interceptor {
           }
         });
       }
-
       final p = await prefs;
-      final token = p.getString('token');
+      final token = _authNotifier.token ?? p.getString('token');
       if (token != null && token.isNotEmpty) {
         options.headers['Authorization'] = 'Bearer $token';
       }
@@ -66,12 +71,13 @@ class TokenInterceptorHandler extends Interceptor {
   @override
   void onError(DioException err, ErrorInterceptorHandler handler) async {
     final path = err.requestOptions.path;
+    final response = err.response;
+    final apiResponse = ApiResponse.formJsonResponse(response!.data);
     final key = _cacheKey(err.requestOptions);
 
-    if (err.response?.statusCode == 401 && !_isWhitelisted(path)) {
+    if (apiResponse.code == 40100 && !_isWhitelisted(path)) {
       final prefsInstance = await prefs;
       final oldRefreshToken = prefsInstance.getString("refresh_token");
-
       // ✅ 如果没有 refresh_token，直接退出登录
       if (oldRefreshToken == null || oldRefreshToken.isEmpty) {
         print("⚠️  Refresh Token 失效，退出登录");
@@ -138,9 +144,7 @@ class TokenInterceptorHandler extends Interceptor {
         }
         _retryQueue.clear();
       } catch (e) {
-        print("❌ 刷新异常: $e");
         await _logout();
-
         handler.reject(err);
         for (var retry in _retryQueue) {
           retry("");
@@ -171,10 +175,7 @@ class TokenInterceptorHandler extends Interceptor {
   }
 
   Future<void> _logout() async {
-    final prefsInstance = await prefs;
-    await prefsInstance.remove('token');
-    await prefsInstance.remove('refresh_token');
-    await prefsInstance.remove('auth_data');
+    _authNotifier.logout();
     eventBus.fire(TokenExpiredEvent());
   }
 

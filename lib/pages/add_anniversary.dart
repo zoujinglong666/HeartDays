@@ -107,14 +107,12 @@ class _AddAnniversaryPageState extends State<AddAnniversaryPage> {
       "🥇",
     ],
   };
-
   // 当前选中的图标分类
   String _currentIconCategory = "情感";
 
   int tColor(String hexColor) {
     // 去掉#符号
     hexColor = hexColor.replaceAll("#", "");
-
     // 转换为int值
     int colorValue = int.parse(hexColor, radix: 16);
 
@@ -209,7 +207,6 @@ class _AddAnniversaryPageState extends State<AddAnniversaryPage> {
     _descriptionController.dispose();
     super.dispose();
   }
-
   // 选择日期
   Future<void> _selectDate(BuildContext context) async {
     AppDatePicker.show(
@@ -234,21 +231,17 @@ class _AddAnniversaryPageState extends State<AddAnniversaryPage> {
     return isEditing ? "编辑$type" : "添加$type";
   }
 
-  Color getAppBarColor(String type) {
-    switch (type) {
-      case "纪念日":
-        return const Color(0xFFF5E4E5);
-      case "倒数日":
-        return const Color(0xFFE8F0F8);
-      case "学习":
-        return const Color(0xFFEDE8F5);
-      case "工作":
-        return const Color(0xFFF4EFEA);
-      case "生活":
-      default:
-        return const Color(0xFFE9F3EC);
-    }
-  }
+Color getAppBarColor(String type) {
+  final colorMap = {
+    "纪念日": const Color(0xFFF5E4E5),
+    "倒数日": const Color(0xFFE8F0F8),
+    "学习": const Color(0xFFEDE8F5),
+    "工作": const Color(0xFFF4EFEA),
+    "生活": const Color(0xFFE9F3EC),
+  };
+  return colorMap[type] ?? const Color(0xFFE9F3EC);
+}
+
 
   @override
   Widget build(BuildContext context) {
