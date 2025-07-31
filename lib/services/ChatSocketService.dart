@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:math';
 
 import 'package:heart_days/Consts/index.dart';
 import 'package:heart_days/common/toast.dart';
@@ -29,6 +30,7 @@ class ChatSocketService {
   Function(dynamic)? onMessageSent;
   Function(dynamic)? onMessageAck;
   Function(dynamic)? onMessageAckConfirm;
+  Function(dynamic)? onCheckUserStatus;
 
   factory ChatSocketService() {
     return _instance;
@@ -180,6 +182,12 @@ class ChatSocketService {
     // 监听消息确认回复
     socket.on('messageAckConfirm', (data) {
       onMessageAckConfirm?.call(data);
+    });
+
+    // 检查用户状态
+    socket.on('checkUserStatus', (data) {
+      print('SSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSS');
+      onCheckUserStatus?.call(data);
     });
   }
 
@@ -380,4 +388,18 @@ class ChatSocketService {
   void setOnMessageAckConfirm(Function(dynamic) callback) {
     onMessageAckConfirm = callback;
   }
+
+
+  final List<void Function(dynamic)> _friendStatusListeners = [];
+
+  void addFriendStatusListener(void Function(dynamic) listener) {
+    if (!_friendStatusListeners.contains(listener)) {
+      _friendStatusListeners.add(listener);
+    }
+  }
+
+  void removeFriendStatusListener(void Function(dynamic) listener) {
+    _friendStatusListeners.remove(listener);
+  }
+
 }

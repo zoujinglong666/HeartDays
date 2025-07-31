@@ -153,48 +153,36 @@ class _AddFriendPageState extends State<AddFriendPage> {
                 final friend = filteredFriends[index];
                 final isAdding = _addingStatus[friend.id] ?? false;
 
-                return ListTile(
+                return  ListTile(
+                  contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                   leading: CircleAvatar(
-                    backgroundImage:
-                        friend.avatar!.isNotEmpty
-                            ? NetworkImage(friend.avatar!)
-                            : null,
-                    child:
-                        friend.avatar!.isEmpty
-                            ? const Icon(Icons.person_outline)
-                            : null,
+                    backgroundImage: friend.avatar!.isNotEmpty ? NetworkImage(friend.avatar!) : null,
+                    child: friend.avatar!.isEmpty ? const Icon(Icons.person_outline) : null,
                   ),
-                  title: Text(friend.name ?? ''),
-                  subtitle: Row(
-                    children: [
-                      Text(friend.userAccount ?? ''),
-                      if (friend.friendshipStatus.isNotEmpty)
-                        Padding(
-                          padding: const EdgeInsets.only(left: 8.0),
-                          child: _getStatusWidget(friend.friendshipStatus),
-                        ),
-                    ],
-                  ),
+                  title: Text(friend.name ?? '', style: const TextStyle(fontWeight: FontWeight.w500)),
+                  subtitle: Text(friend.userAccount ?? '', style: const TextStyle(color: Colors.grey)),
+
                   trailing: isAdding
                       ? const SizedBox(
                     width: 20,
                     height: 20,
                     child: CircularProgressIndicator(strokeWidth: 2),
                   )
-                      : (friend.friendshipStatus == 'pending' ||
-                      friend.friendshipStatus == 'accepted')
-                      ? const SizedBox.shrink()
+                      : friend.friendshipStatus == 'pending'
+                      ? _buildStatusTag('已申请', Colors.orange)
+                      : friend.friendshipStatus == 'accepted'
+                      ? _buildStatusTag('已添加', Colors.green)
+                      : friend.friendshipStatus == 'rejected'
+                      ? _buildStatusTag('已拒绝', Colors.red)
                       : IconButton(
                     icon: const Icon(Icons.person_add),
-                    onPressed: () {
-                      // 在这里处理添加好友的逻辑
-                      _addFriend(friend);
-                    },
+                    onPressed: () => _addFriend(friend),
                   ),
                   onTap: () {
-                    // 点击用户进入详情页
+                    // 点击跳转用户详情页（可选）
                   },
                 );
+                ;
               },
             ),
           ),
@@ -202,4 +190,18 @@ class _AddFriendPageState extends State<AddFriendPage> {
       ),
     );
   }
+  Widget _buildStatusTag(String text, Color color) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+      decoration: BoxDecoration(
+        color: color.withOpacity(0.1),
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: Text(
+        text,
+        style: TextStyle(color: color, fontSize: 12, fontWeight: FontWeight.w500),
+      ),
+    );
+  }
+
 }

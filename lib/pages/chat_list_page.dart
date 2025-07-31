@@ -33,6 +33,7 @@ class _ChatListPageState extends ConsumerState<ChatListPage> {
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 20.0),
               child: ComPopupMenu(
+                controller: _controller, // ✅ 必须传入 controller 才能控制菜单
                 pressType: PressType.singleClick,
                 menuBuilder: _buildBasicMenu(),
                 child: const Icon(Icons.add, size: 24),
@@ -100,7 +101,6 @@ Widget _buildMenuItem(IconData icon, String text, {Color? color}) {
   );
 }
 
-
 }
 
 
@@ -157,7 +157,7 @@ class _ChatListTabState extends ConsumerState<ChatListTab> {
       _isLoading = true;
     });
 
-    final res = await listChatSession({"page": "1", "pageSize": "100"});
+    final res = await listChatSession({"page": "1", "pageSize": "20"});
     try {
       if (res.code == 200) {
         setState(() {

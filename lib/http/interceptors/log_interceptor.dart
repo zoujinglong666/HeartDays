@@ -14,7 +14,7 @@ class LogInterceptorHandler extends Interceptor {
   /// 处理 token 相关错误 (40101-40109)
   /// 返回 true 表示已处理，false 表示需要继续处理
   bool _handleTokenError(ApiResponse apiResponse) {
-    if (apiResponse.code >= 40101 && apiResponse.code <= 40109) {
+    if (apiResponse.code >= 40100 && apiResponse.code <= 40109) {
       return true;
     }
     return false;

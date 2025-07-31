@@ -1,23 +1,23 @@
-import 'dart:convert';
+import 'dart:async';
+
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:heart_days/apis/anniversary.dart';
+import 'package:heart_days/common/event_bus.dart';
 import 'package:heart_days/components/AnniversaryCalendar.dart';
 import 'package:heart_days/pages/add_anniversary.dart';
 import 'package:heart_days/provider/auth_provider.dart';
 import 'package:heart_days/utils/SafeNavigator.dart';
-import 'package:heart_days/common/event_bus.dart';
 import 'package:intl/intl.dart';
-import 'package:shared_preferences/shared_preferences.dart';
-import 'dart:async';
 
-class CalendarPage extends StatefulWidget {
+class CalendarPage extends ConsumerStatefulWidget {
   const CalendarPage({super.key});
 
   @override
-  State<CalendarPage> createState() => _CalendarPageState();
+  ConsumerState<CalendarPage> createState() => _CalendarPageState();
 }
 
-class _CalendarPageState extends State<CalendarPage> {
+class _CalendarPageState extends ConsumerState<CalendarPage> {
   List<Anniversary> _anniversaries = [];
   DateTime? _selectedDate;
   List<Anniversary> _selectedDateEvents = [];
@@ -41,25 +41,22 @@ class _CalendarPageState extends State<CalendarPage> {
     });
 
     try {
-      final prefs = await SharedPreferences.getInstance();
-      final authDataString = prefs.getString('auth_data');
-      if (authDataString != null) {
-        final Map<String, dynamic> authMap = jsonDecode(authDataString);
-        final authState = AuthState.fromJson(authMap);
-        if (authState.user?.id != null) {
+      final authState = ref.read(authProvider);
+      final user = authState.user;
+      if (user?.id != null) {
           final response = await fetchAnniversaryListByUserId(
-            authState.user!.id,
+            user!.id,
           );
           setState(() {
             _anniversaries = response.data ?? [];
           });
         } else {
+        setState(() {
           _anniversaries = [];
+        });
         }
-      }
     } catch (e) {
       print('加载纪念日失败: $e');
-      _anniversaries = [];
     } finally {
       setState(() {
         _isLoading = false;

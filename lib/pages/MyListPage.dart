@@ -1,25 +1,27 @@
 import 'dart:convert';
 
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:heart_days/apis/plan.dart';
 import 'package:heart_days/common/decode.dart';
 import 'package:heart_days/components/RefreshList.dart';
 import 'package:heart_days/provider/auth_provider.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 
-class MyListPage extends StatelessWidget {
+class MyListPage extends ConsumerStatefulWidget {
   const MyListPage({super.key});
 
-  Future<PaginatedData<Plan>> fetchData(int page, int size) async {
-    final prefs = await SharedPreferences.getInstance();
-    final authDataString = prefs.getString('auth_data');
-    final Map<String, dynamic> authMap = jsonDecode(authDataString!);
-    final authState = AuthState.fromJson(authMap);
+  @override
+  ConsumerState<MyListPage> createState() => _MyListPageState();
+}
 
+class _MyListPageState extends ConsumerState<MyListPage> {
+  Future<PaginatedData<Plan>> fetchData(int page, int size) async {
+    final authState = ref.read(authProvider);
+    final user = authState.user;
     final response = await fetchPlanListByUserId({
       "page": page,
       "pageSize": size,
-      "userId": authState.user?.id,
+      "userId": user?.id,
     });
     if (response.data == null) {
       return PaginatedData.empty();
@@ -34,19 +36,19 @@ class MyListPage extends StatelessWidget {
       body: LoadMoreList<Plan>(
         fetchPage: fetchData,
         itemBuilder: (ctx, item, index) => Card(
-        margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-        child: ListTile(
+              margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+              child: ListTile(
                 title: Text(item.title),
                 leading: const Icon(Icons.label_important_outline),
               ),
+            ),
+        useGrid: false,
+        style: PaginatedListStyle(
+          loadingColor: Colors.red,
+          textStyle: const TextStyle(fontSize: 14, color: Colors.black87),
+          spacing: 16,
+        ),
       ),
-      useGrid: false,
-      style: PaginatedListStyle(
-        loadingColor: Colors.red,
-        textStyle: const TextStyle(fontSize: 14, color: Colors.black87),
-        spacing: 16,
-      ),
-    ),
     );
   }
 }

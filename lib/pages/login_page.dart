@@ -174,9 +174,10 @@ class _LoginPageState extends ConsumerState<LoginPage>
         _showToast('登录成功');
         final token = response.data!.accessToken;
         final refreshToken = response.data?.refreshToken;
-        await ref.read(authProvider.notifier).login(user, token);
         await prefs.setString('token', token);
         await prefs.setString('refresh_token', refreshToken!);
+        await ref.read(authProvider.notifier).login(
+            user, token, refreshToken: refreshToken); // 放后面！
         ChatSocketService().connect(token, user.id);
         Navigator.of(context).pushNamedAndRemoveUntil('/main', (route) => false);
       }

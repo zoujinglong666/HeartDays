@@ -16,7 +16,7 @@ class ToastUtils {
     Fluttertoast.showToast(
       msg: msg,
       toastLength: Toast.LENGTH_SHORT,
-      gravity: ToastGravity.CENTER,
+      gravity: ToastGravity.BOTTOM,
       backgroundColor: Colors.black87,
       textColor: Colors.white,
       fontSize: 16.0,
@@ -29,7 +29,7 @@ class ToastUtils {
     required IconData icon,
     Color backgroundColor = Colors.black87,
     Color textColor = Colors.white,
-    ToastGravity gravity = ToastGravity.CENTER,
+    ToastGravity gravity = ToastGravity.BOTTOM,
     int durationSeconds = 2,
   }) {
     if (msg.isEmpty) {

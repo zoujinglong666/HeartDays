@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:heart_days/apis/user.dart';
+import 'package:heart_days/services/ChatSocketService.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:heart_days/utils/token_manager.dart';
 
@@ -98,6 +99,7 @@ class AuthNotifier extends StateNotifier<AuthState> {
     final prefs = await SharedPreferences.getInstance();
     await prefs.remove(_storageKey);
     await prefs.clear();
+    ChatSocketService().disconnect();
     print('🚪 用户已登出');
   }
 

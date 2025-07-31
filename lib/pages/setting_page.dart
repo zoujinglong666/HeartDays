@@ -212,7 +212,6 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
               ),
               TextButton(
                 onPressed: () async {
-                  ChatSocketService().disconnect();
                     await ref.read(authProvider.notifier).logout();
                     // 退出登录，清除导航栈并跳转到登录页面
                     Navigator.of(context).pushNamedAndRemoveUntil(
@@ -220,7 +219,6 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
                           (route) => false, // 清除所有路由
                     );
                 },
-
                 child: const Text(
                   '确定',
                   style: TextStyle(color: Colors.redAccent),
@@ -260,7 +258,6 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
       await CachedNetworkImage.evictFromCache('');
       PaintingBinding.instance.imageCache.clear();
       PaintingBinding.instance.imageCache.clearLiveImages();
-
       // 清理临时文件夹
       final tempDir = await getTemporaryDirectory();
       if (await tempDir.exists()) {

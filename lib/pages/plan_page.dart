@@ -1,6 +1,7 @@
 import 'dart:convert';
 
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:heart_days/apis/plan.dart';
 import 'package:heart_days/pages/calendar_page.dart';
 import 'package:heart_days/pages/todo_page.dart';
@@ -13,14 +14,14 @@ import 'plan_detail_page.dart';
 import 'plan_edit_page.dart';
 import 'pomodoro_timer_page.dart';
 
-class PlanPage extends StatefulWidget {
+class PlanPage extends ConsumerStatefulWidget {
   const PlanPage({super.key});
 
   @override
-  State<PlanPage> createState() => _PlanPageState();
+  ConsumerState<PlanPage> createState() => _PlanPageState();
 }
 
-class _PlanPageState extends State<PlanPage> with RouteAware {
+class _PlanPageState extends ConsumerState<PlanPage> with RouteAware {
   CalendarFormat _calendarFormat = CalendarFormat.month;
   DateTime _focusedDay = DateTime.now();
   DateTime? _selectedDay;
@@ -113,23 +114,13 @@ class _PlanPageState extends State<PlanPage> with RouteAware {
 
   Future<void> _loadData() async {
     try {
-      final prefs = await SharedPreferences.getInstance();
-      final authDataString = prefs.getString('auth_data');
-      if (authDataString == null) {
-        setState(() => _plans = []);
-        return;
-      }
-      final Map<String, dynamic> authMap = jsonDecode(authDataString);
-      final authState = AuthState.fromJson(authMap);
-      if (authState.user?.id == null) {
-        setState(() => _plans = []);
-        return;
-      }
 
+      final authState = ref.read(authProvider);
+      final user = authState.user;
       final response = await fetchPlanListByUserId({
         "page": 1,
         "pageSize": 10,
-        "userId": authState.user?.id,
+        "userId": user?.id,
       });
       setState(() => _plans = response.data!.records);
     } catch (e) {

@@ -78,26 +78,16 @@ class _FriendDetailPageState extends ConsumerState<FriendDetailPage> {
                 ),
               ),
             ),
-
-            const SizedBox(height: 8),
+            const SizedBox(height: 16),
 
             // 用户信息卡片
             AnimatedCardWrapper(
-              duration: const Duration(milliseconds: 300),
               child: Container(
                 margin: const EdgeInsets.symmetric(horizontal: 16),
                 padding: const EdgeInsets.all(20),
                 decoration: BoxDecoration(
                   color: Colors.white,
                   borderRadius: BorderRadius.circular(16),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black45,
-                      blurRadius: 10,
-                      spreadRadius: 0,
-                      offset: const Offset(0, 2),
-                    ),
-                  ],
                 ),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -112,96 +102,92 @@ class _FriendDetailPageState extends ConsumerState<FriendDetailPage> {
               ),
             ),
 
-            const SizedBox(height: 20),
+            const SizedBox(height: 16),
+            AnimatedCardWrapper(
+              child: Container(
+                margin: const EdgeInsets.symmetric(horizontal: 16),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(16),
+                ),
+                child: Column(
+                  children: [
+                    _buildFunctionItem(
+                      icon: Icons.message,
+                      iconColor: Colors.white,
+                      title: '发消息',
+                      backgroundColor: primaryColor,
+                      onTap: () async {
+                        // 保留原有的发消息逻辑
 
-            // 功能按钮区域
-            Container(
-              margin: const EdgeInsets.symmetric(horizontal: 16),
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(16),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black45,
-                    blurRadius: 10,
-                    spreadRadius: 0,
-                    offset: const Offset(0, 2),
-                  ),
-                ],
-              ),
-              child: Column(
-                children: [
-                  _buildFunctionItem(
-                    icon: Icons.message,
-                    iconColor: Colors.white,
-                    title: '发消息',
-                    backgroundColor: primaryColor,
-                    onTap: () async {
-                      // 保留原有的发消息逻辑
-
-                      final authState = ref.read(authProvider);
-                      final user = authState.user;
-                      try {
-                        final res = await createChatSession({
-                          "type": "single",
-                          "name": widget.friend.name,
-                          "userIds": [widget.friend.id, user?.id],
-                        });
-
-                        if (res.success && res.data != null) {
-                          final response = await listChatSession({
-                            "page": "1",
-                            "pageSize": "100",
+                        final authState = ref.read(authProvider);
+                        final user = authState.user;
+                        try {
+                          final res = await createChatSession({
+                            "type": "single",
+                            "name": widget.friend.name,
+                            "userIds": [widget.friend.id, user?.id],
                           });
 
-                          List<ChatSession> chatSessions = response.data!.records;
-                          final chatSessionItem = chatSessions.firstWhere(
-                                (item) => item.sessionId == res.data?.id,
-                          );
+                          if (res.success && res.data != null) {
+                            final response = await listChatSession({
+                              "page": "1",
+                              "pageSize": "100",
+                            });
 
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (context) => ChatDetailPage(
-                                chatSession: chatSessionItem,
+                            List<ChatSession> chatSessions = response.data!
+                                .records;
+                            final chatSessionItem = chatSessions.firstWhere(
+                                  (item) => item.sessionId == res.data?.id,
+                            );
+
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (context) =>
+                                    ChatDetailPage(
+                                      chatSession: chatSessionItem,
+                                    ),
                               ),
-                            ),
-                          );
+                            );
+                          }
+                        } catch (e) {
+                          print(e);
+                          ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(content: Text('发生错误: $e')));
                         }
-                      } catch (e) {
-                        print(e);
-                        ScaffoldMessenger.of(context).showSnackBar(
-                            SnackBar(content: Text('发生错误: $e')));
-                      }
-                    },
-                  ),
-                  Divider(height: 0.5, indent: 72, color: Colors.grey[100]),
-                  _buildFunctionItem(
-                    icon: Icons.videocam,
-                    iconColor: Colors.white,
-                    title: '视频聊天',
-                    backgroundColor: Colors.blue,
-                    onTap: () {},
-                  ),
-                  Divider(height: 0.5, indent: 72, color: Colors.grey[100]),
-                  _buildFunctionItem(
-                    icon: Icons.phone,
-                    iconColor: Colors.white,
-                    title: '语音通话',
-                    backgroundColor: Colors.green,
-                    onTap: () {},
-                  ),
-                  Divider(height: 0.5, indent: 72, color: Colors.grey[100]),
-                  _buildFunctionItem(
-                    icon: Icons.edit,
-                    iconColor: Colors.white,
-                    title: '添加备注',
-                    backgroundColor: Colors.orange,
-                    onTap: () {},
-                  ),
-                ],
+                      },
+                    ),
+                    Divider(height: 0.5, indent: 72, color: Colors.grey[100]),
+                    _buildFunctionItem(
+                      icon: Icons.videocam,
+                      iconColor: Colors.white,
+                      title: '视频聊天',
+                      backgroundColor: Colors.blue,
+                      onTap: () {},
+                    ),
+                    Divider(height: 0.5, indent: 72, color: Colors.grey[100]),
+                    _buildFunctionItem(
+                      icon: Icons.phone,
+                      iconColor: Colors.white,
+                      title: '语音通话',
+                      backgroundColor: Colors.green,
+                      onTap: () {},
+                    ),
+                    Divider(height: 0.5, indent: 72, color: Colors.grey[100]),
+                    _buildFunctionItem(
+                      icon: Icons.edit,
+                      iconColor: Colors.white,
+                      title: '添加备注',
+                      backgroundColor: Colors.orange,
+                      onTap: () {},
+                    ),
+                  ],
+                ),
               ),
             ),
+            // 功能按钮区域
+
           ],
         ),
       ),

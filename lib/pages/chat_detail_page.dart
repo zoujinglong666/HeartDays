@@ -38,6 +38,7 @@ class _ChatDetailPageState extends ConsumerState<ChatDetailPage> {
   bool _loading = true;
   bool _loadingMore = false;
   bool _hasMore = true;
+  bool _userOnlineStatus = false;
   int _offset = 0;
   int totalMessages = 0;
   final int _pageSize = 20;
@@ -102,7 +103,6 @@ class _ChatDetailPageState extends ConsumerState<ChatDetailPage> {
     ) {
       final wasOnline = _isOnline;
       _isOnline = result != ConnectivityResult.none;
-
       if (!wasOnline && _isOnline) {
         _messageQueue.resumeSending(_actuallySendMessage);
       }
@@ -292,8 +292,11 @@ class _ChatDetailPageState extends ConsumerState<ChatDetailPage> {
 
   // 处理好友在线状态变化
   void _onFriendStatus(dynamic data) {
+    if (!mounted) return; // 防止 setState 报错
     print('好友在线状态变化: $data');
-    // 可以更新好友在线状态显示
+    setState(() {
+      _userOnlineStatus = data['status'] == 'online';
+    });
   }
 
   // 处理他人正在输入
@@ -397,7 +400,6 @@ class _ChatDetailPageState extends ConsumerState<ChatDetailPage> {
         totalMessages = res.data!.total;
         final newMsgList =
             records.map((msg) {
-              print(msg);
               return {
                 'fromMe': msg.senderId == loginUser?.id,
                 'text': msg.content,
@@ -484,7 +486,9 @@ class _ChatDetailPageState extends ConsumerState<ChatDetailPage> {
     }
   }
 
-  void _onMessageSentWrapper(dynamic data) {}
+  void _onMessageSentWrapper(dynamic data) {
+    print('消息发送回调: $data');
+  }
 
   void _onMessageAck(dynamic data) {
     print('消息确认: $data');
@@ -524,6 +528,11 @@ class _ChatDetailPageState extends ConsumerState<ChatDetailPage> {
     _messageQueue.dispose();
     _messageDatabase?.close();
     _socketService.socket.off('newMessage', _onNewMessage);
+    _socketService.socket.off('messageSent', _onMessageSentWrapper);
+    _socketService.socket.off('messageAck', _onMessageAck);
+    _socketService.socket.off('messageAckConfirm', _onMessageAckConfirm);
+
+    _controller.dispose();
     _scrollController.dispose();
     super.dispose();
   }
@@ -532,11 +541,24 @@ class _ChatDetailPageState extends ConsumerState<ChatDetailPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text(widget.chatSession.name),
         backgroundColor: Colors.white,
         foregroundColor: Colors.black87,
         elevation: 0.5,
-      ),
+        titleSpacing: 0,
+        title: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(
+              widget.chatSession.name,
+              style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w600),
+            ),
+            const SizedBox(width: 8),
+            _buildStatusBadge(isOnline: _userOnlineStatus),
+          ],
+        ),
+      )
+
+      ,
       body: GestureDetector(
         behavior: HitTestBehavior.translucent,
         onTap: () {
@@ -613,6 +635,24 @@ class _ChatDetailPageState extends ConsumerState<ChatDetailPage> {
     );
   }
 
+// 独立的小组件：在线绿色，离线灰色
+  Widget _buildStatusBadge({required bool isOnline}) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+      decoration: BoxDecoration(
+        color: isOnline ? const Color(0xFF07C160) : Colors.grey,
+        borderRadius: BorderRadius.circular(10),
+      ),
+      child: Text(
+        isOnline ? '在线' : '离线',
+        style: const TextStyle(
+          fontSize: 12,
+          color: Colors.white,
+          fontWeight: FontWeight.w500,
+        ),
+      ),
+    );
+  }
   Widget _buildMessageItem(Map<String, dynamic> msg, bool isMe, User? user) {
     final avatarUrl = isMe ? user?.avatar : widget.chatSession.avatar;
     final text = msg['text'] ?? '';
@@ -622,7 +662,6 @@ class _ChatDetailPageState extends ConsumerState<ChatDetailPage> {
     return VisibilityDetector(
       key: Key('msg-${messageId ?? localId ?? UniqueKey()}'),
       onVisibilityChanged: (VisibilityInfo info) async {
-        print(msg);
         // 优化：仅当消息发送成功、有messageId且未标记已读时才调用API
         if (info.visibleFraction > 0.5 &&
             messageId != null &&
