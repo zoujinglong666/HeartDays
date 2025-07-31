@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:heart_days/apis/chat.dart';
+import 'package:heart_days/apis/friends.dart';
 import 'package:heart_days/apis/user.dart';
 import 'package:heart_days/components/AnimatedCardWrapper.dart';
 import 'package:heart_days/components/Clickable.dart';
@@ -160,27 +161,13 @@ class _FriendDetailPageState extends ConsumerState<FriendDetailPage> {
                     ),
                     Divider(height: 0.5, indent: 72, color: Colors.grey[100]),
                     _buildFunctionItem(
-                      icon: Icons.videocam,
-                      iconColor: Colors.white,
-                      title: '视频聊天',
-                      backgroundColor: Colors.blue,
-                      onTap: () {},
-                    ),
-                    Divider(height: 0.5, indent: 72, color: Colors.grey[100]),
-                    _buildFunctionItem(
-                      icon: Icons.phone,
-                      iconColor: Colors.white,
-                      title: '语音通话',
-                      backgroundColor: Colors.green,
-                      onTap: () {},
-                    ),
-                    Divider(height: 0.5, indent: 72, color: Colors.grey[100]),
-                    _buildFunctionItem(
                       icon: Icons.edit,
                       iconColor: Colors.white,
                       title: '添加备注',
                       backgroundColor: Colors.orange,
-                      onTap: () {},
+                      onTap: () {
+                        _showRemarkDialog(context); // 👈 添加这个方法
+                      },
                     ),
                   ],
                 ),
@@ -194,6 +181,50 @@ class _FriendDetailPageState extends ConsumerState<FriendDetailPage> {
     );
   }
 
+  void _showRemarkDialog(BuildContext context) {
+    final TextEditingController remarkController = TextEditingController();
+
+    showDialog(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          title: const Text('添加备注'),
+          content: TextField(
+            controller: remarkController,
+            decoration: const InputDecoration(
+              hintText: '请输入备注',
+            ),
+            autofocus: true,
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(),
+              child: const Text('取消'),
+            ),
+            TextButton(
+              onPressed: () async {
+                final remark = remarkController.text.trim();
+                if (remark.isNotEmpty) {
+                  // 你可以在这里调用接口或更新备注字段
+                  final res= await settingFriendNickNameApi({
+                    "friendId": widget.friend.id,
+                    "friendNickname": remark,
+                  });
+                  if(res.success){
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(content: Text('备注已保存：$remark')),
+                    );
+                  }
+                  Navigator.of(context).pop();
+                }
+              },
+              child: const Text('保存'),
+            ),
+          ],
+        );
+      },
+    );
+  }
 
   Widget _buildInfoItem(String label, String value, Color primaryColor) {
     return Row(

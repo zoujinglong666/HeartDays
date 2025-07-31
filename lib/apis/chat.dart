@@ -328,6 +328,7 @@ Future<ApiResponse<void>> markMessageReadApi(String messageId) async {
   );
 }
 
+/// 撤回消息
 Future<ApiResponse<void>> withdrawMessageApi(String messageId) async {
   return await HttpManager.post<void>(
     "/chat/message/$messageId/withdraw",

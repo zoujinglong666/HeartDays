@@ -195,24 +195,24 @@ class _FriendRequestPageState extends State<FriendRequestPage> {
               color: Colors.grey,
             ),
           ),
-          ElevatedButton.icon(
-            onPressed: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(builder: (_) => const AddFriendPage()),
-              );
-            },
-            style: ElevatedButton.styleFrom(
-              backgroundColor: const Color(0xFF07C160),
-              foregroundColor: Colors.white,
-              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(30),
-              ),
-            ),
-            icon: const Icon(Icons.person_add, size: 20),
-            label: const Text('添加好友'),
-          ),
+          // ElevatedButton.icon(
+          //   onPressed: () {
+          //     Navigator.push(
+          //       context,
+          //       MaterialPageRoute(builder: (_) => const AddFriendPage()),
+          //     );
+          //   },
+          //   style: ElevatedButton.styleFrom(
+          //     backgroundColor: const Color(0xFF07C160),
+          //     foregroundColor: Colors.white,
+          //     padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+          //     shape: RoundedRectangleBorder(
+          //       borderRadius: BorderRadius.circular(30),
+          //     ),
+          //   ),
+          //   icon: const Icon(Icons.person_add, size: 20),
+          //   label: const Text('添加好友'),
+          // ),
         ],
       ),
     );

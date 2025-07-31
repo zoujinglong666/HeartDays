@@ -7,6 +7,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:heart_days/apis/chat.dart';
 import 'package:heart_days/apis/user.dart';
 import 'package:heart_days/components/FastLongPressDetector.dart';
+import 'package:heart_days/http/model/api_response.dart';
 import 'package:heart_days/models/message.dart';
 import 'package:heart_days/provider/auth_provider.dart';
 import 'package:heart_days/services/ChatSocketService.dart';
@@ -31,7 +32,11 @@ class _ChatDetailPageState extends ConsumerState<ChatDetailPage> {
   final TextEditingController _controller = TextEditingController();
   final ScrollController _scrollController = ScrollController();
   final Uuid _uuid = Uuid();
-
+   List<String> emojiList = [
+    '😀', '😃', '😄', '😁', '😆', '😅', '🤣', '😂',
+    '😊', '😇', '🙂', '🙃', '😉', '😍', '🥰', '😘',
+    '😗', '😚', '😋', '😜', '😎', '🤗', '🤔', '😶',
+  ];
   late final ChatSocketService _socketService;
   User? loginUser;
 
@@ -339,6 +344,10 @@ class _ChatDetailPageState extends ConsumerState<ChatDetailPage> {
   void _onMessageWithdrawn(dynamic data) {
     print('用户 ${data['userId']} 撤回了消息: ${data['id']}');
     // 可以从UI中移除消息
+      setState(() {
+        messages.removeWhere((m) => m['messageId'] == data['messageId']);
+      });
+
   }
 
   // 处理消息送达确认
@@ -346,7 +355,56 @@ class _ChatDetailPageState extends ConsumerState<ChatDetailPage> {
     print('消息已送达用户: ${data['id']}');
     // 可以更新消息送达状态
   }
+  void _onEmojiPressed() {
+    _focusNode.unfocus(); // 先收起键盘
 
+    showModalBottomSheet(
+      context: context,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+      ),
+      builder: (_) {
+        return SizedBox(
+          height: 300,
+          child: GridView.builder(
+            padding: const EdgeInsets.all(12),
+            gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+              crossAxisCount: 8,
+              mainAxisSpacing: 12,
+              crossAxisSpacing: 12,
+            ),
+            itemCount: emojiList.length,
+            itemBuilder: (_, index) {
+              return GestureDetector(
+                onTap: () {
+                  final emoji = emojiList[index];
+                  final text = _controller.text;
+                  final cursorPos = _controller.selection.baseOffset;
+                  final newText = text.replaceRange(
+                    cursorPos,
+                    cursorPos,
+                    emoji,
+                  );
+                  _controller.text = newText;
+                  _controller.selection = TextSelection.collapsed(offset: cursorPos + emoji.length);
+                  setState(() {});
+                },
+                child: Center(
+                  child: Text(emojiList[index], style: const TextStyle(fontSize: 24)),
+                ),
+              );
+            },
+          ),
+        );
+      },
+    );
+  }
+
+
+  void _onPlusPressed() {
+    // 打开更多菜单，比如图片、文件
+    print('打开更多操作菜单');
+  }
   Future<void> _loadInitialHistory() async {
     setState(() {
       _loading = true;
@@ -803,37 +861,61 @@ class _ChatDetailPageState extends ConsumerState<ChatDetailPage> {
 
   Widget _buildMessageInput() {
     return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
       decoration: BoxDecoration(
         color: Colors.white,
         border: Border(top: BorderSide(color: Colors.grey.shade200)),
       ),
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
       child: Row(
         children: [
+          // 表情按钮
+          IconButton(
+            icon: const Icon(Icons.emoji_emotions_outlined, color: Colors.grey),
+            onPressed: _onEmojiPressed,
+          ),
+
+          // 输入框
           Expanded(
-            child: TextField(
-              controller: _controller,
-              focusNode: _focusNode,
-              decoration: const InputDecoration(
-                hintText: '输入消息...',
-                border: InputBorder.none,
-                contentPadding: EdgeInsets.symmetric(
-                  vertical: 10,
-                  horizontal: 8,
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 12),
+              decoration: BoxDecoration(
+                color: Colors.grey.shade100,
+                borderRadius: BorderRadius.circular(20),
+              ),
+              child: TextField(
+                controller: _controller,
+                focusNode: _focusNode,
+                onChanged: (_) => setState(() {}), // 监听内容变化
+                onSubmitted: (_) => _sendMessage(),
+                onTap: _scrollToBottom,
+                decoration: const InputDecoration(
+                  hintText: '请输入内容',
+                  border: InputBorder.none,
+                  isCollapsed: true,
+                  contentPadding: EdgeInsets.symmetric(vertical: 10),
                 ),
               ),
-              onSubmitted: (_) => _sendMessage(),
-              onTap: _scrollToBottom, // 点击输入框时滚动到底部
             ),
           ),
-          IconButton(
-            icon: const Icon(Icons.send, color: Colors.pink),
+
+          const SizedBox(width: 6),
+
+          // 发送 or 加号按钮
+          _controller.text.trim().isNotEmpty
+              ? IconButton(
+            icon: const Icon(Icons.send, color: Color(0xFF07C160)),
             onPressed: _sendMessage,
+          )
+              : IconButton(
+            icon: const Icon(Icons.add_circle_outline, color: Colors.grey),
+            onPressed: _onPlusPressed,
           ),
         ],
       ),
     );
   }
+
+
 
 
 
@@ -857,18 +939,14 @@ class _ChatDetailPageState extends ConsumerState<ChatDetailPage> {
             _buildMenuIcon(
               icon: Icons.undo,
               label: '撤回',
-              onTap: () => _recallMessage(localId),
+              onTap: () => _recallMessage(msg['messageId']),
             ),
           _buildMenuIcon(
             icon: Icons.copy,
             label: '复制',
             onTap: () => _copyMessage(msg['text']),
           ),
-          _buildMenuIcon(
-            icon: Icons.delete_outline,
-            label: '删除',
-            onTap: () => _deleteMessage(localId),
-          ),
+
         ],
       ),
     );
@@ -908,14 +986,15 @@ class _ChatDetailPageState extends ConsumerState<ChatDetailPage> {
     ToastUtils.showToast('已复制到剪贴板');
   }
 
-  void _deleteMessage(String localId) {
-    setState(() {
-    });
-  }
 
-  void _recallMessage(String localId) async {
-    setState(() {
-    });
+  Future<void> _recallMessage(String messageId) async {
+    ApiResponse res = await withdrawMessageApi(messageId);
+    if (res.success) {
+      setState(() {
+        messages.removeWhere((m) => m['messageId'] == messageId);
+      });
+      ToastUtils.showToast('消息已撤回');
+    }
   }
 }
 

@@ -64,7 +64,12 @@ Future<ApiResponse<bool>> friendsRespondStatusApi(Map<String, dynamic> data) asy
     data: data,
   );
 }
-
+Future<ApiResponse<bool>> settingFriendNickNameApi(Map<String, dynamic> data) async {
+  return await HttpManager.post<bool>(
+    "/friends/setting/nickname",
+    data: data,
+  );
+}
 Future<ApiResponse<List<UserVO>>> getFriendListApi() async {
   return await HttpManager.get<List<UserVO>>(
     "/friends/list",

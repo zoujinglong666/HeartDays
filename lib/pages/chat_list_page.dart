@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:heart_days/apis/chat.dart';
 import 'package:heart_days/components/com_container.dart';
@@ -293,6 +294,7 @@ class _ChatListTabState extends ConsumerState<ChatListTab> {
             padding: const EdgeInsets.symmetric(vertical: 4),
             child: GestureDetector(
               onLongPressStart: (LongPressStartDetails details) {
+                HapticFeedback.heavyImpact();
                 _showActionMenu(context, chat, details.globalPosition);
               },
               child: ListTile(
