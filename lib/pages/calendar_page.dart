@@ -83,114 +83,123 @@ class _CalendarPageState extends ConsumerState<CalendarPage> {
           ),
         ],
       ),
-      body: Container(
-        child:
-            _isLoading
-                ? const Center(child: CircularProgressIndicator())
-                : SingleChildScrollView(
-                  padding: const EdgeInsets.only(bottom: 32),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.stretch,
-                    children: [
-                      // 日历组件
+      body: _isLoading
+          ? const Center(child: CircularProgressIndicator())
+          : LayoutBuilder(
+        builder: (context, constraints) {
+          return SingleChildScrollView(
+            padding: const EdgeInsets.only(bottom: 24),
+            child: ConstrainedBox(
+              constraints: BoxConstraints(minHeight: constraints.maxHeight),
+              child: IntrinsicHeight(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    // 日历组件
+                    Padding(
+                      padding: const EdgeInsets.fromLTRB(16, 16, 16, 12),
+                      child: Container(
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          borderRadius: BorderRadius.circular(16),
+                        ),
+                        child: ClipRRect(
+                          borderRadius: BorderRadius.circular(16),
+                          child: AnniversaryCalendar(
+                            anniversaries: _anniversaries,
+                            onDaySelected: (date) {
+                              setState(() {
+                                _selectedDate = date;
+                                _selectedDateEvents = [];
+                              });
+                            },
+                            onDayWithEventsSelected: (date, events) {
+                              setState(() {
+                                _selectedDate = date;
+                                _selectedDateEvents = events;
+                              });
+                            },
+                            primaryColor: const Color(0xFFF48FB1),
+                            accentColor: const Color(0xFF64B5F6),
+                          ),
+                        ),
+                      ),
+                    ),
+
+                    // 无纪念日提示
+                    if (_anniversaries.isEmpty)
                       Padding(
-                        padding: const EdgeInsets.all(0),
-                        child: Container(
-                          decoration: BoxDecoration(
-                            color: Colors.white,
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 16,
+                          vertical: 48,
+                        ),
+                        child: Center(
+                          child: Text(
+                            "你还没有添加任何纪念日",
+                            style: TextStyle(
+                              fontSize: 16,
+                              color: Colors.grey.shade500,
+                            ),
+                          ),
+                        ),
+                      ),
+
+                    // 选中日期信息卡片
+                    AnimatedSwitcher(
+                      duration: const Duration(milliseconds: 300),
+                      child: _selectedDate != null
+                          ? Padding(
+                        key: ValueKey(_selectedDate),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 16,
+                          vertical: 12,
+                        ),
+                        child: _buildSelectedDateCard(),
+                      )
+                          : const SizedBox.shrink(),
+                    ),
+
+                    // 添加纪念日按钮
+                    Padding(
+                      padding:
+                      const EdgeInsets.fromLTRB(16, 8, 16, 24),
+                      child: ElevatedButton.icon(
+                        onPressed: () {
+                          SafeNavigator.pushOnce(
+                            context,
+                            const AddAnniversaryPage(),
+                          );
+                        },
+                        icon: const Icon(Icons.favorite_border),
+                        label: const Text('添加纪念日'),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: const Color(0xFFF48FB1),
+                          foregroundColor: Colors.white,
+                          elevation: 3,
+                          shadowColor: Colors.pink.withOpacity(0.2),
+                          shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(16),
                           ),
-                          // 用ClipRect包裹日历，防止极小溢出
-                          child: ClipRect(
-                            child: AnniversaryCalendar(
-                              anniversaries: _anniversaries,
-                              onDaySelected: (date) {
-                                setState(() {
-                                  _selectedDate = date;
-                                  _selectedDateEvents = [];
-                                });
-                              },
-                              onDayWithEventsSelected: (date, events) {
-                                setState(() {
-                                  _selectedDate = date;
-                                  _selectedDateEvents = events;
-                                });
-                              },
-                              primaryColor: const Color(0xFFF48FB1),
-                              accentColor: const Color(0xFF64B5F6),
-                            ),
+                          padding: const EdgeInsets.symmetric(
+                              vertical: 14),
+                          textStyle: const TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.w600,
                           ),
                         ),
                       ),
-
-                      // 无纪念日时空视图
-                      if (_anniversaries.isEmpty)
-                        Padding(
-                          padding: const EdgeInsets.symmetric(vertical: 48),
-                          child: Column(
-                            children: [
-                              const SizedBox(height: 16),
-                              const Text(
-                                "你还没有添加任何纪念日",
-                                style: TextStyle(
-                                  fontSize: 16,
-                                  color: Colors.grey,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-
-                      // 选中日期信息
-                      AnimatedSwitcher(
-                        duration: const Duration(milliseconds: 300),
-                        child:
-                            _selectedDate != null
-                                ? Padding(
-                                  key: ValueKey(_selectedDate),
-                                  padding: const EdgeInsets.symmetric(
-                                    horizontal: 16,
-                                    vertical: 12,
-                                  ),
-                                  child: _buildSelectedDateCard(),
-                                )
-                                : const SizedBox.shrink(),
-                      ),
-
-                      // 添加按钮
-                      Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 32),
-                        child: ElevatedButton.icon(
-                          onPressed: () {
-                            SafeNavigator.pushOnce(
-                              context,
-                              const AddAnniversaryPage(),
-                            );
-                          },
-                          icon: const Icon(Icons.favorite_border),
-                          label: const Text('添加纪念日'),
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: const Color(0xFFF48FB1),
-                            foregroundColor: Colors.white,
-                            elevation: 4,
-                            shadowColor: Colors.pink.withOpacity(0.3),
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(20),
-                            ),
-                            padding: const EdgeInsets.symmetric(vertical: 14),
-                            textStyle: const TextStyle(
-                              fontSize: 16,
-                              fontWeight: FontWeight.w600,
-                            ),
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
+                    ),
+                  ],
                 ),
+              ),
+            ),
+          );
+        },
       ),
     );
   }
+
+
 
   Widget _buildSelectedDateCard() {
     return Container(

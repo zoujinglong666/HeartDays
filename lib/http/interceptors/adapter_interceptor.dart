@@ -9,6 +9,10 @@ class AdapterInterceptorHandler extends Interceptor {
       final apiResponse = ApiResponse.formJsonResponse(response.data);
       // 无论HTTP状态码如何，都使用业务状态码
       // 记录详细请求信息用于调试
+      print('API请求成功: ${response.requestOptions.method} ${response
+          .requestOptions.uri}');
+      print('API请求内容: ${apiResponse.data}');
+      print('业务状态码: ${apiResponse.code}, 消息: ${apiResponse.message}');
       // 根据业务状态码处理响应
       if (apiResponse.code == 200) {
         // // 成功情况，直接使用data字段

@@ -2,17 +2,19 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:heart_days/apis/chat.dart';
 import 'package:heart_days/apis/friends.dart';
-import 'package:heart_days/apis/user.dart';
 import 'package:heart_days/components/AnimatedCardWrapper.dart';
 import 'package:heart_days/components/Clickable.dart';
 import 'package:heart_days/pages/chat_detail_page.dart';
 import 'package:heart_days/provider/auth_provider.dart';
+import 'package:heart_days/utils/ToastUtils.dart';
 
 class FriendDetailPage extends ConsumerStatefulWidget {
-  final UserVO friend;
-
+  final FriendVO friend;
+// ❌ 原来是 const，不能配合可变状态变量
+// const FriendDetailPage({super.key, required this.friend});
+// ✅ 改为非 const 构造函数
+  // <-- 移到这里作为成员变量
   const FriendDetailPage({super.key, required this.friend});
-
   @override
   ConsumerState<FriendDetailPage> createState() => _FriendDetailPageState();
 }
@@ -23,9 +25,12 @@ class _FriendDetailPageState extends ConsumerState<FriendDetailPage> {
     final avatar = widget.friend.avatar ?? '';
     final name = widget.friend.name ?? '';
     final userAccount = widget.friend.userAccount ?? '';
+    final displayName =
+    widget.friend.friendNickname?.isNotEmpty == true
+        ? widget.friend.friendNickname!
+        : widget.friend.name;
     final theme = Theme.of(context);
     final primaryColor = theme.primaryColor;
-
     return Scaffold(
       appBar: AppBar(
         title: Text(name),
@@ -95,11 +100,11 @@ class _FriendDetailPageState extends ConsumerState<FriendDetailPage> {
                   children: [
                     _buildInfoItem('昵称', name, primaryColor),
                     Divider(height: 24, thickness: 1, color: Colors.grey[100]),
-                    _buildInfoItem('账号', userAccount, primaryColor),
+                  _buildInfoItem('账号', userAccount, primaryColor),
                     Divider(height: 24, thickness: 1, color: Colors.grey[100]),
-                    _buildInfoItem('备注', '暂无备注', primaryColor),
-                  ],
-                ),
+              _buildInfoItem('备注', displayName, primaryColor),
+                ]
+            ),
               ),
             ),
 
@@ -119,7 +124,6 @@ class _FriendDetailPageState extends ConsumerState<FriendDetailPage> {
                       title: '发消息',
                       backgroundColor: primaryColor,
                       onTap: () async {
-                        // 保留原有的发消息逻辑
 
                         final authState = ref.read(authProvider);
                         final user = authState.user;
@@ -154,8 +158,6 @@ class _FriendDetailPageState extends ConsumerState<FriendDetailPage> {
                           }
                         } catch (e) {
                           print(e);
-                          ScaffoldMessenger.of(context).showSnackBar(
-                              SnackBar(content: Text('发生错误: $e')));
                         }
                       },
                     ),
@@ -211,9 +213,8 @@ class _FriendDetailPageState extends ConsumerState<FriendDetailPage> {
                     "friendNickname": remark,
                   });
                   if(res.success){
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(content: Text('备注已保存：$remark')),
-                    );
+                    ToastUtils.showToast('修改成功');
+
                   }
                   Navigator.of(context).pop();
                 }

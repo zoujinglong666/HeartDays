@@ -87,8 +87,8 @@ class _AnniversaryCalendarState extends State<AnniversaryCalendar> {
             _focusedDay = focusedDay;
           });
         },
-        daysOfWeekHeight: 32,
-        rowHeight: 80, // 格子更大
+        daysOfWeekHeight: 48,
+        rowHeight: 64, // 格子更大
         calendarStyle: CalendarStyle(
           // 移除事件标记（黑色小圆点）
           markersAutoAligned: false,
@@ -199,7 +199,6 @@ class _AnniversaryCalendarState extends State<AnniversaryCalendar> {
     // 只显示第一条，若有多条则显示+N
     final firstEvent = events.first;
     final moreCount = events.length - 1;
-
     // 获取事件颜色或使用默认颜色
     final eventColor = firstEvent.color ?? const Color(0xFF6A8CFF);
 
@@ -335,7 +334,7 @@ class AnniversaryCalendarExample extends StatefulWidget {
 }
 
 class _AnniversaryCalendarExampleState extends State<AnniversaryCalendarExample> {
-  List<Anniversary> _anniversaries = [];
+  final List<Anniversary> _anniversaries = [];
   DateTime? _selectedDate;
   List<Anniversary> _selectedDateEvents = [];
 

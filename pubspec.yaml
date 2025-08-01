@@ -88,13 +88,9 @@ flutter_native_splash:
   color: "#ffffff"
   image: lib/assets/images/splash.png
   android: true
-  android_12:
-    image: lib/assets/images/splash.png
-    icon_background_color: "#ffffff"
-    image_dark: lib/assets/images/splash.png
-    icon_background_color_dark: "#121212"
   ios: true
   web: false
+  resize_mode: cover
 
 
 

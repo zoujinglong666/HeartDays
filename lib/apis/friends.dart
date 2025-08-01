@@ -70,12 +70,54 @@ Future<ApiResponse<bool>> settingFriendNickNameApi(Map<String, dynamic> data) as
     data: data,
   );
 }
-Future<ApiResponse<List<UserVO>>> getFriendListApi() async {
-  return await HttpManager.get<List<UserVO>>(
+
+class FriendVO {
+  final String id;
+  final String name;
+  final String email;
+  final String avatar;
+  final String userAccount;
+  final String? friendNickname; // 可空字段
+
+  FriendVO({
+    required this.id,
+    required this.name,
+    required this.email,
+    required this.avatar,
+    required this.userAccount,
+    this.friendNickname,
+  });
+
+  factory FriendVO.fromJson(Map<String, dynamic> json) {
+    return FriendVO(
+      id: json['id'] ?? '',
+      name: json['name'] ?? '',
+      email: json['email'] ?? '',
+      avatar: json['avatar'] ??
+          'https://fastly.jsdelivr.net/npm/@vant/assets/logo.png',
+      userAccount: json['userAccount'] ?? '',
+      friendNickname: json['friendNickname'],
+    );
+  }
+
+  Map<String, dynamic> toJson() {
+    return {
+      'id': id,
+      'name': name,
+      'email': email,
+      'avatar': avatar,
+      'userAccount': userAccount,
+      'friendNickName': friendNickname,
+    };
+  }
+}
+
+Future<ApiResponse<List<FriendVO>>> getFriendListApi() async {
+  return await HttpManager.get<List<FriendVO>>(
     "/friends/list",
     fromJson: (json) {
       if (json is List) {
-        return json.map((item) => UserVO.fromJson(item)).toList();
+        return json.map((item) => FriendVO.fromJson(item)).toList();
       }
       return [];
     },

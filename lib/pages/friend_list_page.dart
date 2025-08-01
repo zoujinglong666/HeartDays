@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:heart_days/apis/friends.dart';
-import 'package:heart_days/apis/user.dart';
 import 'package:heart_days/pages/friend_detail_page.dart';
 
 class FriendListPage extends StatefulWidget {
@@ -11,9 +10,8 @@ class FriendListPage extends StatefulWidget {
 }
 
 class _FriendListPageState extends State<FriendListPage> {
-  List<UserVO> friends = [];
+  List<FriendVO> friends = [];
   String searchText = '';
-
   @override
   void initState() {
     super.initState();
@@ -22,10 +20,16 @@ class _FriendListPageState extends State<FriendListPage> {
 
   Future<void> _loadData() async {
     final res = await getFriendListApi();
+    if (!res.success) {
+      return;
+    }
+
+    final data = res.data!;
     setState(() {
-      friends = res.data!;
+      friends = data;
     });
   }
+
 
   void _onSearch(String value) {
     setState(() {
@@ -35,7 +39,7 @@ class _FriendListPageState extends State<FriendListPage> {
 
   @override
   Widget build(BuildContext context) {
-    List<UserVO> filtered =
+    List<FriendVO> filtered =
         searchText.isEmpty
             ? friends
             : friends
@@ -88,7 +92,7 @@ class _FriendListPageState extends State<FriendListPage> {
                             ? const Icon(Icons.person_outline)
                             : null,
                   ),
-                  title: Text(f.name ?? ''),
+                  title: Text(f.name),
                   subtitle: Text(
                     '账号: ${f.userAccount}',
                     style: const TextStyle(fontSize: 13),
