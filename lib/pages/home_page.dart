@@ -623,9 +623,10 @@ class _HomePageState extends  ConsumerState<HomePage> with TickerProviderStateMi
   }
 
   Widget buildAnniversaryCard(Anniversary item) {
-    final daysLeft = getDaysLeft(item.date);
+
+    final daysLeft = item.date.difference(DateTime.now()).inDays;
     final isFuture = daysLeft >= 0;
-    final tagText = isFuture ? '还有 $daysLeft 天' : '已过去 ${-daysLeft} 天';
+    final tagText = isFuture ? "还有 ${daysLeft + 1} 天" : "已过去 ${-daysLeft} 天";
     final bool isNearby = isFuture && daysLeft <= 7; // 判断是否临近
     // 使用多样化的配色
     final cardColors = getGradientByDate(item.date);
@@ -919,6 +920,8 @@ class _HomePageState extends  ConsumerState<HomePage> with TickerProviderStateMi
     final daysLeft = item.date.difference(DateTime.now()).inDays;
     final isInFuture = daysLeft >= 0;
     final daysText = isInFuture ? "还有 ${daysLeft + 1} 天" : "已过去 ${-daysLeft} 天";
+
+
     final color = (item.color ?? Colors.black);
     return InkWell(
       onTap: () {

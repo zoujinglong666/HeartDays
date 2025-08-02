@@ -318,6 +318,10 @@ class _ChatDetailPageState extends ConsumerState<ChatDetailPage> {
 
   // 处理离线消息
   void _onOfflineMessages(dynamic data) {
+    if (!mounted) return;
+    setState(() {
+
+    });
     print('收到离线消息: $data');
     // 可以处理离线消息
   }

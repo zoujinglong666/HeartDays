@@ -131,18 +131,31 @@ class _LoadMoreListState<T> extends State<LoadMoreList<T>> {
   @override
   Widget build(BuildContext context) {
     if (_loading && _items.isEmpty) {
+      final screenHeight = MediaQuery.of(context).size.height;
+      final appBarHeight = Scaffold.of(context).appBarMaxHeight ?? 56.0; // 估算 AppBar 高度
+      final availableHeight = screenHeight - appBarHeight;
+      const itemHeight = 64.0; // 你设置的骨架项高度（含 padding）
+      final itemCount = (availableHeight / itemHeight).ceil();
       return ListView.builder(
-        itemCount: 6,
-        itemBuilder:
-            (_, i) => Shimmer.fromColors(
-              baseColor: Colors.grey[300]!,
-              highlightColor: Colors.grey[100]!,
-              child: ListTile(
-                title: Container(height: 20, color: Colors.white),
+        physics: const NeverScrollableScrollPhysics(),
+        itemCount: itemCount,
+        itemBuilder: (_, i) => Shimmer.fromColors(
+          baseColor: Colors.grey[300]!,
+          highlightColor: Colors.grey[100]!,
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
+            child: Container(
+              height: itemHeight - 16, // 留出 padding
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(8.0),
               ),
             ),
+          ),
+        ),
       );
     }
+
 
     if (_error && _items.isEmpty) {
       return Center(
@@ -179,8 +192,8 @@ class _LoadMoreListState<T> extends State<LoadMoreList<T>> {
         readyText: '加载中...',
         processingText: '加载中...',
         processedText: _hasMore ? '加载完成' : '没有更多了',
-        noMoreText: '✅ 没有更多了',
-        failedText: '❌ 加载失败，点击重试',
+        noMoreText: '没有更多了',
+        failedText: '加载失败，点击重试',
         messageText: '上次更新时间：%T',
       ),
       child:

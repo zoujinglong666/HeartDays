@@ -1,10 +1,11 @@
 import 'dart:async';
-import 'dart:math';
 
 import 'package:heart_days/Consts/index.dart';
 import 'package:heart_days/common/toast.dart';
+import 'package:heart_days/provider/auth_provider.dart';
 import 'package:heart_days/utils/ToastUtils.dart';
 import 'package:intl/intl.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:socket_io_client/socket_io_client.dart' as IO;
 
 class ChatSocketService {
@@ -186,11 +187,32 @@ class ChatSocketService {
 
     // 检查用户状态
     socket.on('checkUserStatus', (data) {
-      print('SSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSS');
       onCheckUserStatus?.call(data);
     });
-  }
 
+    // 🔥 监听连接错误，如果是 token 错误，尝试刷新 token 后重连
+    socket.on('connect_error', (err) async {
+      print('❌ WebSocket 连接错误: $err');
+      // token 是在调用 connect() 时传入的，一旦创建 socket 后，token 就无法更新，必须手动断开并重连。
+      if (err.toString().contains('401') || err.toString().contains('jwt expired')) {
+        print('⚠️ Token 失效，尝试刷新');
+        final prefs = await SharedPreferences.getInstance();
+        final newToken =  prefs.getString('token');
+        if (newToken != null) {
+          print('🔁 使用新 token 重连...');
+          reconnectWithToken(newToken);
+        }
+      } else {
+        _connected = false;
+        _stopHeartbeat();
+      }
+    });
+  }
+  void reconnectWithToken(String token) async {
+    disconnect(); // 断开当前连接
+    await Future.delayed(Duration(seconds: 1));
+    connect(token, userId); // 使用新 token 重新连接
+  }
   /// 加入自己的用户房间（用于接收通知/好友申请等）
   void joinUserRoom(String myUserId) {
     socket.emit('joinUserRoom', {'userId': myUserId});
@@ -243,6 +265,7 @@ class ChatSocketService {
     if (lastMessageTime != null) {
       data['lastMessageTime'] = lastMessageTime;
     }
+    print("获取离线消息");
     socket.emit('getOfflineMessages', data);
   }
 

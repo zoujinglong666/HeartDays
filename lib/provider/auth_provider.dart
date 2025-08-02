@@ -3,8 +3,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:heart_days/apis/user.dart';
 import 'package:heart_days/services/ChatSocketService.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:heart_days/utils/token_manager.dart';
-
 // ==== 登录状态结构 ====
 class AuthState {
   final String? token;
