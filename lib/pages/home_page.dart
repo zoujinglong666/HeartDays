@@ -52,9 +52,9 @@ class _HomePageState extends  ConsumerState<HomePage> with TickerProviderStateMi
       final user = authState.user;
       final response = await fetchAnniversaryListByUserId(user!.id);
       if (response.code == 200 && response.data != null) {
+        if (!mounted) return;
         setState(() => anniversaries = response.data!);
-      } else {
-        setState(() => anniversaries = []);
+
       }
     } catch (e) {
       setState(() => anniversaries = []);
@@ -138,6 +138,7 @@ class _HomePageState extends  ConsumerState<HomePage> with TickerProviderStateMi
     _reboundController.dispose();
     _animationController.dispose();
     _anniversarySubscription?.cancel();
+    _anniversarySubscription = null;
     super.dispose();
   }
 

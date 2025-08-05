@@ -1,8 +1,6 @@
 import 'dart:async';
-
 import 'package:heart_days/Consts/index.dart';
 import 'package:heart_days/common/toast.dart';
-import 'package:heart_days/provider/auth_provider.dart';
 import 'package:heart_days/utils/ToastUtils.dart';
 import 'package:intl/intl.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -36,9 +34,7 @@ class ChatSocketService {
   factory ChatSocketService() {
     return _instance;
   }
-
   bool get isConnected => _connected;
-
   ChatSocketService._internal();
 
   Timer? _heartbeatTimer;
@@ -70,11 +66,24 @@ class ChatSocketService {
     });
 
     // 连接错误事件
-    socket.on('connect_error', (err) {
-      print('WebSocket 连接错误: $err');
-      _connected = false;
-      _stopHeartbeat();
+    // 🔥 监听连接错误，如果是 token 错误，尝试刷新 token 后重连
+    socket.on('connect_error', (err) async {
+      print('❌ WebSocket 连接错误: $err');
+      // token 是在调用 connect() 时传入的，一旦创建 socket 后，token 就无法更新，必须手动断开并重连。
+      if (err.toString().contains('401') || err.toString().contains('jwt expired')) {
+        print('⚠️ 检查到websocket Token 失效，尝试刷新');
+        final prefs = await SharedPreferences.getInstance();
+        final newToken =  prefs.getString('token');
+        if (newToken != null) {
+          print('🔁 使用新 token 重连...');
+          reconnectWithToken(newToken);
+        }
+      } else {
+        _connected = false;
+        _stopHeartbeat();
+      }
     });
+
 
     // 心跳响应
     socket.on('pong', (data) {
@@ -190,23 +199,7 @@ class ChatSocketService {
       onCheckUserStatus?.call(data);
     });
 
-    // 🔥 监听连接错误，如果是 token 错误，尝试刷新 token 后重连
-    socket.on('connect_error', (err) async {
-      print('❌ WebSocket 连接错误: $err');
-      // token 是在调用 connect() 时传入的，一旦创建 socket 后，token 就无法更新，必须手动断开并重连。
-      if (err.toString().contains('401') || err.toString().contains('jwt expired')) {
-        print('⚠️ Token 失效，尝试刷新');
-        final prefs = await SharedPreferences.getInstance();
-        final newToken =  prefs.getString('token');
-        if (newToken != null) {
-          print('🔁 使用新 token 重连...');
-          reconnectWithToken(newToken);
-        }
-      } else {
-        _connected = false;
-        _stopHeartbeat();
-      }
-    });
+
   }
   void reconnectWithToken(String token) async {
     disconnect(); // 断开当前连接

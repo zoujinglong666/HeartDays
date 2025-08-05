@@ -282,7 +282,7 @@ class _MinePageState extends ConsumerState<MinePage> {
                       : 0,
               height: 80,
               child: Material(
-                color: Colors.transparent,
+                color: Colors.white,
                 child: InkWell(
                   onTap: () {
                     if (item['label'] == '聊天') {

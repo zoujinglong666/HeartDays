@@ -35,7 +35,8 @@ class DioClient {
 
     // 获取 AuthNotifier 实例
     final authNotifier = _container.read(authProvider.notifier);
-
+    /// 全局默认 token 设置（可选兜底，实际会由 TokenInterceptor 接管）
+    // _setupGlobalAuthorizationHeader();
     dio.interceptors.addAll([
       AdapterInterceptorHandler(),
       LogInterceptorHandler(),
@@ -43,6 +44,20 @@ class DioClient {
       TokenInterceptorHandler(dio, authNotifier), // 传递 authNotifier
     ]);
   }
+  // /// 设置兜底 token（恢复本地缓存后设置）
+  // void _setupGlobalAuthorizationHeader() {
+  //   final authState = _container.read(authProvider);
+  //   final token = authState?.token;
+  //   if (token != null && token.isNotEmpty) {
+  //     dio.options.headers['Authorization'] = 'Bearer $token';
+  //   }
+  // }
+  //
+  // /// 可在外部根据需要更新 token
+  // void updateToken(String token) {
+  //   dio.options.headers['Authorization'] = 'Bearer $token';
+  // }
+
 
   // void _setupCacheInterceptor() async {
   //   // 缓存配置

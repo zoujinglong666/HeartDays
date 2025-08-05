@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:heart_days/Consts/index.dart';
 import 'package:heart_days/apis/user.dart';
 import 'package:heart_days/pages/register_page.dart';
 import 'package:heart_days/provider/auth_provider.dart';
@@ -158,7 +159,7 @@ class _LoginPageState extends ConsumerState<LoginPage>
     await prefs.remove('token');
     await prefs.remove('refresh_token');
 
-    final secret = 'mySecret';
+    final secret = Consts.password.secret;
     final encrypted = SimpleEncryptor.encryptText(
       _passwordController.text,
       secret,
@@ -174,10 +175,22 @@ class _LoginPageState extends ConsumerState<LoginPage>
         _showToast('登录成功');
         final token = response.data!.accessToken;
         final refreshToken = response.data?.refreshToken;
+
+        // ✅ 第一步：先写状态管理（内存里最先可用）
+        await ref.read(authProvider.notifier).login(
+            user, token, refreshToken: refreshToken);
+
+
+        // ✅ 第二步：写本地缓存
         await prefs.setString('token', token);
         await prefs.setString('refresh_token', refreshToken!);
-        await ref.read(authProvider.notifier).login(
-            user, token, refreshToken: refreshToken); // 放后面！
+
+
+        ChatSocketService().connect(token, user.id);
+
+        // ✅ 第四步：切页面
+        Navigator.of(context).pushNamedAndRemoveUntil(
+            '/main', (route) => false);
         ChatSocketService().connect(token, user.id);
         Navigator.of(context).pushNamedAndRemoveUntil('/main', (route) => false);
       }
@@ -192,8 +205,6 @@ class _LoginPageState extends ConsumerState<LoginPage>
     }
   }
 }
-
-
     handleLogin();
   }
 

@@ -81,22 +81,12 @@ flutter_launcher_icons:
     ios: true
 launcher_name:
   default: "甜甜纪念日"
-  es: "甜甜纪念日"
-  fr: "甜甜纪念日"
-  de: "甜甜纪念日"
 flutter_native_splash:
   color: "#ffffff"
   image: lib/assets/images/splash.png
   android: true
   ios: true
   web: false
-  resize_mode: cover
-
-
-
-
-
-
 dev_dependencies:
   flutter_test:
     sdk: flutter
