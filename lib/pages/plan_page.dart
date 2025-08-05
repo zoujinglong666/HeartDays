@@ -91,6 +91,8 @@ class _PlanPageState extends ConsumerState<PlanPage> with RouteAware {
 
   @override
   void dispose() {
+    _plans.clear();
+
     super.dispose();
   }
 
@@ -114,7 +116,6 @@ class _PlanPageState extends ConsumerState<PlanPage> with RouteAware {
 
   Future<void> _loadData() async {
     try {
-
       final authState = ref.read(authProvider);
       final user = authState.user;
       final response = await fetchPlanListByUserId({
@@ -122,6 +123,7 @@ class _PlanPageState extends ConsumerState<PlanPage> with RouteAware {
         "pageSize": 10,
         "userId": user?.id,
       });
+      if(! mounted) return;
       setState(() => _plans = response.data!.records);
     } catch (e) {
       setState(() => _plans = []);

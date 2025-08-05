@@ -10,6 +10,7 @@ import 'package:heart_days/pages/friend_list_page.dart';
 import 'package:heart_days/pages/friend_request_page.dart';
 import 'package:heart_days/provider/auth_provider.dart';
 import 'package:heart_days/services/ChatSocketService.dart';
+import 'package:heart_days/utils/date_utils.dart';
 
 class ChatListPage extends ConsumerStatefulWidget {
   const ChatListPage({super.key});
@@ -179,46 +180,7 @@ class _ChatListTabState extends ConsumerState<ChatListTab> {
     }
   }
 
-  // 格式化时间显示
-  String _formatTime(String? timeStr) {
-    if (timeStr == null || timeStr.isEmpty) return '';
 
-    try {
-      final DateTime now = DateTime.now();
-      final DateTime messageTime = DateTime.parse(timeStr);
-      final Duration difference = now.difference(messageTime);
-
-      // 今天内的消息显示时间
-      if (difference.inDays == 0) {
-        return '${messageTime.hour.toString().padLeft(2, '0')}:${messageTime.minute.toString().padLeft(2, '0')}';
-      }
-      // 昨天的消息
-      else if (difference.inDays == 1) {
-        return '昨天';
-      }
-      // 一周内的消息
-      else if (difference.inDays < 7) {
-        const List<String> weekdays = [
-          '周一',
-          '周二',
-          '周三',
-          '周四',
-          '周五',
-          '周六',
-          '周日',
-        ];
-        // 注意：DateTime中的weekday是1-7，其中7代表周日
-        int weekdayIndex = messageTime.weekday - 1;
-        return weekdays[weekdayIndex];
-      }
-      // 更早的消息
-      else {
-        return '${messageTime.month}月${messageTime.day}日';
-      }
-    } catch (e) {
-      return timeStr;
-    }
-  }
 
   void _navigateToFriendList() {
     Navigator.push(
@@ -390,7 +352,7 @@ class _ChatListTabState extends ConsumerState<ChatListTab> {
                     ),
                     const SizedBox(width: 8),
                     Text(
-                      _formatTime(chat.lastMessage?.createdAt),
+                      formatMsgTime(chat.lastMessage?.createdAt),
                       style: TextStyle(fontSize: 12, color: Colors.grey[500]),
                     ),
                   ],

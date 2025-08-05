@@ -1,31 +1,52 @@
 import 'package:intl/intl.dart';
 
+import 'package:intl/intl.dart';
+
 String formatMsgTime(String? timeStr) {
   if (timeStr == null || timeStr.isEmpty) return '';
-  try {
-    final DateTime messageTime = DateTime.parse(timeStr).toLocal();
-    final DateTime now = DateTime.now().toLocal();
 
-    // 今天
-    if (isSameDay(messageTime, now)) {
-      return DateFormat('HH:mm').format(messageTime);
+  try {
+    final msgTime = DateTime.parse(timeStr).toLocal();
+    final now = DateTime.now().toLocal();
+    final today = DateTime(now.year, now.month, now.day);
+    final yesterday = today.subtract(const Duration(days: 1));
+    final diff = now.difference(msgTime);
+
+    // 刚刚 / n分钟前 / n小时前
+    if (diff.inMinutes < 1) return '刚刚';
+    if (diff.inMinutes < 60) return '${diff.inMinutes}分钟前';
+    if (diff.inHours < 24 && msgTime.isAfter(today)) {
+      return '${diff.inHours}小时前';
     }
+
     // 昨天
-    else if (isYesterday(messageTime, now)) {
-      return '昨天 ${DateFormat('HH:mm').format(messageTime)}';
+    if (_isSameDate(msgTime, yesterday)) {
+      return '昨天 ${DateFormat('HH:mm').format(msgTime)}';
     }
-    // 一周内
-    else if (isWithinAWeek(messageTime, now)) {
-      return '${getWeekdayString(messageTime.weekday)} ${DateFormat('HH:mm').format(messageTime)}';
+
+    // 本周内（周一~周日）
+    final weekdayStart = today.subtract(Duration(days: today.weekday - 1));
+    if (msgTime.isAfter(weekdayStart) && msgTime.isBefore(today)) {
+      final weekday = ['星期一', '星期二', '星期三', '星期四', '星期五', '星期六', '星期日'][msgTime.weekday - 1];
+      return '$weekday ${DateFormat('HH:mm').format(msgTime)}';
     }
-    // 超过一周
-    else {
-      return DateFormat('yyyy/MM/dd HH:mm').format(messageTime);
+
+    // 本年
+    if (msgTime.year == now.year) {
+      return DateFormat('MM-dd HH:mm').format(msgTime);
     }
-  } catch (e) {
+
+    // 跨年
+    return DateFormat('yyyy-MM-dd HH:mm').format(msgTime);
+  } catch (_) {
     return '';
   }
 }
+
+/// 判断两个 DateTime 是否为同一天（忽略时分秒）
+bool _isSameDate(DateTime a, DateTime b) =>
+    a.year == b.year && a.month == b.month && a.day == b.day;
+
 
 // 判断是否是同一天
 bool isSameDay(DateTime a, DateTime b) {

@@ -135,8 +135,9 @@ class _MinePageState extends ConsumerState<MinePage> {
                   ),
 
                   // 快捷功能 Grid
+                  const SizedBox(height: 16),
                   buildShortcutsGrid(shortcuts, context),
-                  const SizedBox(height: 24),
+                  const SizedBox(height: 16),
 
                   // 更多功能标题
                   const Padding(
@@ -283,6 +284,7 @@ class _MinePageState extends ConsumerState<MinePage> {
               height: 80,
               child: Material(
                 color: Colors.white,
+                borderRadius: BorderRadius.circular(16),
                 child: InkWell(
                   onTap: () {
                     if (item['label'] == '聊天') {

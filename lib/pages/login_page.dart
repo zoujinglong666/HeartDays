@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -10,6 +11,8 @@ import 'package:heart_days/provider/auth_provider.dart';
 import 'package:heart_days/services/ChatSocketService.dart';
 import 'package:heart_days/utils/ToastUtils.dart';
 import 'package:heart_days/utils/simpleEncryptor_utils.dart';
+import 'package:heart_days/http/interceptors/token_interceptor.dart';
+import 'package:heart_days/utils/token_test_utils.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../utils/app_theme_controller.dart';
@@ -180,19 +183,34 @@ class _LoginPageState extends ConsumerState<LoginPage>
         await ref.read(authProvider.notifier).login(
             user, token, refreshToken: refreshToken);
 
-
         // ✅ 第二步：写本地缓存
         await prefs.setString('token', token);
         await prefs.setString('refresh_token', refreshToken!);
 
-
-        ChatSocketService().connect(token, user.id);
+        // ✅ 第三步：强制更新HTTP客户端的Authorization header
+        // 确保后续请求立即使用新token
+        print('Login success: Updating HTTP client with new token');
+        
+        // 等待一小段时间确保状态管理更新完成
+        await Future.delayed(Duration(milliseconds: 100));
+        
+        // 在调试模式下验证token保存
+        if (kDebugMode) {
+          try {
+            final savedToken = prefs.getString('token'); // 使用正确的键名
+            final savedRefreshToken = prefs.getString('refresh_token');
+            print('✅ 登录成功，已保存token: ${savedToken?.substring(0, 20)}...');
+            print('✅ 登录成功，已保存refresh_token: ${savedRefreshToken?.substring(0, 20)}...');
+          } catch (e) {
+            print('❌ 验证token保存失败: $e');
+          }
+        }
 
         // ✅ 第四步：切页面
         Navigator.of(context).pushNamedAndRemoveUntil(
             '/main', (route) => false);
         ChatSocketService().connect(token, user.id);
-        Navigator.of(context).pushNamedAndRemoveUntil('/main', (route) => false);
+
       }
     }
   } catch (e) {
@@ -349,7 +367,6 @@ class _LoginPageState extends ConsumerState<LoginPage>
           ),
 
           const SizedBox(height: 6), // 减少间距
-
           Text(
             '使用用户名和密码登录',
             style: TextStyle(

@@ -1,6 +1,5 @@
 import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:dio/dio.dart';
-import 'package:heart_days/apis/user.dart';
 import 'package:heart_days/common/event_bus.dart';
 import 'package:heart_days/http/model/api_response.dart';
 import 'package:heart_days/provider/auth_provider.dart';
@@ -11,9 +10,56 @@ class TokenInterceptorHandler extends Interceptor {
   final Dio _dio;
   final AuthNotifier _authNotifier;
   SharedPreferences? _prefs;
+  static TokenInterceptorHandler? _instance;
 
   TokenInterceptorHandler(this._dio, this._authNotifier) {
     SharedPreferences.getInstance().then((instance) => _prefs = instance);
+    _instance = this;
+  }
+
+  // 静态方法：强制刷新token，用于登录后立即更新
+  static Future<void> forceRefreshToken() async {
+    if (_instance != null) {
+      try {
+        print('🔄 强制刷新Token开始');
+
+        final prefsInstance = await _instance!.prefs;
+
+        // 获取最新的token和refresh_token
+        final currentToken = prefsInstance.getString('token');
+        final currentRefreshToken = prefsInstance.getString('refresh_token');
+
+        print('📱 当前存储的token: ${currentToken?.substring(0, 20) ??
+            'null'}...');
+        print('📱 当前存储的refresh_token: ${currentRefreshToken?.substring(
+            0, 20) ?? 'null'}...');
+
+        // 验证token格式
+        if (currentToken != null && currentToken.startsWith('eyJ')) {
+          print('✅ Token格式正确');
+        } else {
+          print('⚠️ Token格式可能有问题');
+        }
+
+        // 确保内存和存储同步
+        if (currentToken != null && currentToken.isNotEmpty) {
+          _instance!._authNotifier.token = currentToken;
+          print('🔄 同步token到内存');
+        }
+
+        if (currentRefreshToken != null && currentRefreshToken.isNotEmpty) {
+          _instance!._authNotifier.refreshToken = currentRefreshToken;
+          print('🔄 同步refresh_token到内存');
+        }
+
+        print('✅ 强制刷新Token完成');
+      } catch (e) {
+        print('❌ 强制刷新Token失败: $e');
+      }
+    } else {
+      print(
+          'TokenInterceptor: Warning - No instance available for force refresh');
+    }
   }
 
   final List<String> authWhitelist = [
@@ -21,6 +67,7 @@ class TokenInterceptorHandler extends Interceptor {
     '/register',
     '/auth/refresh',
   ];
+
 
   final List<Function(String)> _retryQueue = [];
   final Set<String> _retriedRequests = {};
@@ -50,16 +97,53 @@ class TokenInterceptorHandler extends Interceptor {
         });
       }
 
-      final p = await prefs;
-      final token = _authNotifier.token ?? p.getString('token');
+      // 请求路径
+      final String path = options.path;
+      final List<String> noTokenList = ['/login'];
+      final bool isNoTokenRequired = noTokenList.any((noTokenPath) =>
+          path.contains(noTokenPath));
 
-      if (token != null && token.isNotEmpty) {
+      final p = await prefs;
+      String? token = p.getString('token');
+      print('TokenInterceptor: [${isNoTokenRequired
+          ? 'NO TOKEN'
+          : 'WITH TOKEN'}] ${path} → ${token?.substring(0, 20) ?? 'null'}...');
+
+      // 只对需要 token 的接口加 Authorization 头
+      if (!isNoTokenRequired && token != null && token.isNotEmpty) {
         options.headers['Authorization'] = 'Bearer $token';
       }
+
       handler.next(options);
     } catch (e) {
+      print('TokenInterceptor error: $e');
       handler.next(options);
     }
+  }
+
+
+  // 重试请求的方法
+  Future<Response> _retryRequest(RequestOptions requestOptions,
+      String newToken) async {
+    final headers = Map<String, dynamic>.from(requestOptions.headers)
+      ..['Authorization'] = 'Bearer $newToken';
+    return _dio.request<dynamic>(
+      requestOptions.path,
+      data: requestOptions.data,
+      queryParameters: requestOptions.queryParameters,
+      options: Options(
+        method: requestOptions.method,
+        headers: headers,
+        contentType: requestOptions.contentType,
+        responseType: requestOptions.responseType,
+      ),
+    );
+  }
+
+  // 登出方法
+  Future<void> _logout() async {
+    _authNotifier.logout();
+    eventBus.fire(TokenExpiredEvent());
   }
 
   @override
@@ -76,16 +160,24 @@ class TokenInterceptorHandler extends Interceptor {
     final key = _cacheKey(err.requestOptions);
 
     // token 已失效，直接退出登录
-    if (apiResponse.code == 40103) {
-      await _logout();
-      handler.reject(err);
-      return;
-    }
+    // if (apiResponse.code == 40103) {
+    //   print('TokenInterceptor: Token expired (40103), logging out user');
+    //   print('TokenInterceptor: Request path: $path');
+    //   print('TokenInterceptor: Current token: ${_authNotifier.token?.substring(0, 20)}...');
+    //   await _logout();
+    //   handler.reject(err);
+    //   return;
+    // }
 
     // token 过期，尝试刷新
     if (apiResponse.code == 40100 && !_isWhitelisted(path)) {
       final prefsInstance = await prefs;
-      final oldRefreshToken = _authNotifier.refreshToken ?? prefsInstance.getString("refresh_token");
+      // 优先使用内存中的refresh_token
+      String? oldRefreshToken = _authNotifier.refreshToken;
+      if (oldRefreshToken == null || oldRefreshToken.isEmpty) {
+        oldRefreshToken = prefsInstance.getString('refresh_token');
+      }
+      
       if (oldRefreshToken == null || oldRefreshToken.isEmpty) {
         print("⚠️ 没有 refresh_token，退出登录");
         await _logout();
@@ -113,38 +205,68 @@ class TokenInterceptorHandler extends Interceptor {
 
       try {
         print("🔁 开始刷新 Token");
-        final refreshResult = await refreshTokenApi({"refresh_token": oldRefreshToken});
+        print("🔄 使用refresh_token: ${oldRefreshToken.substring(0, 20)}...");
 
-        if (refreshResult.code == 200) {
-          final newToken = refreshResult.data?['access_token'];
-          final newRefreshToken = refreshResult.data?['refresh_token'];
+        // 直接使用Dio实例调用刷新API，避免循环调用
+        final refreshResult = await _dio.post(
+          '/auth/refresh',
+          data: {"refresh_token": oldRefreshToken},
+          options: Options(
+            headers: {
+              'Content-Type': 'application/json',
+              // 刷新token请求不需要Authorization header
+            },
+          ),
+        );
 
-          if (newToken != null && newRefreshToken != null) {
-            _authNotifier.token = newToken;
-            _authNotifier.refreshToken = newRefreshToken;
-            await prefsInstance.setString('token', newToken);
-            await prefsInstance.setString('refresh_token', newRefreshToken);
-            _dio.options.headers['Authorization'] = 'Bearer $newToken';
+        // 检查HTTP状态码和业务状态码
+        if (refreshResult.statusCode == 200) {
+          final responseData = refreshResult.data;
+          final businessCode = responseData['code'];
 
-            // 等一帧，确保 token 更新完毕
-            await Future.delayed(Duration(milliseconds: 10));
+          if (businessCode == 200) {
+            final newToken = responseData['data']?['access_token'];
+            final newRefreshToken = responseData['data']?['refresh_token'];
 
-            if (!_retriedRequests.contains(key)) {
-              _retriedRequests.add(key);
-              final retryResponse = await _retryRequest(err.requestOptions, newToken);
-              handler.resolve(retryResponse);
+            if (newToken != null && newRefreshToken != null) {
+              // 立即更新内存中的token
+              _authNotifier.token = newToken;
+              _authNotifier.refreshToken = newRefreshToken;
+
+              // 立即更新Dio实例的headers
+              _dio.options.headers['Authorization'] = 'Bearer $newToken';
+
+              // 保存到本地存储
+              await prefsInstance.setString('token', newToken);
+              await prefsInstance.setString('refresh_token', newRefreshToken);
+
+              print("✅ Token已更新: ${newToken.substring(0, 20)}...");
+
+              // 等一帧，确保 token 更新完毕
+              await Future.delayed(Duration(milliseconds: 10));
+
+              if (!_retriedRequests.contains(key)) {
+                _retriedRequests.add(key);
+                final retryResponse = await _retryRequest(
+                    err.requestOptions, newToken);
+                handler.resolve(retryResponse);
+              }
+
+              for (var retry in _retryQueue) {
+                retry(newToken);
+              }
+              _retryQueue.clear();
+              print("✅ Token刷新成功，所有请求已重试");
+              return;
             }
-
-            for (var retry in _retryQueue) {
-              retry(newToken);
-            }
-            _retryQueue.clear();
-            print("✅ Token刷新成功，所有请求已重试");
-            return;
+          } else {
+            print("❌ Token刷新失败，业务状态码: $businessCode");
           }
+        } else {
+          print("❌ Token刷新失败，HTTP状态码: ${refreshResult.statusCode}");
         }
 
-        print("❌ Token刷新失败");
+        print("❌ Token刷新失败，退出登录");
         await _logout();
         handler.reject(err);
         for (var retry in _retryQueue) {
@@ -153,7 +275,17 @@ class TokenInterceptorHandler extends Interceptor {
         _retryQueue.clear();
       } catch (e) {
         print("❌ 刷新失败异常: $e");
-        await _logout();
+
+        // 如果是401错误，说明refresh_token也过期了
+        if (e is DioException && e.response?.statusCode == 401) {
+          print("❌ Refresh token也已过期，需要重新登录");
+
+          await _logout();
+        } else {
+          print("❌ 其他刷新错误，尝试重新登录");
+          await _logout();
+        }
+        
         handler.reject(err);
         for (var retry in _retryQueue) {
           retry("");
@@ -166,28 +298,6 @@ class TokenInterceptorHandler extends Interceptor {
     } else {
       handler.next(err);
     }
-  }
-
-  Future<Response> _retryRequest(RequestOptions requestOptions, String newToken) async {
-    final headers = Map<String, dynamic>.from(requestOptions.headers)
-      ..['Authorization'] = 'Bearer $newToken';
-
-    return _dio.request<dynamic>(
-      requestOptions.path,
-      data: requestOptions.data,
-      queryParameters: requestOptions.queryParameters,
-      options: Options(
-        method: requestOptions.method,
-        headers: headers,
-        contentType: requestOptions.contentType,
-        responseType: requestOptions.responseType,
-      ),
-    );
-  }
-
-  Future<void> _logout() async {
-    _authNotifier.logout();
-    eventBus.fire(TokenExpiredEvent());
   }
 
   @override

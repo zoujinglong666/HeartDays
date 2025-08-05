@@ -52,18 +52,6 @@ class AboutPage extends StatelessWidget {
                     '记录爱与回忆的每一天',
                     style: TextStyle(fontSize: 14, color: Colors.grey.shade600),
                   ),
-
-                  GestureDetector(
-                    child: MaterialButton(
-                      onPressed: () {
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(builder: (context) => MyListPage()),
-                        );
-                      },
-                      child: Text('MyListPage'),
-                    ),
-                  ),
                 ],
               ),
             ),
