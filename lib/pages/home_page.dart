@@ -1,6 +1,6 @@
 import 'dart:async';
 import 'dart:math' as math;
-import 'package:chinese_lunar_calendar/chinese_lunar_calendar.dart';
+
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -15,6 +15,7 @@ import 'package:heart_days/pages/today_history_page.dart';
 import 'package:heart_days/provider/auth_provider.dart';
 import 'package:heart_days/utils/SafeNavigator.dart';
 import 'package:intl/intl.dart';
+
 import '../components/BaseInfoCard.dart';
 
 class HomePage extends ConsumerStatefulWidget {
@@ -35,6 +36,8 @@ class _HomePageState extends  ConsumerState<HomePage> with TickerProviderStateMi
   late final AnimationController _animationController;
   late AnimationController _reboundController;
   late Animation<Offset> _reboundAnimation;
+
+
   bool _isAnimating = false;
   void _sortAnniversariesByDate() {
     setState(() {
@@ -45,7 +48,6 @@ class _HomePageState extends  ConsumerState<HomePage> with TickerProviderStateMi
       _isAscending = !_isAscending; // 每次点击切换排序方向
     });
   }
-
   Future<void> loadAnniversariesFromLocal() async {
     try {
       final authState = ref.read(authProvider);
@@ -367,32 +369,72 @@ class _HomePageState extends  ConsumerState<HomePage> with TickerProviderStateMi
     );
   }
 
-  // 列表布局（原来的布局）
+  // // 列表布局（原来的布局）
+  // Widget _buildListLayout() {
+  //   return RefreshIndicator(
+  //     onRefresh: _loadData,
+  //     child: ListView.builder(
+  //       padding: const EdgeInsets.symmetric(horizontal: 16),
+  //       itemBuilder: (context, index) {
+  //         return AnimatedBuilder(
+  //           animation: Listenable.merge([]),
+  //
+  //           builder: (context, child) {
+  //             return AnimatedOpacity(
+  //               opacity: 1.0,
+  //               duration: Duration(milliseconds: 500 + (index * 100)),
+  //               child: AnimatedPadding(
+  //
+  //                 duration: const Duration(milliseconds: 300),
+  //                 padding: const EdgeInsets.only(top: 4, bottom: 4),
+  //                 child: buildAnniversaryCard(anniversaries[index]),
+  //               ),
+  //             );
+  //           },
+  //         );
+  //       },
+  //       itemCount: anniversaries.length,
+  //     ),
+  //   );
+  // }
+
   Widget _buildListLayout() {
-    return RefreshIndicator(
-      onRefresh: _loadData,
-      child: ListView.builder(
-        padding: const EdgeInsets.symmetric(horizontal: 16),
-        itemBuilder: (context, index) {
-          return AnimatedBuilder(
-            animation: Listenable.merge([]),
-            builder: (context, child) {
-              return AnimatedOpacity(
-                opacity: 1.0,
-                duration: Duration(milliseconds: 500 + (index * 100)),
-                child: AnimatedPadding(
-                  duration: const Duration(milliseconds: 300),
-                  padding: const EdgeInsets.only(top: 4, bottom: 4),
-                  child: buildAnniversaryCard(anniversaries[index]),
+    return GestureDetector(
+      behavior: HitTestBehavior.translucent,
+      onTap: () {
+
+      },
+      child: RefreshIndicator(
+        onRefresh: _loadData,
+        child: ListView.builder(
+          padding: const EdgeInsets.symmetric(horizontal: 16),
+          itemCount: anniversaries.length,
+          itemBuilder: (context, index) {
+            return AnimatedBuilder(
+              animation: Listenable.merge([]),
+              builder: (context, child) {
+// 自动关闭其他Slidable    closeWhenOpened: true,
+//                   closeWhenTapped: true,
+                return SlidableAutoCloseBehavior(
+
+                  child: AnimatedOpacity(
+                  opacity: 1.0,
+                  duration: Duration(milliseconds: 500 + (index * 100)),
+                  child: AnimatedPadding(
+                    duration: const Duration(milliseconds: 300),
+                    padding: const EdgeInsets.only(top: 4, bottom: 4),
+                    child: buildAnniversaryCard(anniversaries[index]),
+                  ),
                 ),
-              );
-            },
-          );
-        },
-        itemCount: anniversaries.length,
+                );
+              },
+            );
+          },
+        ),
       ),
     );
   }
+
 
   // 堆叠布局（新的卡片堆叠布局）
   Widget _buildStackLayout() {
@@ -660,9 +702,10 @@ class _HomePageState extends  ConsumerState<HomePage> with TickerProviderStateMi
           print("查看详情: ${item.title}");
         },
         child: Slidable(
+          key: ValueKey(item.id),
           endActionPane: ActionPane(
-            motion: const ScrollMotion(),
-            extentRatio: 0.55, // 控制操作按钮区域的宽度比例
+            motion: const BehindMotion(),
+            extentRatio: 0.5,
             children: [
               // 编辑按钮
               CustomSlidableAction(
@@ -676,7 +719,7 @@ class _HomePageState extends  ConsumerState<HomePage> with TickerProviderStateMi
                 },
                 backgroundColor: Colors.blue.shade50,
                 foregroundColor: primaryColor,
-                borderRadius: BorderRadius.circular(8),
+                // borderRadius: BorderRadius.circular(8),
                 padding: const EdgeInsets.all(0),
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.center,
@@ -730,7 +773,7 @@ class _HomePageState extends  ConsumerState<HomePage> with TickerProviderStateMi
                 },
                 backgroundColor: Colors.red.shade50,
                 foregroundColor: Colors.red,
-                borderRadius: BorderRadius.circular(8),
+                borderRadius: BorderRadius.circular(0),
                 padding: const EdgeInsets.all(0),
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.center,

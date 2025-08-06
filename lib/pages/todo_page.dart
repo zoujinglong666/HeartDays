@@ -13,8 +13,6 @@ class TodoPage extends ConsumerStatefulWidget {
   ConsumerState<TodoPage> createState() => _TodoPageState();
 }
 
-// TodoItem 类已移至 todo_provider.dart
-
 class _TodoPageState extends ConsumerState<TodoPage> {
   final TextEditingController _controller = TextEditingController();
   TodoItem? _draggedItem;
@@ -24,6 +22,7 @@ class _TodoPageState extends ConsumerState<TodoPage> {
   @override
   void initState() {
     super.initState();
+    ref.read(todoProvider.notifier).refresh();
   }
 
   // 显示添加子任务的对话框
@@ -204,6 +203,14 @@ class _TodoPageState extends ConsumerState<TodoPage> {
       appBar: AppBar(
         title: const Text('待办事项', style: TextStyle(
             color: Color(0xFF2C2C2C), fontWeight: FontWeight.bold)),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.refresh),
+            onPressed: () async {
+              await ref.read(todoProvider.notifier).refresh();
+            },
+          )
+        ],
         backgroundColor: Colors.white,
         elevation: 0.5,
         centerTitle: true,

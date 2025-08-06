@@ -225,9 +225,10 @@ class DraggableTodoItem extends ConsumerWidget {
   
   // 显示编辑对话框
   void _showEditDialog(BuildContext context, WidgetRef ref, TodoItem item) {
+    final todoNotifier = ref.read(todoProvider.notifier); // ✅ 在外部获取一次
     final TextEditingController titleController = TextEditingController(text: item.title);
     String selectedPriority = item.priority;
-    
+
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
@@ -267,11 +268,11 @@ class DraggableTodoItem extends ConsumerWidget {
           TextButton(
             onPressed: () {
               if (titleController.text.trim().isNotEmpty) {
-                ref.read(todoProvider.notifier).updateTodo(
+                todoNotifier.updateTodo(
                   item.id,
                   titleController.text.trim(),
                   selectedPriority,
-                );
+                ); // ✅ 使用之前获取的 todoNotifier
                 Navigator.pop(context);
               }
             },
@@ -281,6 +282,7 @@ class DraggableTodoItem extends ConsumerWidget {
       ),
     );
   }
+
   
   // 构建优先级选项
   Widget _buildPriorityOption(BuildContext context, String label, String value, 

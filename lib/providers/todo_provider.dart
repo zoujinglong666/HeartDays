@@ -1,4 +1,6 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:heart_days/apis/todo_items_api.dart';
+import 'package:heart_days/common/toast.dart';
 
 // 定义Todo项数据结构
 class TodoItem {
@@ -46,61 +48,109 @@ class TodoItem {
 class TodoNotifier extends StateNotifier<List<TodoItem>> {
   TodoNotifier() : super([]) {
     // 初始化示例数据
-    state = [
-      TodoItem(
-        id: '1',
-        title: '完成今日计划',
-        done: false,
-        priority: 'high',
-        children: [
-          TodoItem(
-            id: '1-1',
-            title: '完成Flutter项目',
-            done: false,
-            priority: 'high',
-          ),
-          TodoItem(
-            id: '1-2',
-            title: '准备会议材料',
-            done: true,
-            priority: 'medium',
-          ),
-        ],
-      ),
-      TodoItem(
-        id: '2',
-        title: '阅读30分钟',
-        done: false,
-        priority: 'medium',
-      ),
-      TodoItem(
-        id: '3',
-        title: '喝8杯水',
-        done: true,
-        priority: 'low',
-      ),
-    ];
+    _initData();
   }
 
+  Future<void> _initData() async {
+    final apiResp = await listTodoApi({});
+    if (apiResp.success) {
+      List<BackendTodoItem>? flatList = apiResp.data;
+      List<TodoItem> tree = convertToUITree(flatList!);
+      state = tree;
+    } else {
+      state = [];
+    }
+  }
+  void printTodoTree(List<TodoItem> items, {int depth = 0, String prefix = ''}) {
+    final indentUnit = '  ';
+    for (var i = 0; i < items.length; i++) {
+      final isLast = i == items.length - 1;
+      final connector = isLast ? '└─' : '├─';
+      final newPrefix = prefix + (depth > 0 ? (isLast ? '   ' : '│  ') : '');
+
+      final item = items[i];
+      print('$prefix$connector ${item.title} (id: ${item.id}, done: ${item.done}), priority: ${item.priority},');
+
+      if (item.children.isNotEmpty) {
+        printTodoTree(item.children, depth: depth + 1, prefix: newPrefix);
+      }
+    }
+  }
+
+
+  List<TodoItem> convertToUITree(List<BackendTodoItem> apiList) {
+    // 1. 构造 ID => UI 对象映射
+    final Map<String, TodoItem> map = {
+      for (var b in apiList)
+        b.id: TodoItem(
+          id: b.id,
+          title: b.title,
+          done: b.done,
+          priority: priorityLevelToString(b.priority),
+          expanded: false,
+          parentId: b.parentId,
+        ),
+    };
+
+    // 2. 建立父子关系（直接引用子节点，无需 copyWith）
+    final List<TodoItem> roots = [];
+    for (final item in map.values) {
+      final pid = item.parentId;
+      if (pid != null && map.containsKey(pid)) {
+        map[pid]!.children.add(item); // ✅ 直接添加引用
+      } else {
+        roots.add(item); // ✅ 根节点
+      }
+    }
+
+    // 3. 修正展开状态
+    void fixExpanded(TodoItem item) {
+      item.expanded = item.children.isNotEmpty;
+      for (final child in item.children) {
+        fixExpanded(child);
+      }
+    }
+
+    for (final root in roots) {
+      fixExpanded(root);
+    }
+
+    // ✅ 打印结构
+    printTodoTree(roots);
+    return roots;
+  }
+
+
+  /// 统一的添加入口：parentId == null 时为根节点
+  Future<void> addTodo(String title, {String? parentId}) async {
+    if (title
+        .trim()
+        .isEmpty) return;
+
+    final res = await addTodoItemApi({
+      'title': title.trim(),
+      if (parentId != null) 'parent_id': parentId,
+    });
+
+    if (!res.success) {
+      MyToast.showError('add todo failed');
+      return;
+    }
+
+    MyToast.showSuccess('add todo success');
+    await _initData(); // 重新拉取
+  }
   // 添加根级Todo
-  void addRootTodo(String text) {
-    if (text.trim().isEmpty) return;
-    state = [
-      TodoItem(
-        id: DateTime.now().millisecondsSinceEpoch.toString(),
-        title: text.trim(),
-        done: false,
-        priority: 'medium',
-      ),
-      ...state,
-    ];
+  Future<void> addRootTodo(String text) async {
+    addTodo(text);
   }
 
   // 添加子Todo
-  void addChildTodo(TodoItem parent, String text) {
+  Future<void> addChildTodo(TodoItem todoItem, String text) async {
     if (text.trim().isEmpty) return;
-
-    state = state.map((item) => _updateParentRecursive(item, parent.id, text)).toList();
+    addTodo(text, parentId: todoItem.id);
+    state = state.map((item) => _updateParentRecursive(item, todoItem.id, text))
+        .toList();
   }
 
   // 递归查找并更新父节点
@@ -109,14 +159,13 @@ class TodoNotifier extends StateNotifier<List<TodoItem>> {
       final newChildren = List<TodoItem>.from(item.children);
       newChildren.add(
         TodoItem(
-          id: '${parentId}-${DateTime.now().millisecondsSinceEpoch}',
+          id: item.children.length.toString(),
           title: text.trim(),
           done: false,
           priority: 'medium',
           parentId: parentId, // 设置父级ID
         ),
       );
-
       return item.copyWith(
         children: newChildren,
         expanded: true, // 确保展开以显示新添加的子项
@@ -133,6 +182,9 @@ class TodoNotifier extends StateNotifier<List<TodoItem>> {
 
   // 切换Todo完成状态，并级联更新子项
   void toggleDone(TodoItem item) {
+    updateTodoFields(item.id,{
+      'done': !item.done,
+    });
     state = state.map((todo) => _updateDoneStatusRecursive(todo, item.id)).toList();
   }
 
@@ -182,11 +234,24 @@ class TodoNotifier extends StateNotifier<List<TodoItem>> {
     return item;
   }
 
+  Future<void> _deleteTodoItem(TodoItem item) async {
+    try {
+      final res = await deleteTodoApi({
+        "id": item.id
+      });
+      if (res.success) {
+        MyToast.showSuccess('delete todo success');
+        _initData();
+      }
+    } catch (e) {
+      MyToast.showError('delete todo error');
+    }
+  }
   // 删除Todo项
   void deleteTodo(TodoItem item) {
+    _deleteTodoItem(item);
     state = _removeItemRecursive(state, item.id);
   }
-
   // 递归删除项
   List<TodoItem> _removeItemRecursive(List<TodoItem> items, String targetId) {
     // 先检查顶层是否有匹配项
@@ -208,8 +273,26 @@ class TodoNotifier extends StateNotifier<List<TodoItem>> {
     }).toList();
   }
 
+
+
   // 切换优先级
   void togglePriority(TodoItem item) {
+    String newPriority;
+    if (item.priority == 'high') {
+      newPriority = 'medium';
+    } else if (item.priority == 'medium') {
+      newPriority = 'low';
+    } else {
+      newPriority = 'high';
+    }
+    final priorityMap = {
+      'low': 0,
+      'medium': 1,
+      'high': 2,
+    };
+    updateTodoFields(item.id,{
+      'priority':priorityMap[newPriority]
+    });
     state = state.map((todo) => _updatePriorityRecursive(todo, item.id)).toList();
   }
 
@@ -323,9 +406,44 @@ class TodoNotifier extends StateNotifier<List<TodoItem>> {
     }
     return item;
   }
-  
+
+  String nextPriority(String currentPriority) {
+    const priorities = ['0', '1', '2'];
+    final currentIndex = priorities.indexOf(currentPriority);
+    final nextIndex = (currentIndex + 1) % priorities.length;
+    return priorities[nextIndex];
+  }
+
+
   // 更新Todo项
-  void updateTodo(String id, String title, String priority) {
+  Future<void> updateTodoFields(String id, Map<String, dynamic> fields) async {
+    try {
+      final payload = {
+        "id": id,
+        ...fields, // 合并需要更新的字段
+      };
+
+      final res = await updateTodoApi(payload);
+      if (res.success) {
+        MyToast.showSuccess('保存成功');
+        _initData();
+      }
+    } catch (e) {
+      MyToast.showError('保存失败');
+    }
+  }
+
+  // 更新Todo项
+  Future<void> updateTodo(String id, String title, String priority) async {
+    final priorityMap = {
+      'low': 0,
+      'medium': 1,
+      'high': 2,
+    };
+    updateTodoFields(id, {
+      "title": title,
+      "priority": priorityMap[priority],
+    });
     state = state.map((todo) => _updateTodoRecursive(todo, id, title, priority)).toList();
   }
   
@@ -342,6 +460,9 @@ class TodoNotifier extends StateNotifier<List<TodoItem>> {
     }
     return item;
   }
+
+  /* ---------- 查（刷新） ---------- */
+  Future<void> refresh() => _initData();
 }
 
 // 创建Provider

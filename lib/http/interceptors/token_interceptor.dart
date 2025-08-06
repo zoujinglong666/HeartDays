@@ -167,16 +167,16 @@ class TokenInterceptorHandler extends Interceptor {
     final key = _cacheKey(err.requestOptions);
 
     // token 已失效，直接退出登录
-    if (apiResponse.code == 40103 || apiResponse.code == 40102 ||
-        apiResponse.code == 40104 || apiResponse.code == 40105) {
-      print('TokenInterceptor: Token expired (40103), logging out user');
-      print('TokenInterceptor: Request path: $path');
-      print('TokenInterceptor: Current token: ${_authNotifier.token?.substring(
-          0, 20)}...');
-      await _logout();
-      handler.reject(err);
-      return;
-    }
+    // if (apiResponse.code == 40103 || apiResponse.code == 40102 ||
+    //     apiResponse.code == 40104 || apiResponse.code == 40105) {
+    //   print('TokenInterceptor: Token expired (40103), logging out user');
+    //   print('TokenInterceptor: Request path: $path');
+    //   print('TokenInterceptor: Current token: ${_authNotifier.token?.substring(
+    //       0, 20)}...');
+    //   await _logout();
+    //   handler.reject(err);
+    //   return;
+    // }
 
     // token 过期，尝试刷新
     if (apiResponse.code == 40100 && !_isWhitelisted(path)) {

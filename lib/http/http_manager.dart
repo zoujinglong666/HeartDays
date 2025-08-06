@@ -48,7 +48,7 @@ class HttpManager {
       String path, {
         Map<String, dynamic>? data,
         Options? options,
-        Function(dynamic)? fromJson,
+        Function(dynamic)? fromJson
       }) async {
     final res = await _dio.delete(path, data: data, options: options);
     return ApiResponse<T>.fromJson(res.data, fromJson);
