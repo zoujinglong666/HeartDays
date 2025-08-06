@@ -39,7 +39,7 @@ class _ReorderableColumnState extends State<ReorderableColumn> {
       shrinkWrap: true,
       physics: const NeverScrollableScrollPhysics(),
       padding: widget.padding,
-      buildDefaultDragHandles: widget.needsLongPressDraggable,
+      buildDefaultDragHandles: true, // 始终启用默认拖拽手柄
       onReorder: widget.onReorder,
       scrollController: _scrollController,
       children: widget.children,

@@ -62,12 +62,10 @@ class TodoNotifier extends StateNotifier<List<TodoItem>> {
     }
   }
   void printTodoTree(List<TodoItem> items, {int depth = 0, String prefix = ''}) {
-    final indentUnit = '  ';
     for (var i = 0; i < items.length; i++) {
       final isLast = i == items.length - 1;
       final connector = isLast ? '└─' : '├─';
       final newPrefix = prefix + (depth > 0 ? (isLast ? '   ' : '│  ') : '');
-
       final item = items[i];
       print('$prefix$connector ${item.title} (id: ${item.id}, done: ${item.done}), priority: ${item.priority},');
 
@@ -159,7 +157,7 @@ class TodoNotifier extends StateNotifier<List<TodoItem>> {
       final newChildren = List<TodoItem>.from(item.children);
       newChildren.add(
         TodoItem(
-          id: item.children.length.toString(),
+          id: item.id,
           title: text.trim(),
           done: false,
           priority: 'medium',
@@ -232,6 +230,27 @@ class TodoNotifier extends StateNotifier<List<TodoItem>> {
       );
     }
     return item;
+  }
+
+  void swapChildren(TodoItem parent, int index1, int index2) {
+    if (index1 < 0 || index2 < 0 || index1 >= parent.children.length || index2 >= parent.children.length) {
+      return; // 越界保护
+    }
+
+    final newChildren = List<TodoItem>.from(parent.children);
+    final temp = newChildren[index1];
+    newChildren[index1] = newChildren[index2];
+    newChildren[index2] = temp;
+
+    // 更新 parent
+    final updatedParent = parent.copyWith(children: newChildren);
+
+    // 更新整个 state
+    state = state.map((todo) =>
+    todo.id == parent.id
+        ? updatedParent
+        : _updateChildrenRecursive(todo, parent.id, newChildren)
+    ).toList();
   }
 
   Future<void> _deleteTodoItem(TodoItem item) async {
@@ -331,6 +350,7 @@ class TodoNotifier extends StateNotifier<List<TodoItem>> {
   
   // 移动Todo项到新的父级
   void moveTodoToParent(TodoItem item, TodoItem? newParent) {
+    print(' 移动Todo项到新的父级');
     // 创建一个新的item副本，更新parentId
     TodoItem updatedItem = item.copyWith(
       parentId: newParent?.id, // 如果是移动到根级别，parentId为null

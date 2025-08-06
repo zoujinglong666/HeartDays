@@ -108,56 +108,16 @@ class _TodoPageState extends ConsumerState<TodoPage> {
       onReorder: (oldIndex, newIndex) {
         ref.read(todoProvider.notifier).reorderTodos(oldIndex, newIndex);
       },
-      needsLongPressDraggable: false,
-      children: todos.map((item) {
-        return LongPressDraggable<TodoItem>(
+      // 启用拖拽功能
+      needsLongPressDraggable: true,
+      children: todos.asMap().entries.map((entry) {
+        final int index = entry.key;
+        final TodoItem item = entry.value;
+        return DraggableTodoItem(
           key: ValueKey(item.id),
-          data: item,
-          feedback: Material(
-            elevation: 4,
-            child: SizedBox(
-              width: MediaQuery.of(context).size.width * 0.9,
-              child: DraggableTodoItem(
-                item: item,
-                onAddChild: _showAddChildDialog,
-                isDragging: true,
-              ),
-            ),
-          ),
-          childWhenDragging: Opacity(
-            opacity: 0.3,
-            child: DraggableTodoItem(
-              item: item,
-              onAddChild: _showAddChildDialog,
-            ),
-          ),
-          onDragStarted: () => _onDragStarted(item),
-          child: DragTarget<TodoItem>(
-            onWillAccept: (data) => data != null && data.id != item.id && data.parentId != item.id,
-            onAccept: (data) => _onAccept(item),
-            onLeave: (_) => _onDragExited(),
-            onMove: (details) {
-              if (details.data.id != item.id && details.data.parentId != item.id) {
-                _onDragEntered(item);
-              }
-            },
-            builder: (context, candidateData, rejectedData) {
-              final bool isTargeted = _targetParent?.id == item.id;
-              return AnimatedContainer(
-                duration: NeumorphicTheme.dragHighlightDuration,
-                decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(16),
-                  border: isTargeted
-                      ? Border.all(color: NeumorphicTheme.accentColor, width: 2)
-                      : null,
-                ),
-                child: DraggableTodoItem(
-                  item: item,
-                  onAddChild: _showAddChildDialog,
-                ),
-              );
-            },
-          ),
+          item: item,
+          onAddChild: _showAddChildDialog,
+          index: index, // 传递根项在列表中的索引
         );
       }).toList(),
     );
@@ -165,7 +125,7 @@ class _TodoPageState extends ConsumerState<TodoPage> {
   // 构建根级拖放区域
   Widget _buildRootDragTarget() {
     return DragTarget<TodoItem>(
-      onWillAccept: (data) => data != null && data?.parentId != null, // 只接受非根级别的项
+      onWillAccept: (data) => data != null && data.parentId != null, // 只接受非根级别的项
       onAccept: (data) => _onAccept(null),
       builder: (context, candidateData, rejectedData) {
         final bool isTargeted = _targetParent == null && _isDragging;

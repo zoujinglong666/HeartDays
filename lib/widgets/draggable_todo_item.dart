@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/gestures.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_slidable/flutter_slidable.dart';
 import 'package:heart_days/providers/todo_provider.dart';
@@ -11,6 +12,7 @@ class DraggableTodoItem extends ConsumerWidget {
   final double leftPadding;
   final Function(BuildContext, TodoItem) onAddChild;
   final bool isDragging;
+  final int? index; // 在父项子列表中的索引
 
   const DraggableTodoItem({
     super.key,
@@ -18,6 +20,7 @@ class DraggableTodoItem extends ConsumerWidget {
     this.leftPadding = 0,
     required this.onAddChild,
     this.isDragging = false,
+    this.index,
   });
 
   @override
@@ -140,13 +143,10 @@ class DraggableTodoItem extends ConsumerWidget {
                                 onTap: () => todoNotifier.toggleExpanded(item),
                               ),
                             // 拖拽手柄
-                            _buildNeumorphicIconButton(
-                              icon: Icons.drag_handle,
-                              onTap: null,
-                            ),
+                            _buildDragHandle(context),
                           ],
                         ),
-                        onLongPress: () => todoNotifier.togglePriority(item),
+                        // onLongPress: () => todoNotifier.togglePriority(item),
                       ),
                     ),
                   ],
@@ -168,9 +168,10 @@ class DraggableTodoItem extends ConsumerWidget {
                   final todoNotifier = ref.read(todoProvider.notifier);
                   todoNotifier.reorderChildTodos(item, oldIndex, newIndex);
                 },
-                needsLongPressDraggable: false,
+                // 启用拖拽功能
+                needsLongPressDraggable: true,
                 children: item.children.asMap().entries.map((entry) {
-                  final index = entry.key;
+                  final childIndex = entry.key;
                   final child = entry.value;
                   return Padding(
                     key: ValueKey('${item.id}-child-${child.id}'),
@@ -179,6 +180,7 @@ class DraggableTodoItem extends ConsumerWidget {
                       item: child,
                       leftPadding: leftPadding + 20,
                       onAddChild: onAddChild,
+                      index: childIndex, // 传递子项在列表中的索引
                     ),
                   );
                 }).toList(),
@@ -218,6 +220,32 @@ class DraggableTodoItem extends ConsumerWidget {
           icon,
           size: 18,
           color: Colors.grey.shade600,
+        ),
+      ),
+    );
+  }
+  
+  // 构建可拖拽手柄
+  Widget _buildDragHandle(BuildContext context) {
+    // 获取索引，如果没有传入则默认为0
+    int itemIndex = index ?? 0;
+    
+    // 使用自定义的CustomDragStartListener提高拖拽灵敏度
+    return Padding(
+      padding: const EdgeInsets.only(left: 4),
+      child: CustomDragStartListener(
+        index: itemIndex,
+        child: NeumorphicBox(
+          width: 32,
+          height: 32,
+          borderRadius: 8,
+          padding: EdgeInsets.zero,
+          type: NeumorphicType.flat,
+          child: Icon(
+            Icons.drag_handle,
+            size: 18,
+            color: Colors.grey.shade600,
+          ),
         ),
       ),
     );
@@ -307,6 +335,24 @@ class DraggableTodoItem extends ConsumerWidget {
           ),
         ),
       ),
+    );
+  }
+}
+
+// 自定义拖拽监听器，提高拖拽灵敏度
+class CustomDragStartListener extends ReorderableDelayedDragStartListener {
+  const CustomDragStartListener({
+    super.key,
+    required super.child,
+    required super.index,
+    super.enabled,
+  });
+
+  @override
+  MultiDragGestureRecognizer createRecognizer() {
+    return DelayedMultiDragGestureRecognizer(
+      delay: const Duration(milliseconds: 100), // 默认是500ms，现在改为100ms提高灵敏度
+      debugOwner: this,
     );
   }
 }
