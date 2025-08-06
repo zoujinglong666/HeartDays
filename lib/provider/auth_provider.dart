@@ -237,6 +237,8 @@ class AuthNotifier extends StateNotifier<AuthState> {
     state = const AuthState(isInitialized: true);
     final prefs = await SharedPreferences.getInstance();
     await prefs.remove(_storageKey);
+    await prefs.remove('token');
+    await prefs.remove('refresh_token');
     MyToast.showToast("已退出登录");
     // 不再调用 prefs.clear()，避免误伤其他缓存
   }

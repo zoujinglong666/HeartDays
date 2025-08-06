@@ -1,225 +1,283 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:heart_days/providers/todo_provider.dart';
+import 'package:heart_days/theme/neumorphic_theme.dart';
+import 'package:heart_days/widgets/draggable_todo_item.dart';
+import 'package:heart_days/widgets/neumorphic_box.dart';
+import 'package:reorderables/reorderables.dart';
 
-class TodoPage extends StatefulWidget {
+class TodoPage extends ConsumerStatefulWidget {
   const TodoPage({super.key});
 
   @override
-  State<TodoPage> createState() => _TodoPageState();
+  ConsumerState<TodoPage> createState() => _TodoPageState();
 }
 
-class _TodoPageState extends State<TodoPage> {
-  final List<Map<String, dynamic>> _todos = [
-    {'title': '完成今日计划', 'done': false, 'priority': 'high'},
-    {'title': '阅读30分钟', 'done': false, 'priority': 'medium'},
-    {'title': '喝8杯水', 'done': true, 'priority': 'low'},
-  ];
+// TodoItem 类已移至 todo_provider.dart
+
+class _TodoPageState extends ConsumerState<TodoPage> {
   final TextEditingController _controller = TextEditingController();
+  TodoItem? _draggedItem;
+  TodoItem? _targetParent;
+  bool _isDragging = false;
 
-  static const Color morandiPink = Color(0xFFFBEFF1);
-  static const Color morandiBlue = Color(0xFFE6ECF7);
-  static const Color morandiGrey = Color(0xFFE0E0E0);
+  @override
+  void initState() {
+    super.initState();
+  }
 
-  Color _priorityColor(String p) {
-    switch (p) {
-      case 'high': return const Color(0xFFFF6B6B);
-      case 'medium': return const Color(0xFFFFB74D);
-      case 'low': return const Color(0xFF81C784);
-      default: return morandiGrey;
+  // 显示添加子任务的对话框
+  Future<void> _showAddChildDialog(BuildContext context, TodoItem parent) async {
+    final TextEditingController controller = TextEditingController();
+    return showDialog<void>(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: const Text('添加子任务'),
+          content: TextField(
+            controller: controller,
+            decoration: const InputDecoration(
+              hintText: '输入子任务内容...',
+            ),
+            autofocus: true,
+          ),
+          actions: <Widget>[
+            TextButton(
+              child: const Text('取消'),
+              onPressed: () {
+                Navigator.of(context).pop();
+              },
+            ),
+            TextButton(
+              child: const Text('添加'),
+              onPressed: () {
+                if (controller.text.trim().isNotEmpty) {
+                  ref.read(todoProvider.notifier).addChildTodo(parent, controller.text);
+                }
+                Navigator.of(context).pop();
+              },
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  // 开始拖拽
+  void _onDragStarted(TodoItem item) {
+    setState(() {
+      _draggedItem = item;
+      _isDragging = true;
+    });
+  }
+
+  // 接受拖拽
+  void _onAccept(TodoItem? newParent) {
+    if (_draggedItem != null) {
+      // 如果拖到了新的父级，则移动到该父级下
+      ref.read(todoProvider.notifier).moveTodoToParent(_draggedItem!, newParent);
+      setState(() {
+        _draggedItem = null;
+        _targetParent = null;
+        _isDragging = false;
+      });
     }
   }
 
-  void _addTodo(String text) {
-    if (text.trim().isEmpty) return;
-    setState(() {
-      _todos.insert(0, {'title': text.trim(), 'done': false, 'priority': 'medium'});
-    });
-    _controller.clear();
+  // 拖拽进入目标区域
+  void _onDragEntered(TodoItem? newParent) {
+    if (newParent != null && newParent.id != _draggedItem?.id) {
+      setState(() {
+        _targetParent = newParent;
+        // 自动展开目标节点
+        if (!newParent.expanded && newParent.children.isNotEmpty) {
+          ref.read(todoProvider.notifier).toggleExpanded(newParent);
+        }
+      });
+    }
   }
 
-  void _toggleDone(int idx) {
+  // 拖拽离开目标区域
+  void _onDragExited() {
     setState(() {
-      _todos[idx]['done'] = !_todos[idx]['done'];
+      _targetParent = null;
     });
   }
-
-  void _deleteTodo(int idx) {
-    setState(() {
-      _todos.removeAt(idx);
-    });
+  // 构建可拖拽的Todo列表
+  Widget _buildDraggableTodoList(List<TodoItem> todos) {
+    return ReorderableColumn(
+      onReorder: (oldIndex, newIndex) {
+        ref.read(todoProvider.notifier).reorderTodos(oldIndex, newIndex);
+      },
+      needsLongPressDraggable: false,
+      children: todos.map((item) {
+        return LongPressDraggable<TodoItem>(
+          key: ValueKey(item.id),
+          data: item,
+          feedback: Material(
+            elevation: 4,
+            child: SizedBox(
+              width: MediaQuery.of(context).size.width * 0.9,
+              child: DraggableTodoItem(
+                item: item,
+                onAddChild: _showAddChildDialog,
+                isDragging: true,
+              ),
+            ),
+          ),
+          childWhenDragging: Opacity(
+            opacity: 0.3,
+            child: DraggableTodoItem(
+              item: item,
+              onAddChild: _showAddChildDialog,
+            ),
+          ),
+          onDragStarted: () => _onDragStarted(item),
+          child: DragTarget<TodoItem>(
+            onWillAccept: (data) => data != null && data.id != item.id && data.parentId != item.id,
+            onAccept: (data) => _onAccept(item),
+            onLeave: (_) => _onDragExited(),
+            onMove: (details) {
+              if (details.data.id != item.id && details.data.parentId != item.id) {
+                _onDragEntered(item);
+              }
+            },
+            builder: (context, candidateData, rejectedData) {
+              final bool isTargeted = _targetParent?.id == item.id;
+              return AnimatedContainer(
+                duration: NeumorphicTheme.dragHighlightDuration,
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(16),
+                  border: isTargeted
+                      ? Border.all(color: NeumorphicTheme.accentColor, width: 2)
+                      : null,
+                ),
+                child: DraggableTodoItem(
+                  item: item,
+                  onAddChild: _showAddChildDialog,
+                ),
+              );
+            },
+          ),
+        );
+      }).toList(),
+    );
+  }
+  // 构建根级拖放区域
+  Widget _buildRootDragTarget() {
+    return DragTarget<TodoItem>(
+      onWillAccept: (data) => data != null && data?.parentId != null, // 只接受非根级别的项
+      onAccept: (data) => _onAccept(null),
+      builder: (context, candidateData, rejectedData) {
+        final bool isTargeted = _targetParent == null && _isDragging;
+        return AnimatedContainer(
+          duration: NeumorphicTheme.dragHighlightDuration,
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(16),
+            border: isTargeted
+                ? Border.all(color: NeumorphicTheme.accentColor, width: 2)
+                : null,
+          ),
+          child: Container(
+            padding: const EdgeInsets.all(16),
+            width: double.infinity,
+            child: isTargeted
+                ? Center(
+                    child: Text(
+                      '拖放到此处移动到根级别',
+                      style: TextStyle(color: NeumorphicTheme.accentColor),
+                    ),
+                  )
+                : null,
+          ),
+        );
+      },
+    );
   }
 
   @override
   Widget build(BuildContext context) {
+    final todos = ref.watch(todoProvider);
+    
     return Scaffold(
-      backgroundColor: morandiPink,
+      backgroundColor: NeumorphicTheme.background,
       appBar: AppBar(
-        title: const Text('待办事项', style: TextStyle(color: Color(0xFF2C2C2C), fontWeight: FontWeight.bold)),
+        title: const Text('待办事项', style: TextStyle(
+            color: Color(0xFF2C2C2C), fontWeight: FontWeight.bold)),
         backgroundColor: Colors.white,
         elevation: 0.5,
         centerTitle: true,
         foregroundColor: Colors.black87,
       ),
-      body: Column(
-        children: [
-          // 输入框
-          Padding(
-            padding: const EdgeInsets.fromLTRB(20, 24, 20, 8),
-            child: Row(
-              children: [
-                Expanded(
-                  child: Container(
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                      borderRadius: BorderRadius.circular(16),
-                      boxShadow: [
-                        BoxShadow(
-                          color: Colors.black.withOpacity(0.04),
-                          blurRadius: 8,
-                          offset: const Offset(0, 2),
-                        ),
-                      ],
-                    ),
-                    child: TextField(
-                      controller: _controller,
-                      decoration: const InputDecoration(
-                        hintText: '添加新的待办事项...',
-                        border: InputBorder.none,
-                        contentPadding: EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-                      ),
-                      onSubmitted: _addTodo,
-                    ),
-                  ),
+      // 悬浮按钮 - 添加根任务
+      floatingActionButton: NeumorphicBox(
+        width: 56,
+        height: 56,
+        borderRadius: 28,
+        type: NeumorphicType.convex,
+        color: NeumorphicTheme.accentColor.withOpacity(0.1),
+        padding: EdgeInsets.zero,
+        child: Icon(Icons.add, color: NeumorphicTheme.accentColor),
+        onTap: () {
+          showDialog(
+            context: context,
+            builder: (context) => AlertDialog(
+              title: const Text('添加新任务'),
+              content: TextField(
+                controller: _controller,
+                decoration: const InputDecoration(
+                  hintText: '输入任务内容...',
                 ),
-                const SizedBox(width: 12),
-                Material(
-                  color: morandiBlue,
-                  borderRadius: BorderRadius.circular(12),
-                  child: InkWell(
-                    borderRadius: BorderRadius.circular(12),
-                    onTap: () => _addTodo(_controller.text),
-                    child: const Padding(
-                      padding: EdgeInsets.all(12),
-                      child: Icon(Icons.add, color: Color(0xFF6C63FF)),
-                    ),
-                  ),
+                autofocus: true,
+              ),
+              actions: [
+                TextButton(
+                  child: const Text('取消'),
+                  onPressed: () {
+                    Navigator.of(context).pop();
+                    _controller.clear();
+                  },
+                ),
+                TextButton(
+                  child: const Text('添加'),
+                  onPressed: () {
+                    ref.read(todoProvider.notifier).addRootTodo(_controller.text);
+                    _controller.clear();
+                    Navigator.of(context).pop();
+                  },
                 ),
               ],
             ),
-          ),
-          // 列表
-          Expanded(
-            child: _todos.isEmpty
-                ? Center(
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Icon(Icons.inbox, size: 64, color: morandiGrey),
-                        const SizedBox(height: 12),
-                        Text('暂无待办事项', style: TextStyle(color: Colors.grey.shade500, fontSize: 16)),
-                        const SizedBox(height: 8),
-                        const Text('点击下方输入添加你的第一个待办吧~', style: TextStyle(fontSize: 13, color: Color(0xFFBDBDBD))),
-                      ],
-                    ),
-                  )
-                : ListView.separated(
-                    padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
-                    itemCount: _todos.length,
-                    separatorBuilder: (_, __) => const SizedBox(height: 12),
-                    itemBuilder: (context, idx) {
-                      final todo = _todos[idx];
-                      return Dismissible(
-                        key: ValueKey(todo['title'] + todo['priority'].toString() + todo['done'].toString()),
-                        direction: DismissDirection.endToStart,
-                        background: Container(
-                          alignment: Alignment.centerRight,
-                          padding: const EdgeInsets.only(right: 24),
-                          decoration: BoxDecoration(
-                            color: Colors.redAccent.withOpacity(0.1),
-                            borderRadius: BorderRadius.circular(16),
-                          ),
-                          child: const Icon(Icons.delete, color: Colors.redAccent),
-                        ),
-                        onDismissed: (_) => _deleteTodo(idx),
-                        child: Container(
-                          decoration: BoxDecoration(
-                            color: Colors.white,
-                            borderRadius: BorderRadius.circular(16),
-                            boxShadow: [
-                              BoxShadow(
-                                color: Colors.black.withOpacity(0.04),
-                                blurRadius: 8,
-                                offset: const Offset(0, 2),
-                              ),
-                            ],
-                          ),
-                          child: ListTile(
-                            leading: InkWell(
-                              borderRadius: BorderRadius.circular(20),
-                              onTap: () => _toggleDone(idx),
-                              child: Container(
-                                width: 28,
-                                height: 28,
-                                decoration: BoxDecoration(
-                                  color: todo['done'] ? _priorityColor(todo['priority']).withOpacity(0.15) : Colors.transparent,
-                                  border: Border.all(
-                                    color: _priorityColor(todo['priority']),
-                                    width: 2,
-                                  ),
-                                  borderRadius: BorderRadius.circular(20),
-                                ),
-                                child: todo['done']
-                                    ? Icon(Icons.check, color: _priorityColor(todo['priority']), size: 20)
-                                    : null,
-                              ),
-                            ),
-                            title: Text(
-                              todo['title'],
-                              style: TextStyle(
-                                fontSize: 16,
-                                fontWeight: FontWeight.w500,
-                                color: todo['done'] ? Colors.grey : Colors.black87,
-                                decoration: todo['done'] ? TextDecoration.lineThrough : null,
-                              ),
-                            ),
-                            trailing: Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                              decoration: BoxDecoration(
-                                color: _priorityColor(todo['priority']).withOpacity(0.12),
-                                borderRadius: BorderRadius.circular(10),
-                              ),
-                              child: Text(
-                                todo['priority'] == 'high'
-                                    ? '高'
-                                    : todo['priority'] == 'medium'
-                                        ? '中'
-                                        : '低',
-                                style: TextStyle(
-                                  fontSize: 12,
-                                  color: _priorityColor(todo['priority']),
-                                  fontWeight: FontWeight.w600,
-                                ),
-                              ),
-                            ),
-                            onLongPress: () {
-                              // 长按切换优先级
-                              setState(() {
-                                if (todo['priority'] == 'high') {
-                                  todo['priority'] = 'medium';
-                                } else if (todo['priority'] == 'medium') {
-                                  todo['priority'] = 'low';
-                                } else {
-                                  todo['priority'] = 'high';
-                                }
-                              });
-                            },
-                          ),
-                        ),
-                      );
-                    },
-                  ),
-          ),
-        ],
+          );
+        },
       ),
+      body: todos.isEmpty
+          ? Center(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(Icons.inbox, size: 64, color: Colors.grey.shade300),
+                  const SizedBox(height: 12),
+                  Text('暂无待办事项',
+                      style: TextStyle(color: Colors.grey.shade500, fontSize: 16)),
+                  const SizedBox(height: 8),
+                  const Text('点击右下角按钮添加你的第一个待办吧~',
+                      style: TextStyle(fontSize: 13, color: Color(0xFFBDBDBD))),
+                ],
+              ),
+            )
+          : Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+              child: Column(
+                children: [
+                  if (_isDragging) _buildRootDragTarget(),
+                  if (_isDragging) const SizedBox(height: 12),
+                  Expanded(
+                    child: _buildDraggableTodoList(todos),
+                  ),
+                ],
+              ),
+            ),
     );
   }
-} 
+}

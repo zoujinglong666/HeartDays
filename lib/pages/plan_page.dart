@@ -1,5 +1,3 @@
-import 'dart:convert';
-
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:heart_days/apis/plan.dart';
@@ -7,7 +5,6 @@ import 'package:heart_days/pages/calendar_page.dart';
 import 'package:heart_days/pages/todo_page.dart';
 import 'package:heart_days/provider/auth_provider.dart';
 import 'package:heart_days/utils/ToastUtils.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 import 'package:table_calendar/table_calendar.dart';
 
 import 'plan_detail_page.dart';
