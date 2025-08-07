@@ -75,6 +75,7 @@ dependencies:
   omni_calendar_view: ^1.0.1
   chat_bottom_container: ^0.4.0
   reorderables: ^0.6.0
+  flutter_picker_plus: ^1.5.1
 flutter_launcher_icons:
     image_path: "lib/assets/images/icon.png"
     image_path_android: "lib/assets/images/icon.png"
@@ -112,6 +113,7 @@ flutter:
   uses-material-design: true
   assets:
     - lib/assets/
+    - lib/assets/city.json
     - lib/assets/images/
     - lib/assets/icon/
 

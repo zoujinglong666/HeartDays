@@ -39,10 +39,27 @@ class _ReorderableColumnState extends State<ReorderableColumn> {
       shrinkWrap: true,
       physics: const NeverScrollableScrollPhysics(),
       padding: widget.padding,
-      buildDefaultDragHandles: true, // 始终启用默认拖拽手柄
       onReorder: widget.onReorder,
       scrollController: _scrollController,
-      children: widget.children,
+      buildDefaultDragHandles: false, // 关闭默认拖拽手柄
+
+      children: List.generate(widget.children.length, (index) {
+        final child = widget.children[index];
+
+        return Container(
+          key: ValueKey(index),
+          // 用 GestureDetector 包裹一层，可以根据需要实现更多自定义交互
+          child: widget.needsLongPressDraggable
+              ? ReorderableDelayedDragStartListener(
+            index: index,
+            child: child,
+          )
+              : ReorderableDragStartListener(
+            index: index,
+            child: child,
+          ),
+        );
+      }),
     );
   }
 }

@@ -351,7 +351,7 @@ class CustomDragStartListener extends ReorderableDelayedDragStartListener {
   @override
   MultiDragGestureRecognizer createRecognizer() {
     return DelayedMultiDragGestureRecognizer(
-      delay: const Duration(milliseconds: 100), // 默认是500ms，现在改为100ms提高灵敏度
+      delay: const Duration(milliseconds: 0), // 默认是500ms，现在改为100ms提高灵敏度
       debugOwner: this,
     );
   }

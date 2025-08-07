@@ -1,6 +1,7 @@
 import 'package:bot_toast/bot_toast.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:heart_days/Consts/index.dart';
 import 'package:heart_days/common/event_bus.dart';
 import 'package:heart_days/pages/SplashPage.dart';
 import 'package:heart_days/pages/main_page.dart';
@@ -11,6 +12,7 @@ import 'package:heart_days/utils/navigation_service.dart';
 void main() async {
   // 确保Flutter绑定初始化
   WidgetsFlutterBinding.ensureInitialized();
+
   // ✅ 监听 Token 过期事件
   eventBus.on<TokenExpiredEvent>().listen((event) {
     NavigationService.navigatorKey.currentState?.pushNamedAndRemoveUntil(

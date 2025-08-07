@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:heart_days/pages/MyListPage.dart';
+import 'package:heart_days/components/Button.dart';
 
 class AboutPage extends StatelessWidget {
   const AboutPage({super.key});

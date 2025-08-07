@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:heart_days/apis/anniversary.dart';
 import 'package:heart_days/common/event_bus.dart';
 import 'package:heart_days/components/date_picker/date_picker.dart';
+import 'package:heart_days/components/selectable/index.dart';
 import 'package:heart_days/utils/ToastUtils.dart';
 import 'package:heart_days/utils/dateUtils.dart';
 import 'package:intl/intl.dart';
@@ -28,17 +29,13 @@ class _AddAnniversaryPageState extends State<AddAnniversaryPage> {
   DateTime _selectedDate = DateTime.now();
   String _selectedIcon = "💖";
   String _selectedType = "纪念日"; // 默认类型为纪念日
-  bool _isYearly = false;
-  bool _isMonthly = false;
-  bool _isWeekly = false;
-  bool _isDaily = false;
   bool _isPinned = false; // 是否置顶
   bool _isHighlighted = false; // 是否高亮
   Color _selectedColor = const Color(0xFF90CAF9);
+  Option<String>? _repetitiveType;
 
-  // 预设类型列表
+  /// 预设类型列表
   final List<String> _typeOptions = ["纪念日", "倒数日", "生活", "工作", "学习"];
-
   // 预设图标列表 - 按分类组织
   final Map<String, List<String>> _categorizedIcons = {
     "情感": ["💖", "💕", "💓", "💗", "💘", "💝", "💑", "👩‍❤️‍👨", "💍", "🌹"],
@@ -115,10 +112,8 @@ class _AddAnniversaryPageState extends State<AddAnniversaryPage> {
     hexColor = hexColor.replaceAll("#", "");
     // 转换为int值
     int colorValue = int.parse(hexColor, radix: 16);
-
     // 添加默认透明度（255，即完全不透明）
     colorValue += 0xFF000000;
-
     return colorValue;
   }
 
@@ -189,7 +184,6 @@ class _AddAnniversaryPageState extends State<AddAnniversaryPage> {
     // 初始化置顶 & 高亮
     _isPinned = widget.anniversaryItem?.isPinned ?? false;
     _isHighlighted = widget.anniversaryItem?.isHighlighted ?? false;
-
     // 初始化颜色
     _selectedColor = widget.anniversaryItem?.color ?? const Color(0xFF90CAF9);
 
@@ -432,8 +426,8 @@ Color getAppBarColor(String type) {
 
                   // 重复选项
                   _buildSectionTitle("重复"),
-                  _buildRepeatOptions(),
-                  const SizedBox(height: 80), // 为底部按钮留出空间
+                  _buildCategorySelector(),
+
                 ],
               ),
             ],
@@ -443,6 +437,56 @@ Color getAppBarColor(String type) {
     );
   }
 
+  // 日期选择器
+  Widget _buildCategorySelector() {
+    return InkWell(
+      onTap: () {
+        Selectable<String>(
+          context: context,
+          title: "请选择",
+          showClose: true,
+          initialValue: _repetitiveType == null ? null : [
+            _repetitiveType!.value
+          ],
+          options: const [
+            Option(label: "每天重复", value: "daily"),
+            Option(label: "每周重复", value: "weekly"),
+            Option(label: "每月重复", value: "monthly"),
+            Option(label: "每年重复", value: "yearly"),
+          ],
+        ).show().then((options) {
+          if (options?.isNotEmpty ?? false) {
+            setState(() => _repetitiveType = options![0]);
+          }
+        });
+      },
+      borderRadius: BorderRadius.circular(12),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+        decoration: BoxDecoration(
+          color: const Color(0xFFF2F2F7),
+          borderRadius: BorderRadius.circular(12),
+        ),
+        child: Row(
+          children: [
+            const Icon(Icons.category, color: Color(0xFF007AFF), size: 20),
+            const SizedBox(width: 16),
+            Text(
+              _repetitiveType?.label ?? '未选择',
+              style: const TextStyle(fontSize: 16, color: Colors.black87),
+            )
+            ,
+            const Spacer(),
+            Icon(
+              Icons.arrow_forward_ios,
+              size: 16,
+              color: Colors.grey.shade400,
+            ),
+          ],
+        ),
+      ),
+    );
+  }
   // 预览卡片
   Widget _buildPreviewCard() {
     final daysLeft = _selectedDate.difference(DateTime.now()).inDays;
@@ -548,21 +592,13 @@ Color getAppBarColor(String type) {
             ),
           ],
           if (_isPinned ||
-              _isHighlighted ||
-              _isYearly ||
-              _isMonthly ||
-              _isWeekly ||
-              _isDaily) ...[
+              _isHighlighted) ...[
             const SizedBox(height: 12),
             Row(
               mainAxisAlignment: MainAxisAlignment.end,
               children: [
                 if (_isPinned) _buildTagChip("置顶", Icons.push_pin),
                 if (_isHighlighted) _buildTagChip("高亮", Icons.highlight),
-                if (_isDaily) _buildTagChip("每天", Icons.repeat),
-                if (_isWeekly) _buildTagChip("每周", Icons.repeat),
-                if (_isMonthly) _buildTagChip("每月", Icons.repeat),
-                if (_isYearly) _buildTagChip("每年", Icons.repeat),
               ],
             ),
           ],
@@ -922,86 +958,5 @@ Color getAppBarColor(String type) {
     );
   }
 
-  // 重复选项
-  Widget _buildRepeatOptions() {
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(12),
-      ),
-      child: Column(
-        children: [
-          _buildRepeatOption("每天重复", _isDaily, (value) {
-            setState(() {
-              _isDaily = value;
-              // 如果选择了每天，其他选项自动取消
-              if (value) {
-                _isWeekly = false;
-                _isMonthly = false;
-                _isYearly = false;
-              }
-            });
-          }),
-          const Divider(height: 24),
-          _buildRepeatOption("每周重复", _isWeekly, (value) {
-            setState(() {
-              _isWeekly = value;
-              // 如果选择了每周，其他选项自动取消
-              if (value) {
-                _isDaily = false;
-                _isMonthly = false;
-                _isYearly = false;
-              }
-            });
-          }),
-          const Divider(height: 24),
-          _buildRepeatOption("每月重复", _isMonthly, (value) {
-            setState(() {
-              _isMonthly = value;
-              // 如果选择了每月，其他选项自动取消
-              if (value) {
-                _isDaily = false;
-                _isWeekly = false;
-                _isYearly = false;
-              }
-            });
-          }),
-          const Divider(height: 24),
-          _buildRepeatOption("每年重复", _isYearly, (value) {
-            setState(() {
-              _isYearly = value;
-              // 如果选择了每年，其他选项自动取消
-              if (value) {
-                _isDaily = false;
-                _isWeekly = false;
-                _isMonthly = false;
-              }
-            });
-          }),
-        ],
-      ),
-    );
-  }
-
-  // 单个重复选项
-  Widget _buildRepeatOption(
-    String title,
-    bool value,
-    Function(bool) onChanged,
-  ) {
-    return Row(
-      children: [
-        Icon(Icons.repeat, color: _selectedColor),
-        const SizedBox(width: 16),
-        Text(
-          title,
-          style: const TextStyle(fontSize: 16, color: Colors.black87),
-        ),
-        const Spacer(),
-        Switch(value: value, onChanged: onChanged, activeColor: _selectedColor),
-      ],
-    );
-  }
 
 }

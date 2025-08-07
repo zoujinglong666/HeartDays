@@ -1,6 +1,18 @@
+import 'dart:convert';
+
+import 'package:flutter/services.dart';
+import 'package:heart_days/models/regional.dart';
+
 final class Consts {
   Consts._();
 
+  static late final List<Regional> regional;
+
+  static Future<void> ensureInitialized() async {
+    final data = await rootBundle.loadString("assets/city.json");
+    final items = jsonDecode(data) as List<dynamic>;
+    regional = items.map((e) => Regional.fromJson(e)).toList();
+  }
   /// Empty function constant
   static void doNothing() {}
 

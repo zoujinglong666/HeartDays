@@ -26,7 +26,8 @@ class Selectable<T> extends BaseBottomSheet<List<Option<T>>> {
   final List<Option<T>> options;
   final List<T>? initialValue;
   final bool multiple;
-
+  /// 🔧 添加这个字段
+  final ValueChanged<List<Option<T>>>? onChange;
   Selectable({
     required super.context,
     required this.options,
@@ -39,6 +40,7 @@ class Selectable<T> extends BaseBottomSheet<List<Option<T>>> {
     super.showHeader,
     super.showFooter,
     super.showClose,
+    this.onChange, // ← 新增
 
   }) : super(widget: _SelectableWidget());
 
@@ -58,7 +60,6 @@ class Selectable<T> extends BaseBottomSheet<List<Option<T>>> {
 
 class _SelectableWidget<T> extends BottomSheetWidget<Selectable<T>> {
   Option<T>? lastSelected;
-
   /// 列表项元素大于 6 个以后底部会多展示一个 “取消” 按钮
   @override
   bool hasCancelButton() => parent.options.length > 6;
@@ -115,9 +116,9 @@ class _SelectableWidget<T> extends BottomSheetWidget<Selectable<T>> {
     items.add(Padding(
       padding: EdgeInsets.only(left: parent.spacing),
       child: Icon(
-        Icons.check,
+        Icons.check_rounded,
         size: 20,
-        color: selected ? Colors.redAccent : Colors.transparent,
+        color: selected ? Colors.green : Colors.transparent,
       ),
     ));
 
@@ -138,18 +139,49 @@ class _SelectableWidget<T> extends BottomSheetWidget<Selectable<T>> {
   }
 
   /// 执行列表点击逻辑
+  // void onSelected(Option<T> selected) {
+  //   // if (parent.multiple) {
+  //   //   parent._contains(selected)
+  //   //       ? parent._removeItem(selected)
+  //   //       : parent._addItem(selected);
+  //   // } else {
+  //   //   parent._clearAll();
+  //   //   parent._addItem(selected);
+  //   // }
+  //   if (lastSelected != selected || parent.multiple) {
+  //     if (parent.multiple) {
+  //       parent._contains(selected)
+  //           ? parent._removeItem(selected)
+  //           : parent._addItem(selected);
+  //     } else {
+  //       parent._clearAll();
+  //       parent._addItem(selected);
+  //     }
+  //     lastSelected = selected;
+  //     setState(() => {});
+  //   }
+  // }
+
   void onSelected(Option<T> selected) {
-    if (lastSelected != selected || parent.multiple) {
-      if (parent.multiple) {
-        parent._contains(selected)
-            ? parent._removeItem(selected)
-            : parent._addItem(selected);
+    if (parent.multiple) {
+      // ✅ 多选逻辑：已有就移除，否则添加
+      parent._contains(selected)
+          ? parent._removeItem(selected)
+          : parent._addItem(selected);
+    } else {
+      // ✅ 单选逻辑：如果再次点击同一个选项，取消选中；否则选中新项
+      if (parent._contains(selected)) {
+        parent._removeItem(selected);
+        lastSelected = null;
       } else {
         parent._clearAll();
         parent._addItem(selected);
+        lastSelected = selected;
       }
-      lastSelected = selected;
-      setState(() => {});
     }
+    // ✅ 触发 onChange 回调
+    parent.onChange?.call(parent._selectedValues.toList());
+    setState(() {});
   }
+
 }
