@@ -77,7 +77,7 @@ class MyToast {
       onlyOne: true,
       crossPage: false,
       onClose: onClose,
-      align: align ?? const Alignment(0.0, -0.85),
+      align: align ?? const Alignment(0.0, 0.85), // 底部
       duration: duration ?? const Duration(seconds: 3),
       toastBuilder: (cancel) {
         final List<Widget> items = [];
@@ -110,7 +110,7 @@ class MyToast {
 
         return Container(
           padding: const EdgeInsets.all(5),
-          margin: const EdgeInsets.only(left: 10, right: 10),
+          margin: const EdgeInsets.only(left: 10, right: 10, bottom: 20), // 底部增加间距
           decoration: BoxDecoration(
             color: Colors.white,
             borderRadius: BorderRadius.circular(50),
@@ -132,6 +132,77 @@ class MyToast {
       },
     );
   }
+
+
+  // static CancelFunc showToast(
+  //     String message, {
+  //       Icon? icon,
+  //       Color? textColor,
+  //       Color? iconBackgroundColor,
+  //       Alignment? align,
+  //       Duration? duration,
+  //       VoidCallback? onClose,
+  //     }) {
+  //
+  //   return BotToast.showCustomText(
+  //     onlyOne: true,
+  //     crossPage: false,
+  //     onClose: onClose,
+  //     align: align ?? const Alignment(0.0, -0.85),
+  //     duration: duration ?? const Duration(seconds: 3),
+  //     toastBuilder: (cancel) {
+  //       final List<Widget> items = [];
+  //
+  //       if (icon != null) {
+  //         items.add(Container(
+  //           padding: const EdgeInsets.all(3),
+  //           decoration: BoxDecoration(
+  //             color: iconBackgroundColor ?? Colors.black12,
+  //             borderRadius: BorderRadius.circular(50),
+  //           ),
+  //           child: icon,
+  //         ));
+  //       }
+  //
+  //       items.add(Flexible(
+  //         child: Padding(
+  //           padding: EdgeInsets.symmetric(
+  //             horizontal: 10,
+  //             vertical: icon == null ? 5 : 0,
+  //           ),
+  //           child: Text(
+  //             message,
+  //             overflow: TextOverflow.ellipsis,
+  //             style: TextStyle(fontSize: 14, color: textColor ?? Colors.black87),
+  //             strutStyle: const StrutStyle(leading: 0, forceStrutHeight: true),
+  //           ),
+  //         ),
+  //       ));
+  //
+  //       return Container(
+  //         padding: const EdgeInsets.all(5),
+  //         margin: const EdgeInsets.only(left: 10, right: 10),
+  //         decoration: BoxDecoration(
+  //           color: Colors.white,
+  //           borderRadius: BorderRadius.circular(50),
+  //           boxShadow: const [
+  //             BoxShadow(
+  //               color: Colors.black12,
+  //               blurRadius: 5,
+  //               offset: Offset(0, 3),
+  //             ),
+  //           ],
+  //         ),
+  //         child: Row(
+  //           mainAxisSize: MainAxisSize.min,
+  //           mainAxisAlignment: MainAxisAlignment.center,
+  //           crossAxisAlignment: CrossAxisAlignment.center,
+  //           children: items,
+  //         ),
+  //       );
+  //     },
+  //   );
+  // }
 
   static CancelFunc showLoading({
     String? placeholder,

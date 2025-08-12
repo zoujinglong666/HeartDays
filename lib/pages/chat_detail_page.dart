@@ -66,7 +66,6 @@ class _ChatDetailPageState extends ConsumerState<ChatDetailPage> {
     _isOnline = false;
     _messageDatabase = null;
     _connectivitySubscription = null;
-    _socketService = ChatSocketService();
     _initConnect();
     // 注册所有事件回调
     _registerSocketCallbacks();
@@ -90,11 +89,10 @@ class _ChatDetailPageState extends ConsumerState<ChatDetailPage> {
   void _initConnect() async {
     final authState = ref.read(authProvider);
     final user = authState.user;
-    final token = authState.token;
     setState(() {
       loginUser = user;
     });
-    _socketService.connect(token!, user!.id);
+    _socketService = ChatSocketService();
     _joinSession();
   }
 

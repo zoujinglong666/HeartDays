@@ -38,62 +38,99 @@ class ChatSocketService {
   ChatSocketService._internal();
 
   Timer? _heartbeatTimer;
-  static const int _heartbeatInterval = 10 * 1000; // 30秒心跳间隔
+  Timer? _reconnectTimer;
+  static const int _heartbeatInterval = 10 * 1000; // 10秒心跳
+  static const int _reconnectInterval = 5; // 每5秒尝试重连
+  bool _manuallyDisconnected = false; // 是否手动断开（避免手动断开还去重连）
 
   void connect(String token, String myUserId) {
     if (_connected) return;
+    _manuallyDisconnected = false;
     userId = myUserId;
-    print('准备连接 WebSocket...');
     socket = IO.io(Consts.request.socketUrl, <String, dynamic>{
       'transports': ['websocket'],
       'autoConnect': false,
       'extraHeaders': {'Authorization': 'Bearer $token'},
     });
 
-    // 连接事件
     socket.on('connect', (_) {
-      print('WebSocket 连接成功，socket id: ${socket.id}');
+      print('✅ WebSocket 连接成功: ${socket.id}');
       _connected = true;
       joinUserRoom(myUserId);
       _startHeartbeat();
+      _stopReconnectTimer(); // 连接成功就停止重连计时
     });
 
-    // 断开连接事件
     socket.on('disconnect', (_) {
-      print('WebSocket 已断开');
+      print('❌ WebSocket 已断开');
       _connected = false;
       _stopHeartbeat();
-    });
-
-    // 连接错误事件
-    // 🔥 监听连接错误，如果是 token 错误，尝试刷新 token 后重连
-    socket.on('connect_error', (err) async {
-      print('❌ WebSocket 连接错误: $err');
-      // token 是在调用 connect() 时传入的，一旦创建 socket 后，token 就无法更新，必须手动断开并重连。
-      if (err.toString().contains('401') || err.toString().contains('jwt expired')) {
-        print('⚠️ 检查到websocket Token 失效，尝试刷新');
-        final prefs = await SharedPreferences.getInstance();
-        final newToken =  prefs.getString('token');
-        if (newToken != null) {
-          print('🔁 使用新 token 重连...');
-          reconnectWithToken(newToken);
-        }
-      } else {
-        _connected = false;
-        _stopHeartbeat();
+      if (!_manuallyDisconnected) {
+        _startReconnectTimer(token, myUserId);
       }
     });
 
-
-    // 心跳响应
-    socket.on('pong', (data) {
-      print('收到心跳响应');
+    socket.on('connect_error', (err) async {
+      _connected = false;
+      print('⚠️ 连接错误: $err');
+      if (err.toString().contains('401') || err.toString().contains('jwt expired')) {
+        final prefs = await SharedPreferences.getInstance();
+        final newToken = prefs.getString('token');
+        if (newToken != null) {
+          print('🔄 token 刷新后重连...');
+          reconnectWithToken(newToken);
+        }
+      } else {
+        if (!_manuallyDisconnected) {
+          _startReconnectTimer(token, myUserId);
+        }
+      }
     });
 
-    // 注册所有事件监听器
+    // 注册业务事件
     _registerEventListeners();
-
     socket.connect();
+  }
+
+  /// 定时重连
+  void _startReconnectTimer(String token, String myUserId) {
+    _stopReconnectTimer();
+    _reconnectTimer = Timer.periodic(Duration(seconds: _reconnectInterval), (timer) {
+      if (!_connected) {
+        print('⏳ 检测到未连接，尝试重连...');
+        connect(token, myUserId);
+      }
+    });
+  }
+
+  void _stopReconnectTimer() {
+    _reconnectTimer?.cancel();
+    _reconnectTimer = null;
+  }
+
+  /// 手动断开
+  void disconnect() {
+    print('🔌 手动断开连接');
+    _manuallyDisconnected = true;
+    _stopHeartbeat();
+    _stopReconnectTimer();
+    socket.disconnect();
+    _connected = false;
+  }
+
+  /// 心跳
+  void _startHeartbeat() {
+    _stopHeartbeat();
+    _heartbeatTimer = Timer.periodic(Duration(milliseconds: _heartbeatInterval), (timer) {
+      if (_connected) {
+        sendPing(DateTime.now().millisecondsSinceEpoch);
+      }
+    });
+  }
+
+  void _stopHeartbeat() {
+    _heartbeatTimer?.cancel();
+    _heartbeatTimer = null;
   }
 
   void _registerEventListeners() {
@@ -302,28 +339,11 @@ class ChatSocketService {
     socket.emit('ping', {'timestamp': timestamp});
   }
 
-  /// 开始心跳
-  void _startHeartbeat() {
-    _stopHeartbeat(); // 先停止已有的心跳
-    _heartbeatTimer = Timer.periodic(Duration(milliseconds: _heartbeatInterval), (timer) {
-      if (_connected) {
-        sendPing(DateTime.now().millisecondsSinceEpoch);
-      }
-    });
-  }
 
-  /// 停止心跳
-  void _stopHeartbeat() {
-    _heartbeatTimer?.cancel();
-    _heartbeatTimer = null;
-  }
 
-  void disconnect() {
-    print('手动断开 WebSocket 连接');
-    _stopHeartbeat();
-    socket.disconnect();
-    _connected = false;
-  }
+
+
+
 
   /// 设置新消息回调
   void setOnNewMessage(Function(dynamic) callback) {
