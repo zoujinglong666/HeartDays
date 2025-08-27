@@ -1,4 +1,5 @@
 import 'dart:async';
+
 import 'package:heart_days/Consts/index.dart';
 import 'package:heart_days/common/toast.dart';
 import 'package:heart_days/utils/ToastUtils.dart';
@@ -44,7 +45,10 @@ class ChatSocketService {
   bool _manuallyDisconnected = false; // 是否手动断开（避免手动断开还去重连）
 
   void connect(String token, String myUserId) {
-    if (_connected) return;
+    if (_connected) {
+      print('⚠️ WebSocket 已连接,请勿重连');
+      return;
+    }
     _manuallyDisconnected = false;
     userId = myUserId;
     socket = IO.io(Consts.request.socketUrl, <String, dynamic>{

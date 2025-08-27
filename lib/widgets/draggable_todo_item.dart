@@ -1,7 +1,8 @@
-import 'package:flutter/material.dart';
 import 'package:flutter/gestures.dart';
+import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_slidable/flutter_slidable.dart';
+import 'package:heart_days/components/date_picker/date_picker.dart';
 import 'package:heart_days/providers/todo_provider.dart';
 import 'package:heart_days/theme/neumorphic_theme.dart';
 import 'package:heart_days/widgets/neumorphic_box.dart';
@@ -256,6 +257,7 @@ class DraggableTodoItem extends ConsumerWidget {
     final todoNotifier = ref.read(todoProvider.notifier); // ✅ 在外部获取一次
     final TextEditingController titleController = TextEditingController(text: item.title);
     String selectedPriority = item.priority;
+    DateTime? selectReminderAt = item.reminderAt;
 
     showDialog(
       context: context,
@@ -269,7 +271,33 @@ class DraggableTodoItem extends ConsumerWidget {
               decoration: const InputDecoration(labelText: '标题'),
               autofocus: true,
             ),
-            const SizedBox(height: 16),
+            const SizedBox(height: 8),
+
+            StatefulBuilder(
+              builder: (context, setState) => ElevatedButton(
+                onPressed: () {
+                  AppDatePicker.show(
+                    context: context,
+                    mode: AppDatePickerMode.editDate,
+                    initialDateTime: item.reminderAt,
+                    onConfirm: (dateTime) {
+                      setState(() {
+                        selectReminderAt = dateTime;
+                        item.reminderAt = dateTime;
+                      });
+                    },
+                  );
+                },
+                child: Text(
+                  selectReminderAt != null
+                      ? '提醒时间：${selectReminderAt!.year}/${selectReminderAt!.month.toString().padLeft(2, '0')}/${selectReminderAt!.day.toString().padLeft(2, '0')} '
+                      '${selectReminderAt!.hour.toString().padLeft(2, '0')}:${selectReminderAt!.minute.toString().padLeft(2, '0')}'
+                      : '编辑日期',
+                ),
+              ),
+            )
+            ,
+            const Divider(height: 32),
             StatefulBuilder(
               builder: (context, setState) => Row(
                 mainAxisAlignment: MainAxisAlignment.spaceEvenly,
@@ -296,10 +324,14 @@ class DraggableTodoItem extends ConsumerWidget {
           TextButton(
             onPressed: () {
               if (titleController.text.trim().isNotEmpty) {
-                todoNotifier.updateTodo(
+                todoNotifier.updateTodoFields(
                   item.id,
-                  titleController.text.trim(),
-                  selectedPriority,
+                    {
+                      "title": titleController.text.trim(),
+                      "reminder_at": selectReminderAt,
+                      "priority": selectedPriority,
+                    }
+
                 ); // ✅ 使用之前获取的 todoNotifier
                 Navigator.pop(context);
               }

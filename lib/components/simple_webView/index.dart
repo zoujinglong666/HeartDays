@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:heart_days/components/AnimatedGradientLinearProgress.dart';
 import 'package:webview_flutter/webview_flutter.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 class SimpleWebView extends StatefulWidget {
   final String initialUrl;
@@ -305,9 +306,21 @@ class _SimpleWebViewState extends State<SimpleWebView> {
 
   void _reload() => _controller.reload();
 
-  Future<void> _openInBrowser() async {
 
+  Future<void> _openInBrowser() async {
+    final uri = Uri.tryParse(_currentUrl);
+    if (uri != null && await canLaunchUrl(uri)) {
+      await launchUrl(
+        uri,
+        mode: LaunchMode.externalApplication, // 外部浏览器
+      );
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('无法打开链接')),
+      );
+    }
   }
+
 
   @override
   Widget build(BuildContext context) {

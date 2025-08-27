@@ -9,6 +9,9 @@ class TodoItem {
   bool done;
   String priority;
   bool expanded;
+  DateTime? createdAt;
+  DateTime? updatedAt;
+  DateTime? reminderAt;
   List<TodoItem> children;
   String? parentId; // 父级ID，根级项为null
 
@@ -19,6 +22,9 @@ class TodoItem {
     this.priority = 'medium',
     this.expanded = true,
     this.parentId,
+    this.createdAt,
+    this.updatedAt,
+    required this.reminderAt,
     List<TodoItem>? children,
   }) : children = children ?? [];
 
@@ -39,6 +45,9 @@ class TodoItem {
       priority: priority ?? this.priority,
       expanded: expanded ?? this.expanded,
       parentId: parentId ?? this.parentId,
+      createdAt: createdAt ?? this.createdAt,
+      updatedAt: updatedAt ?? this.updatedAt,
+      reminderAt: reminderAt ?? this.reminderAt,
       children: children ?? List.from(this.children),
     );
   }
@@ -86,6 +95,9 @@ class TodoNotifier extends StateNotifier<List<TodoItem>> {
           done: b.done,
           priority: priorityLevelToString(b.priority),
           expanded: false,
+          createdAt: b.createdAt,
+          updatedAt: b.updatedAt,
+          reminderAt: b.reminderAt,
           parentId: b.parentId,
         ),
     };
@@ -162,6 +174,9 @@ class TodoNotifier extends StateNotifier<List<TodoItem>> {
           done: false,
           priority: 'medium',
           parentId: parentId, // 设置父级ID
+          createdAt: item.createdAt,
+          updatedAt: item.updatedAt,
+          reminderAt: item.reminderAt,
         ),
       );
       return item.copyWith(
@@ -433,25 +448,40 @@ class TodoNotifier extends StateNotifier<List<TodoItem>> {
     final nextIndex = (currentIndex + 1) % priorities.length;
     return priorities[nextIndex];
   }
-
-
   // 更新Todo项
   Future<void> updateTodoFields(String id, Map<String, dynamic> fields) async {
+    MyToast.showToast(fields.toString());
     try {
+      // 合并参数
       final payload = {
         "id": id,
-        ...fields, // 合并需要更新的字段
+        ...fields,
       };
 
+      // 优先级映射
+      const priorityMap = {
+        'low': 0,
+        'medium': 1,
+        'high': 2,
+      };
+
+      // 如果有 priority 字段并且是字符串，则转换成数值
+      if (payload.containsKey('priority') && payload['priority'] is String) {
+        final p = payload['priority'] as String;
+        if (priorityMap.containsKey(p)) {
+          payload['priority'] = priorityMap[p];
+        }
+      }
       final res = await updateTodoApi(payload);
       if (res.success) {
         MyToast.showSuccess('保存成功');
         _initData();
       }
     } catch (e) {
-      MyToast.showError('保存失败');
+      // MyToast.showError('保存失败');
     }
   }
+
 
   // 更新Todo项
   Future<void> updateTodo(String id, String title, String priority) async {

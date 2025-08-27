@@ -5,12 +5,6 @@ import 'package:heart_days/http/model/api_response.dart';
 import 'package:heart_days/utils/ToastUtils.dart';
 
 class LogInterceptorHandler extends Interceptor {
-  @override
-  void onRequest(RequestOptions options, RequestInterceptorHandler handler) {
-    super.onRequest(options, handler);
-  }
-
-
   /// 处理 token 相关错误 (40101-40109)
   /// 返回 true 表示已处理，false 表示需要继续处理
   bool _handleTokenError(ApiResponse apiResponse) {
