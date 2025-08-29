@@ -183,30 +183,56 @@ class _CalendarPageState extends ConsumerState<CalendarPage> {
                             : const SizedBox.shrink(),
                       ),
 
-                      // 添加纪念日按钮
+                      // 优化的添加纪念日按钮
                       Padding(
                         padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
-                        child: ElevatedButton.icon(
-                          onPressed: () {
-                            SafeNavigator.pushOnce(
-                              context,
-                              const AddAnniversaryPage(),
-                            );
-                          },
-                          icon: const Icon(Icons.favorite_border),
-                          label: const Text('添加纪念日'),
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: const Color(0xFFF48FB1),
-                            foregroundColor: Colors.white,
-                            elevation: 3,
-                            shadowColor: Colors.pink.withOpacity(0.2),
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(16),
+                        child: Container(
+                          decoration: BoxDecoration(
+                            borderRadius: BorderRadius.circular(20),
+                            gradient: const LinearGradient(
+                              colors: [
+                                Color(0xFFF48FB1),
+                                Color(0xFFE91E63),
+                                Color(0xFFAD1457),
+                              ],
+                              begin: Alignment.topLeft,
+                              end: Alignment.bottomRight,
                             ),
-                            padding: const EdgeInsets.symmetric(vertical: 14),
-                            textStyle: const TextStyle(
-                              fontSize: 16,
-                              fontWeight: FontWeight.w600,
+                            boxShadow: [
+                              BoxShadow(
+                                color: const Color(0xFFF48FB1).withOpacity(0.4),
+                                blurRadius: 15,
+                                offset: const Offset(0, 8),
+                                spreadRadius: 1,
+                              ),
+                            ],
+                          ),
+                          child: ElevatedButton.icon(
+                            onPressed: () {
+                              SafeNavigator.pushOnce(
+                                context,
+                                const AddAnniversaryPage(),
+                              );
+                            },
+                            icon: const Icon(
+                              Icons.favorite_rounded,
+                              size: 22,
+                            ),
+                            label: const Text('添加纪念日'),
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: Colors.transparent,
+                              foregroundColor: Colors.white,
+                              elevation: 0,
+                              shadowColor: Colors.transparent,
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(20),
+                              ),
+                              padding: const EdgeInsets.symmetric(vertical: 16),
+                              textStyle: const TextStyle(
+                                fontSize: 16,
+                                fontWeight: FontWeight.w600,
+                                letterSpacing: 0.5,
+                              ),
                             ),
                           ),
                         ),
@@ -227,44 +253,94 @@ class _CalendarPageState extends ConsumerState<CalendarPage> {
 
   Widget _buildSelectedDateCard() {
     return Container(
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        gradient: LinearGradient(
-          colors: [Colors.white, const Color(0xFFFFF0F5)],
+        gradient: const LinearGradient(
+          colors: [
+            Colors.white,
+            Color(0xFFFFF0F5),
+            Color(0xFFFCE4EC),
+          ],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
         ),
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(20),
         boxShadow: [
-          BoxShadow(color: Colors.grey.withOpacity(0.1), blurRadius: 10),
+          BoxShadow(
+            color: const Color(0xFFF48FB1).withOpacity(0.15),
+            blurRadius: 20,
+            offset: const Offset(0, 8),
+            spreadRadius: 2,
+          ),
         ],
+        border: Border.all(
+          color: const Color(0xFFF48FB1).withOpacity(0.2),
+          width: 1,
+        ),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
             children: [
-              const Icon(
-                Icons.calendar_today,
-                color: Color(0xFFF48FB1),
-                size: 20,
+              Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFF48FB1).withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: const Icon(
+                  Icons.calendar_today_rounded,
+                  color: Color(0xFFF48FB1),
+                  size: 20,
+                ),
               ),
-              const SizedBox(width: 8),
+              const SizedBox(width: 12),
               Text(
                 DateFormat('yyyy年MM月dd日').format(_selectedDate!),
                 style: const TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.w600,
+                  fontSize: 18,
+                  fontWeight: FontWeight.w700,
+                  color: Color(0xFF2C3E50),
+                  letterSpacing: 0.5,
                 ),
               ),
             ],
           ),
-          const SizedBox(height: 12),
+          const SizedBox(height: 16),
           if (_selectedDateEvents.isNotEmpty)
             ..._selectedDateEvents.map(
-              (event) => Padding(
-                padding: const EdgeInsets.only(bottom: 8),
+              (event) => Container(
+                margin: const EdgeInsets.only(bottom: 12),
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: Colors.white.withOpacity(0.8),
+                  borderRadius: BorderRadius.circular(16),
+                  border: Border.all(
+                    color: (event.color ?? const Color(0xFFF48FB1)).withOpacity(0.3),
+                    width: 1,
+                  ),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withOpacity(0.05),
+                      blurRadius: 8,
+                      offset: const Offset(0, 2),
+                    ),
+                  ],
+                ),
                 child: Row(
                   children: [
-                    Text(event.icon, style: const TextStyle(fontSize: 20)),
+                    Container(
+                      padding: const EdgeInsets.all(8),
+                      decoration: BoxDecoration(
+                        color: (event.color ?? const Color(0xFFF48FB1)).withOpacity(0.1),
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                      child: Text(
+                        event.icon,
+                        style: const TextStyle(fontSize: 20),
+                      ),
+                    ),
                     const SizedBox(width: 12),
                     Expanded(
                       child: Column(
@@ -273,38 +349,53 @@ class _CalendarPageState extends ConsumerState<CalendarPage> {
                           Text(
                             event.title,
                             style: const TextStyle(
-                              fontSize: 14,
-                              fontWeight: FontWeight.w500,
+                              fontSize: 16,
+                              fontWeight: FontWeight.w600,
+                              color: Color(0xFF2C3E50),
                             ),
                           ),
-                          if (event.description.isNotEmpty)
+                          if (event.description.isNotEmpty) ...[
+                            const SizedBox(height: 4),
                             Text(
                               event.description,
-                              style: const TextStyle(
-                                fontSize: 12,
-                                color: Colors.grey,
+                              style: TextStyle(
+                                fontSize: 13,
+                                color: Colors.grey[600],
+                                fontWeight: FontWeight.w400,
                               ),
                             ),
+                          ],
                         ],
                       ),
                     ),
                     Container(
                       padding: const EdgeInsets.symmetric(
-                        horizontal: 8,
-                        vertical: 4,
+                        horizontal: 12,
+                        vertical: 6,
                       ),
                       decoration: BoxDecoration(
-                        color:
-                            event.color?.withOpacity(0.2) ??
-                            Colors.grey.withOpacity(0.2),
-                        borderRadius: BorderRadius.circular(12),
+                        gradient: LinearGradient(
+                          colors: [
+                            (event.color ?? const Color(0xFFF48FB1)).withOpacity(0.8),
+                            (event.color ?? const Color(0xFFF48FB1)),
+                          ],
+                        ),
+                        borderRadius: BorderRadius.circular(15),
+                        boxShadow: [
+                          BoxShadow(
+                            color: (event.color ?? const Color(0xFFF48FB1)).withOpacity(0.3),
+                            blurRadius: 4,
+                            offset: const Offset(0, 2),
+                          ),
+                        ],
                       ),
                       child: Text(
                         event.type,
-                        style: TextStyle(
-                          color: event.color ?? Colors.grey,
-                          fontSize: 10,
-                          fontWeight: FontWeight.w500,
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 11,
+                          fontWeight: FontWeight.w600,
+                          letterSpacing: 0.3,
                         ),
                       ),
                     ),
@@ -313,9 +404,41 @@ class _CalendarPageState extends ConsumerState<CalendarPage> {
               ),
             )
           else
-            Text(
-              '这一天还没有纪念日',
-              style: TextStyle(fontSize: 14, color: Colors.grey.shade600),
+            Container(
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: Colors.white.withOpacity(0.6),
+                borderRadius: BorderRadius.circular(16),
+                border: Border.all(
+                  color: Colors.grey.withOpacity(0.2),
+                  width: 1,
+                ),
+              ),
+              child: Row(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(8),
+                    decoration: BoxDecoration(
+                      color: Colors.grey.withOpacity(0.1),
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    child: Icon(
+                      Icons.event_available_rounded,
+                      color: Colors.grey[500],
+                      size: 20,
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Text(
+                    '这一天还没有纪念日',
+                    style: TextStyle(
+                      fontSize: 15,
+                      color: Colors.grey[600],
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                ],
+              ),
             ),
         ],
       ),

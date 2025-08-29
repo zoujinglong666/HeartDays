@@ -53,15 +53,26 @@ class AnniversaryCard extends StatelessWidget {
         decoration: BoxDecoration(
           borderRadius: BorderRadius.circular(24),
           gradient: LinearGradient(
-            colors: [color, color],
+            colors: [
+              color,
+              color.withOpacity(0.8),
+              color.withOpacity(0.9),
+            ],
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
+            stops: const [0.0, 0.7, 1.0],
           ),
           boxShadow: [
             BoxShadow(
-              color: Colors.black12,
-              blurRadius: 12,
-              offset: Offset(0, 6),
+              color: color.withOpacity(0.3),
+              blurRadius: 20,
+              offset: const Offset(0, 8),
+              spreadRadius: 2,
+            ),
+            BoxShadow(
+              color: Colors.black.withOpacity(0.1),
+              blurRadius: 10,
+              offset: const Offset(0, 4),
             ),
           ],
         ),
@@ -79,18 +90,32 @@ class AnniversaryCard extends StatelessWidget {
                         child: Text(
                           anniversary.title,
                           style: const TextStyle(
-                            fontSize: 24,
-                            fontWeight: FontWeight.bold,
+                            fontSize: 26,
+                            fontWeight: FontWeight.w800,
                             color: Colors.white,
-                            letterSpacing: 0.5,
+                            letterSpacing: 0.8,
+                            height: 1.2,
                           ),
                           maxLines: 2,
                           overflow: TextOverflow.ellipsis,
                         ),
                       ),
+                      // 添加一个小装饰图标
+                      Container(
+                        padding: const EdgeInsets.all(8),
+                        decoration: BoxDecoration(
+                          color: Colors.white.withOpacity(0.2),
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: const Icon(
+                          Icons.favorite_rounded,
+                          color: Colors.white,
+                          size: 16,
+                        ),
+                      ),
                     ],
                   ),
-                  const SizedBox(height: 8),
+                  const SizedBox(height: 12),
                   Flexible(
                     child: Row(
                       crossAxisAlignment: CrossAxisAlignment.baseline,
@@ -99,26 +124,32 @@ class AnniversaryCard extends StatelessWidget {
                         Text(
                           dayText,
                           style: const TextStyle(
-                            fontSize: 42,
-                            fontWeight: FontWeight.bold,
+                            fontSize: 48,
+                            fontWeight: FontWeight.w900,
                             color: Colors.white,
-
+                            letterSpacing: -1,
+                            height: 0.9,
                           ),
                         ),
+                        const SizedBox(width: 4),
                         Text(
                           '天',
                           style: const TextStyle(
-                            fontSize: 10,
+                            fontSize: 14,
                             color: Colors.white,
+                            fontWeight: FontWeight.w600,
                           ),
                         ),
-                        const SizedBox(width: 8),
-                        Text(
-                          dayLabel,
-                          style: const TextStyle(
-                            fontSize: 14,
-                            color: Colors.white70,
-                            fontWeight: FontWeight.w400,
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: Text(
+                            dayLabel,
+                            style: const TextStyle(
+                              fontSize: 16,
+                              color: Colors.white,
+                              fontWeight: FontWeight.w500,
+                              letterSpacing: 0.5,
+                            ),
                           ),
                         ),
                       ],
