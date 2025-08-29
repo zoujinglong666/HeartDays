@@ -800,117 +800,135 @@ class _ChatDetailPageState extends ConsumerState<ChatDetailPage> {
           await markMessageReadApi(messageId); // ✅ 调用已读 API
         }
       },
-      child: Column(
-        crossAxisAlignment:
-            isMe ? CrossAxisAlignment.end : CrossAxisAlignment.start,
+      child: Stack(
         children: [
-          Padding(
-            padding: const EdgeInsets.symmetric(vertical: 8.0),
-            child: Row(
-              mainAxisAlignment:
-                  isMe ? MainAxisAlignment.end : MainAxisAlignment.start,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                if (!isMe) _buildAvatar(avatarUrl),
-                if (!isMe) const SizedBox(width: 8),
-                // 状态指示器（发送loading和重试图标）放在消息外面的左侧
-                if (isMe && sendStatus == MessageSendStatus.sending)
-                  const Padding(
-                    padding: EdgeInsets.only(right: 4),
-                    child: SizedBox(
-                      width: 12,
-                      height: 12,
-                      child: CircularProgressIndicator(strokeWidth: 2),
-                    ),
-                  ),
-                if (isMe && sendStatus == MessageSendStatus.failed)
-                  Padding(
-                    padding: const EdgeInsets.only(right: 4),
-                    child: GestureDetector(
-                      onTap: () => _retrySend(localId),
-                      child: const Icon(
-                        Icons.error_outline,
-                        color: Colors.red,
-                        size: 16,
+          Column(
+            crossAxisAlignment:
+                isMe ? CrossAxisAlignment.end : CrossAxisAlignment.start,
+            children: [
+              Padding(
+                padding: const EdgeInsets.symmetric(vertical: 8.0),
+                child: Row(
+                  mainAxisAlignment:
+                      isMe ? MainAxisAlignment.end : MainAxisAlignment.start,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    if (!isMe) _buildAvatar(avatarUrl),
+                    if (!isMe) const SizedBox(width: 8),
+                    // 状态指示器（发送loading和重试图标）放在消息外面的左侧
+                    if (isMe && sendStatus == MessageSendStatus.sending)
+                      const Padding(
+                        padding: EdgeInsets.only(right: 4),
+                        child: SizedBox(
+                          width: 12,
+                          height: 12,
+                          child: CircularProgressIndicator(strokeWidth: 2),
+                        ),
                       ),
-                    ),
-                  ),
-                Flexible(
-                  child: FastLongPressDetector(
-                    duration: const Duration(milliseconds: 200),
-                    onLongPress: () {
-                      setState(() {
-                        selectedMessageLocalId = localId;
-                      });
-                    },
-                    child: Column(
-                      crossAxisAlignment:
-                          isMe
-                              ? CrossAxisAlignment.end
-                              : CrossAxisAlignment.start,
-                      children: [
-                        if (!isMe)
-                          Padding(
-                            padding: const EdgeInsets.only(left: 4, bottom: 4),
-                            child: Text(
-                              widget.chatSession.name,
-                              style: const TextStyle(
-                                color: Colors.grey,
-                                fontSize: 12,
-                              ),
-                            ),
-                          ),
-                        Container(
-                          padding: const EdgeInsets.symmetric(
-                            vertical: 10,
-                            horizontal: 14,
-                          ),
-                          decoration: BoxDecoration(
-                            color:
-                                isMe
-                                    ? Colors.pink.withOpacity(0.1)
-                                    : Colors.grey.withOpacity(0.1),
-                            borderRadius: BorderRadius.circular(16),
-                          ),
-                          child: Text(
-                            text,
-                            style: const TextStyle(fontSize: 15),
+                    if (isMe && sendStatus == MessageSendStatus.failed)
+                      Padding(
+                        padding: const EdgeInsets.only(right: 4),
+                        child: GestureDetector(
+                          onTap: () => _retrySend(localId),
+                          child: const Icon(
+                            Icons.error_outline,
+                            color: Colors.red,
+                            size: 16,
                           ),
                         ),
-                        if (msg['createdAt'] != null)
-                          Padding(
-                            padding: const EdgeInsets.only(
-                              top: 4,
-                              left: 4,
-                              right: 4,
-                            ),
-                            child: Text(
-                              formatMsgTime(msg['createdAt']),
-                              style: const TextStyle(
-                                color: Colors.grey,
-                                fontSize: 11,
+                      ),
+                    Flexible(
+                      child: FastLongPressDetector(
+                        duration: const Duration(milliseconds: 200),
+                        onLongPress: () {
+                          setState(() {
+                            selectedMessageLocalId = localId;
+                          });
+                        },
+                        child: Column(
+                          crossAxisAlignment:
+                              isMe
+                                  ? CrossAxisAlignment.end
+                                  : CrossAxisAlignment.start,
+                          children: [
+                            if (!isMe)
+                              Padding(
+                                padding: const EdgeInsets.only(left: 4, bottom: 4),
+                                child: Text(
+                                  widget.chatSession.name,
+                                  style: const TextStyle(
+                                    color: Colors.grey,
+                                    fontSize: 12,
+                                  ),
+                                ),
+                              ),
+                            Container(
+                              padding: const EdgeInsets.symmetric(
+                                vertical: 10,
+                                horizontal: 14,
+                              ),
+                              decoration: BoxDecoration(
+                                color:
+                                    isMe
+                                        ? Colors.pink.withOpacity(0.1)
+                                        : Colors.grey.withOpacity(0.1),
+                                borderRadius: BorderRadius.circular(16),
+                              ),
+                              child: Text(
+                                text,
+                                style: const TextStyle(fontSize: 15),
                               ),
                             ),
-                          ),
-                      ],
+                            if (msg['createdAt'] != null)
+                              Padding(
+                                padding: const EdgeInsets.only(
+                                  top: 4,
+                                  left: 4,
+                                  right: 4,
+                                ),
+                                child: Text(
+                                  formatMsgTime(msg['createdAt']),
+                                  style: const TextStyle(
+                                    color: Colors.grey,
+                                    fontSize: 11,
+                                  ),
+                                ),
+                              ),
+                          ],
+                        ),
+                      ),
                     ),
+                    if (isMe) const SizedBox(width: 8),
+                    if (isMe) _buildAvatar(avatarUrl),
+                  ],
+                ),
+              ),
+              // 菜单显示在消息气泡下方的中心位置
+              if (selectedMessageLocalId != null && selectedMessageLocalId == localId)
+                Padding(
+                  padding: const EdgeInsets.only(top: 8.0),
+                  child: Row(
+                    mainAxisAlignment: isMe ? MainAxisAlignment.end : MainAxisAlignment.start,
+                    children: [
+                      if (!isMe) const SizedBox(width: 48), // 头像宽度 + 间距
+                      Flexible(
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            AnimatedOpacity(
+                              duration: const Duration(milliseconds: 180),
+                              opacity: 1.0,
+                              child: _buildMessageMenu(msg, isMe),
+                            ),
+                          ],
+                        ),
+                      ),
+                      if (isMe) const SizedBox(width: 48), // 头像宽度 + 间距
+                    ],
                   ),
                 ),
-                if (isMe) const SizedBox(width: 8),
-                if (isMe) _buildAvatar(avatarUrl),
-              ],
-            ),
-          ),
-          AnimatedSwitcher(
-            duration: const Duration(milliseconds: 180),
-            transitionBuilder:
-                (child, animation) =>
-                    FadeTransition(opacity: animation, child: child),
-            child:
-                (selectedMessageLocalId != null &&
-                        selectedMessageLocalId == localId)
-                    ? _buildMessageMenu(msg, isMe)
-                    : const SizedBox.shrink(),
+            ],
           ),
         ],
       ),
@@ -1027,12 +1045,16 @@ class _ChatDetailPageState extends ConsumerState<ChatDetailPage> {
     final localId = msg['localId'];
     return Container(
       margin: const EdgeInsets.only(top: 2, bottom: 8),
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
       decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
+        color: const Color(0xFF2C2C2E),
+        borderRadius: BorderRadius.circular(12),
         boxShadow: [
-          BoxShadow(color: Colors.black12, blurRadius: 6, offset: Offset(0, 2)),
+          BoxShadow(
+            color: Colors.black.withOpacity(0.15),
+            blurRadius: 8,
+            offset: const Offset(0, 2),
+          ),
         ],
       ),
       child: Row(
@@ -1040,16 +1062,19 @@ class _ChatDetailPageState extends ConsumerState<ChatDetailPage> {
         children: [
           if (isMe)
             _buildMenuIcon(
-              icon: Icons.undo,
+              icon: Icons.undo_rounded,
               label: '撤回',
+              iconColor: Colors.white,
+              textColor: Colors.white,
               onTap: () => _recallMessage(msg['messageId']),
             ),
           _buildMenuIcon(
-            icon: Icons.copy,
+            icon: Icons.content_copy_rounded,
             label: '复制',
+            iconColor: Colors.white,
+            textColor: Colors.white,
             onTap: () => _copyMessage(msg['text']),
           ),
-
         ],
       ),
     );
@@ -1059,6 +1084,8 @@ class _ChatDetailPageState extends ConsumerState<ChatDetailPage> {
     required IconData icon,
     required String label,
     required VoidCallback onTap,
+    Color iconColor = Colors.grey,
+    Color textColor = Colors.black87,
   }) {
     return GestureDetector(
       onTap: () {
@@ -1068,15 +1095,19 @@ class _ChatDetailPageState extends ConsumerState<ChatDetailPage> {
         });
       },
       child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 12),
+        padding: const EdgeInsets.symmetric(horizontal: 16),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(icon, size: 22, color: Colors.pink),
-            const SizedBox(height: 2),
+            Icon(icon, size: 20, color: iconColor),
+            const SizedBox(height: 4),
             Text(
               label,
-              style: const TextStyle(fontSize: 12, color: Colors.black87),
+              style: TextStyle(
+                fontSize: 12,
+                color: textColor,
+                fontWeight: FontWeight.w400,
+              ),
             ),
           ],
         ),
