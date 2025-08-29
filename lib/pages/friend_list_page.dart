@@ -39,13 +39,14 @@ class _FriendListPageState extends State<FriendListPage> {
 
   @override
   Widget build(BuildContext context) {
-    List<FriendVO> filtered =
-        searchText.isEmpty
-            ? friends
-            : friends
+    List<FriendVO> filtered;
+    if (searchText.isEmpty) {
+      filtered = friends;
+    } else {
+      filtered = friends
                 .where(
                   (f) =>
-                      (f.name ?? '').toLowerCase().contains(
+                      (f.name).toLowerCase().contains(
                         searchText.toLowerCase(),
                       ) ||
                       (f.userAccount).toLowerCase().contains(
@@ -53,6 +54,7 @@ class _FriendListPageState extends State<FriendListPage> {
                       ),
                 )
                 .toList();
+    }
     return Scaffold(
       backgroundColor: const Color(0xFFEDEDED),
       body: Column(
@@ -98,7 +100,7 @@ class _FriendListPageState extends State<FriendListPage> {
                 itemCount: filtered.length,
                 itemBuilder: (context, index) {
                   final f = filtered[index];
-                  final avatar = f.avatar ?? '';
+                  final avatar = f.avatar;
                   final isLastItem = index == filtered.length - 1;
                   
                   return Container(

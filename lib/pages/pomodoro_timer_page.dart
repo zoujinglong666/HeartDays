@@ -529,69 +529,112 @@ class _PomodoroTimerPageState extends State<PomodoroTimerPage>
   }
 
   Widget _buildSettingsSheet() {
-    return Container(
-      height: MediaQuery.of(context).size.height * 0.7,
-      decoration: const BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-      ),
-      child: Column(
-        children: [
-          Container(
-            width: 40,
-            height: 4,
-            margin: const EdgeInsets.only(top: 12),
-            decoration: BoxDecoration(
-              color: Colors.grey.shade300,
-              borderRadius: BorderRadius.circular(2),
-            ),
+    return StatefulBuilder(
+      builder: (BuildContext context, StateSetter setModalState) {
+        return Container(
+          height: MediaQuery.of(context).size.height * 0.7,
+          decoration: const BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
           ),
-          const Padding(
-            padding: EdgeInsets.all(20),
-            child: Text(
-              '专注设置',
-              style: TextStyle(
-                fontSize: 20,
-                fontWeight: FontWeight.bold,
-                color: Color(0xFF1A1A1A),
-              ),
-            ),
-          ),
-          Expanded(
-            child: ListView(
-              key: ValueKey(
-                  'settings_${_soundEnabled}_${_vibrationEnabled}_${_workTime}_${_breakTime}_${_longBreakTime}_${_sessionsBeforeLongBreak}'
-              ),
-              padding: const EdgeInsets.symmetric(horizontal: 20),
-              children: [
-                _buildSettingItem('专注时间', '$_workTime 分钟', _onWorkTimeTap),
-                _buildSettingItem('短休息时间', '$_breakTime 分钟', _onBreakTimeTap),
-                _buildSettingItem('长休息时间', '$_longBreakTime 分钟', _onLongBreakTimeTap),
-                _buildSettingItem('长休息间隔', '$_sessionsBeforeLongBreak 个周期', _onSessionsTap),
-                const SizedBox(height: 20),
-                _buildSwitchItem(
-                  title: '声音提醒',
-                  value: _soundEnabled,
-                  onChanged: (val) {
-                    setState(() {
-                      _soundEnabled = val;
-                    });
-                  },
+          child: Column(
+            children: [
+              Container(
+                width: 40,
+                height: 4,
+                margin: const EdgeInsets.only(top: 12),
+                decoration: BoxDecoration(
+                  color: Colors.grey.shade300,
+                  borderRadius: BorderRadius.circular(2),
                 ),
-                _buildSwitchItem(
-                  title: '震动提醒',
-                  value: _vibrationEnabled,
-                  onChanged: (val) {
-                    setState(() {
-                      _vibrationEnabled = val;
-                    });
-                  },
+              ),
+              const Padding(
+                padding: EdgeInsets.all(20),
+                child: Text(
+                  '专注设置',
+                  style: TextStyle(
+                    fontSize: 20,
+                    fontWeight: FontWeight.bold,
+                    color: Color(0xFF1A1A1A),
+                  ),
                 ),
-              ],
-            ),
+              ),
+              Expanded(
+                child: ListView(
+                  padding: const EdgeInsets.symmetric(horizontal: 20),
+                  children: [
+                    _buildSettingItem('专注时间', '$_workTime 分钟', () async {
+                      final result = await _showTimePickerDialog(title: '设置专注时间', value: _workTime, options: [15, 20, 25, 30, 45, 60]);
+                      if (result != null && result != _workTime) {
+                        setState(() {
+                          _workTime = result;
+                          if (!_isRunning && !_isBreak) {
+                            _timeLeft = result * 60;
+                            _totalTime = result * 60;
+                          }
+                        });
+                        setModalState(() {}); // 更新模态框状态
+                      }
+                    }),
+                    _buildSettingItem('短休息时间', '$_breakTime 分钟', () async {
+                      final result = await _showTimePickerDialog(title: '设置休息时间', value: _breakTime, options: [5, 10, 15, 20]);
+                      if (result != null && result != _breakTime) {
+                        setState(() {
+                          _breakTime = result;
+                          if (!_isRunning && _isBreak) {
+                            _timeLeft = result * 60;
+                            _totalTime = result * 60;
+                          }
+                        });
+                        setModalState(() {}); // 更新模态框状态
+                      }
+                    }),
+                    _buildSettingItem('长休息时间', '$_longBreakTime 分钟', () async {
+                      final result = await _showTimePickerDialog(title: '设置长休息时间', value: _longBreakTime, options: [10, 15, 20, 25, 30]);
+                      if (result != null && result != _longBreakTime) {
+                        setState(() {
+                          _longBreakTime = result;
+                        });
+                        setModalState(() {}); // 更新模态框状态
+                      }
+                    }),
+                    _buildSettingItem('长休息间隔', '$_sessionsBeforeLongBreak 个周期', () async {
+                      final result = await _showSessionsPickerDialog(value: _sessionsBeforeLongBreak);
+                      if (result != null && result != _sessionsBeforeLongBreak) {
+                        setState(() {
+                          _sessionsBeforeLongBreak = result;
+                        });
+                        setModalState(() {}); // 更新模态框状态
+                      }
+                    }),
+                    const SizedBox(height: 20),
+                    _buildSwitchItem(
+                      title: '声音提醒',
+                      value: _soundEnabled,
+                      onChanged: (val) {
+                        setState(() {
+                          _soundEnabled = val;
+                        });
+                        setModalState(() {}); // 更新模态框状态
+                      },
+                    ),
+                    _buildSwitchItem(
+                      title: '震动提醒',
+                      value: _vibrationEnabled,
+                      onChanged: (val) {
+                        setState(() {
+                          _vibrationEnabled = val;
+                        });
+                        setModalState(() {}); // 更新模态框状态
+                      },
+                    ),
+                  ],
+                ),
+              ),
+            ],
           ),
-        ],
-      ),
+        );
+      },
     );
   }
 
