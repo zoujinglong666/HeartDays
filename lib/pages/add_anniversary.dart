@@ -240,16 +240,21 @@ Color getAppBarColor(String type) {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+
     return Scaffold(
-      extendBody: true, // ✅ 允许背景延伸到导航栏区域
+      backgroundColor: const Color(0xFFF8F9FA),
       resizeToAvoidBottomInset: true,
+      extendBody: true,
+      extendBodyBehindAppBar: false,
       appBar: AppBar(
-        backgroundColor: getAppBarColor(_selectedType),
+        backgroundColor: Colors.white,
         elevation: 0,
+        surfaceTintColor: Colors.transparent,
         title: Text(
           _pageTitle,
           style: const TextStyle(
-            color: Colors.black87,
+            color: Color(0xFF2C3E50),
             fontSize: 18,
             fontWeight: FontWeight.w600,
           ),
@@ -257,16 +262,17 @@ Color getAppBarColor(String type) {
         centerTitle: true,
         leading: IconButton(
           icon: const Icon(
-            Icons.arrow_back_ios,
-            color: Colors.black87,
+            Icons.arrow_back_ios_new,
+            color: Color(0xFF2C3E50),
             size: 20,
           ),
           onPressed: () => Navigator.of(context).pop(),
         ),
-
         actions: [
-          TextButton.icon(
-            onPressed: () async {
+          Container(
+            margin: const EdgeInsets.only(right: 16, top: 8, bottom: 8),
+            child: ElevatedButton(
+              onPressed: () async {
               if (_titleController.text.trim() == "") {
                 _titleController.text = "";
                 ToastUtils.showToast("请输入标题");
@@ -325,27 +331,39 @@ Color getAppBarColor(String type) {
                 handleSave();
               }
             },
-            label: Text(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: _selectedColor,
+              foregroundColor: Colors.white,
+              elevation: 0,
+              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(20),
+              ),
+            ),
+            child: const Text(
               "保存",
               style: TextStyle(
-                color: _selectedColor,
-                fontWeight: FontWeight.bold,
+                fontWeight: FontWeight.w600,
+                fontSize: 14,
               ),
             ),
           ),
+          ),
         ],
-        systemOverlayStyle: SystemUiOverlayStyle.dark,
+        systemOverlayStyle: const SystemUiOverlayStyle(
+          statusBarColor: Colors.transparent,
+          statusBarIconBrightness: Brightness.dark,
+          systemNavigationBarColor: Colors.transparent,
+          systemNavigationBarIconBrightness: Brightness.dark,
+        ),
       ),
       body: GestureDetector(
         onTap: () => FocusScope.of(context).unfocus(),
         child: Form(
           key: _formKey,
-          child: Stack(
+          child: ListView(
+            padding: const EdgeInsets.all(16),
             children: [
-              ListView(
-                padding: const EdgeInsets.all(20),
-                // padding: const EdgeInsets.fromLTRB(20, 20, 20, 100), // 底部留出保存按钮的空间
-                children: [
                   // 顶部预览卡片
                   _buildPreviewCard(),
                   const SizedBox(height: 24),
@@ -427,17 +445,15 @@ Color getAppBarColor(String type) {
                   // 重复选项
                   _buildSectionTitle("重复"),
                   _buildCategorySelector(),
-
+                  const SizedBox(height: 100), // 底部安全距离
                 ],
               ),
-            ],
-          ),
-        ),
-      ),
+              ),
+              ),
     );
   }
 
-  // 日期选择器
+  // 重复选择器
   Widget _buildCategorySelector() {
     return InkWell(
       onTap: () {
@@ -460,22 +476,32 @@ Color getAppBarColor(String type) {
           }
         });
       },
-      borderRadius: BorderRadius.circular(12),
+      borderRadius: BorderRadius.circular(16),
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
         decoration: BoxDecoration(
-          color: const Color(0xFFF2F2F7),
-          borderRadius: BorderRadius.circular(12),
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(16),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.04),
+              blurRadius: 10,
+              offset: const Offset(0, 2),
+            ),
+          ],
         ),
         child: Row(
           children: [
-            const Icon(Icons.category, color: Color(0xFF007AFF), size: 20),
+            Icon(Icons.repeat, color: _selectedColor, size: 20),
             const SizedBox(width: 16),
             Text(
               _repetitiveType?.label ?? '未选择',
-              style: const TextStyle(fontSize: 16, color: Colors.black87),
-            )
-            ,
+              style: const TextStyle(
+                fontSize: 16,
+                color: Color(0xFF2C3E50),
+                fontWeight: FontWeight.w500,
+              ),
+            ),
             const Spacer(),
             Icon(
               Icons.arrow_forward_ios,
@@ -497,16 +523,16 @@ Color getAppBarColor(String type) {
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
         gradient: LinearGradient(
-          colors: [_selectedColor.withOpacity(0.7), _selectedColor],
+          colors: [_selectedColor.withOpacity(0.8), _selectedColor],
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
         ),
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(20),
         boxShadow: [
           BoxShadow(
-            color: _selectedColor.withOpacity(0.3),
-            blurRadius: 10,
-            offset: const Offset(0, 4),
+            color: _selectedColor.withOpacity(0.2),
+            blurRadius: 20,
+            offset: const Offset(0, 8),
           ),
         ],
       ),
@@ -637,13 +663,13 @@ Color getAppBarColor(String type) {
   // 小节标题
   Widget _buildSectionTitle(String title) {
     return Padding(
-      padding: const EdgeInsets.only(left: 4, bottom: 8),
+      padding: const EdgeInsets.only(left: 4, bottom: 12),
       child: Text(
         title,
         style: const TextStyle(
-          fontSize: 16,
+          fontSize: 17,
           fontWeight: FontWeight.w600,
-          color: Colors.black87,
+          color: Color(0xFF2C3E50),
         ),
       ),
     );
@@ -657,28 +683,49 @@ Color getAppBarColor(String type) {
     int maxLines = 1,
     String? Function(String?)? validator,
   }) {
-    return TextFormField(
-      controller: controller,
-      maxLines: maxLines,
-      decoration: InputDecoration(
-        hintText: hintText,
-        hintStyle: TextStyle(color: Colors.grey.shade400),
-        prefixIcon: Icon(prefixIcon, color: _selectedColor),
-        filled: true,
-        fillColor: Colors.white,
-        border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
-          borderSide: BorderSide.none,
-        ),
-        contentPadding: const EdgeInsets.symmetric(
-          horizontal: 16,
-          vertical: 16,
-        ),
+    return Container(
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.04),
+            blurRadius: 10,
+            offset: const Offset(0, 2),
+          ),
+        ],
       ),
-      validator: validator,
-      onChanged: (value) {
-        setState(() {});
-      },
+      child: TextFormField(
+        controller: controller,
+        maxLines: maxLines,
+        decoration: InputDecoration(
+          hintText: hintText,
+          hintStyle: TextStyle(color: Colors.grey.shade400),
+          prefixIcon: Icon(prefixIcon, color: _selectedColor, size: 20),
+          filled: true,
+          fillColor: Colors.transparent,
+          border: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(16),
+            borderSide: BorderSide.none,
+          ),
+          enabledBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(16),
+            borderSide: BorderSide.none,
+          ),
+          focusedBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(16),
+            borderSide: BorderSide(color: _selectedColor, width: 2),
+          ),
+          contentPadding: const EdgeInsets.symmetric(
+            horizontal: 16,
+            vertical: 16,
+          ),
+        ),
+        validator: validator,
+        onChanged: (value) {
+          setState(() {});
+        },
+      ),
     );
   }
 
@@ -687,12 +734,19 @@ Color getAppBarColor(String type) {
     return Container(
       height: 50,
       decoration: BoxDecoration(
-        color: Colors.transparent,
-        borderRadius: BorderRadius.circular(12),
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.04),
+            blurRadius: 10,
+            offset: const Offset(0, 2),
+          ),
+        ],
       ),
       child: ListView.builder(
         scrollDirection: Axis.horizontal,
-        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 5),
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
         itemCount: _typeOptions.length,
         itemBuilder: (context, index) {
           final type = _typeOptions[index];
@@ -708,28 +762,25 @@ Color getAppBarColor(String type) {
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
               margin: const EdgeInsets.symmetric(horizontal: 4),
               decoration: BoxDecoration(
-                color: isSelected ? _selectedColor : Colors.white,
+                color: isSelected ? _selectedColor : Colors.grey.shade50,
                 borderRadius: BorderRadius.circular(20),
-                boxShadow:
-                    isSelected
-                        ? [
-                          BoxShadow(
-                            color: _selectedColor.withOpacity(0.3),
-                            blurRadius: 8,
-                            offset: const Offset(0, 2),
-                          ),
-                        ]
-                        : null,
-                border:
-                    isSelected ? null : Border.all(color: Colors.grey.shade200),
+                boxShadow: isSelected
+                    ? [
+                        BoxShadow(
+                          color: _selectedColor.withOpacity(0.3),
+                          blurRadius: 8,
+                          offset: const Offset(0, 2),
+                        ),
+                      ]
+                    : null,
               ),
               alignment: Alignment.center,
               child: Text(
                 type,
                 style: TextStyle(
                   fontSize: 14,
-                  fontWeight: FontWeight.w500,
-                  color: isSelected ? Colors.white : Colors.grey.shade700,
+                  fontWeight: FontWeight.w600,
+                  color: isSelected ? Colors.white : const Color(0xFF2C3E50),
                 ),
               ),
             ),
@@ -743,20 +794,31 @@ Color getAppBarColor(String type) {
   Widget _buildDateSelector() {
     return InkWell(
       onTap: () => _selectDate(context),
-      borderRadius: BorderRadius.circular(12),
+      borderRadius: BorderRadius.circular(16),
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
         decoration: BoxDecoration(
           color: Colors.white,
-          borderRadius: BorderRadius.circular(12),
+          borderRadius: BorderRadius.circular(16),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.04),
+              blurRadius: 10,
+              offset: const Offset(0, 2),
+            ),
+          ],
         ),
         child: Row(
           children: [
-            Icon(Icons.calendar_today, color: _selectedColor),
+            Icon(Icons.calendar_today_outlined, color: _selectedColor, size: 20),
             const SizedBox(width: 16),
             Text(
-               formatDateTime(_selectedDate),
-              style: const TextStyle(fontSize: 16, color: Colors.black87),
+              formatDateTime(_selectedDate),
+              style: const TextStyle(
+                fontSize: 16,
+                color: Color(0xFF2C3E50),
+                fontWeight: FontWeight.w500,
+              ),
             ),
             const Spacer(),
             Icon(
@@ -775,12 +837,19 @@ Color getAppBarColor(String type) {
     return Container(
       height: 40,
       decoration: BoxDecoration(
-        color: Colors.transparent,
-        borderRadius: BorderRadius.circular(12),
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.04),
+            blurRadius: 10,
+            offset: const Offset(0, 2),
+          ),
+        ],
       ),
       child: ListView.builder(
         scrollDirection: Axis.horizontal,
-        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 5),
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
         itemCount: _categorizedIcons.keys.length,
         itemBuilder: (context, index) {
           final category = _categorizedIcons.keys.elementAt(index);
@@ -796,28 +865,25 @@ Color getAppBarColor(String type) {
               padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
               margin: const EdgeInsets.symmetric(horizontal: 4),
               decoration: BoxDecoration(
-                color: isSelected ? _selectedColor : Colors.white,
+                color: isSelected ? _selectedColor : Colors.grey.shade50,
                 borderRadius: BorderRadius.circular(16),
-                boxShadow:
-                    isSelected
-                        ? [
-                          BoxShadow(
-                            color: _selectedColor.withOpacity(0.3),
-                            blurRadius: 4,
-                            offset: const Offset(0, 2),
-                          ),
-                        ]
-                        : null,
-                border:
-                    isSelected ? null : Border.all(color: Colors.grey.shade200),
+                boxShadow: isSelected
+                    ? [
+                        BoxShadow(
+                          color: _selectedColor.withOpacity(0.3),
+                          blurRadius: 4,
+                          offset: const Offset(0, 2),
+                        ),
+                      ]
+                    : null,
               ),
               alignment: Alignment.center,
               child: Text(
                 category,
                 style: TextStyle(
                   fontSize: 12,
-                  fontWeight: FontWeight.w500,
-                  color: isSelected ? Colors.white : Colors.grey.shade700,
+                  fontWeight: FontWeight.w600,
+                  color: isSelected ? Colors.white : const Color(0xFF2C3E50),
                 ),
               ),
             ),
@@ -833,11 +899,18 @@ Color getAppBarColor(String type) {
       height: 70,
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.04),
+            blurRadius: 10,
+            offset: const Offset(0, 2),
+          ),
+        ],
       ),
       child: ListView.builder(
         scrollDirection: Axis.horizontal,
-        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 10),
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
         itemCount: _currentCategoryIcons.length,
         itemBuilder: (context, index) {
           final icon = _currentCategoryIcons[index];
@@ -852,25 +925,22 @@ Color getAppBarColor(String type) {
             child: Container(
               width: 50,
               height: 50,
-              margin: const EdgeInsets.symmetric(horizontal: 8),
+              margin: const EdgeInsets.symmetric(horizontal: 6),
               decoration: BoxDecoration(
-                color: isSelected ? _selectedColor : Colors.white,
+                color: isSelected ? _selectedColor : Colors.grey.shade50,
                 shape: BoxShape.circle,
-                boxShadow:
-                    isSelected
-                        ? [
-                          BoxShadow(
-                            color: _selectedColor.withOpacity(0.3),
-                            blurRadius: 8,
-                            offset: const Offset(0, 2),
-                          ),
-                        ]
-                        : null,
-                border:
-                    isSelected ? null : Border.all(color: Colors.grey.shade200),
+                boxShadow: isSelected
+                    ? [
+                        BoxShadow(
+                          color: _selectedColor.withOpacity(0.3),
+                          blurRadius: 8,
+                          offset: const Offset(0, 2),
+                        ),
+                      ]
+                    : null,
               ),
               alignment: Alignment.center,
-              child: Text(icon, style: TextStyle(fontSize: 24)),
+              child: Text(icon, style: const TextStyle(fontSize: 24)),
             ),
           );
         },
@@ -884,11 +954,18 @@ Color getAppBarColor(String type) {
       height: 70,
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.04),
+            blurRadius: 10,
+            offset: const Offset(0, 2),
+          ),
+        ],
       ),
       child: ListView.builder(
         scrollDirection: Axis.horizontal,
-        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 10),
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
         itemCount: _colorOptions.length,
         itemBuilder: (context, index) {
           final color = _colorOptions[index];
@@ -903,7 +980,7 @@ Color getAppBarColor(String type) {
             child: Container(
               width: 50,
               height: 50,
-              margin: const EdgeInsets.symmetric(horizontal: 8),
+              margin: const EdgeInsets.symmetric(horizontal: 6),
               decoration: BoxDecoration(
                 color: color,
                 shape: BoxShape.circle,
@@ -914,10 +991,9 @@ Color getAppBarColor(String type) {
                     offset: const Offset(0, 2),
                   ),
                 ],
-                border:
-                    isSelected
-                        ? Border.all(color: Colors.white, width: 3)
-                        : null,
+                border: isSelected
+                    ? Border.all(color: Colors.white, width: 4)
+                    : Border.all(color: Colors.grey.shade200, width: 1),
               ),
             ),
           );
@@ -934,24 +1010,36 @@ Color getAppBarColor(String type) {
     required Function(bool) onChanged,
   }) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.04),
+            blurRadius: 10,
+            offset: const Offset(0, 2),
+          ),
+        ],
       ),
       child: Row(
         children: [
-          Icon(icon, color: _selectedColor),
+          Icon(icon, color: _selectedColor, size: 20),
           const SizedBox(width: 16),
           Text(
             title,
-            style: const TextStyle(fontSize: 16, color: Colors.black87),
+            style: const TextStyle(
+              fontSize: 16,
+              color: Color(0xFF2C3E50),
+              fontWeight: FontWeight.w500,
+            ),
           ),
           const Spacer(),
           Switch(
             value: value,
             onChanged: onChanged,
             activeColor: _selectedColor,
+            materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
           ),
         ],
       ),

@@ -54,59 +54,144 @@ class _FriendListPageState extends State<FriendListPage> {
                 )
                 .toList();
     return Scaffold(
+      backgroundColor: const Color(0xFFEDEDED),
       body: Column(
         children: [
-          Padding(
-            padding: const EdgeInsets.all(12.0),
-            child: TextField(
-              decoration: InputDecoration(
-                hintText: '搜索好友昵称/账号',
-                prefixIcon: const Icon(Icons.search),
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(8),
-                  borderSide: BorderSide.none,
-                ),
-                filled: true,
-                fillColor: Colors.grey[100],
-                contentPadding: const EdgeInsets.symmetric(
-                  vertical: 0,
-                  horizontal: 8,
-                ),
+          // 搜索栏
+          Container(
+            color: const Color(0xFFEDEDED),
+            padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
+            child: Container(
+              height: 36,
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(6),
               ),
-              onChanged: _onSearch,
+              child: TextField(
+                decoration: InputDecoration(
+                  hintText: '搜索',
+                  hintStyle: TextStyle(
+                    color: Colors.grey[500],
+                    fontSize: 16,
+                  ),
+                  prefixIcon: Icon(
+                    Icons.search,
+                    color: Colors.grey[500],
+                    size: 20,
+                  ),
+                  border: InputBorder.none,
+                  contentPadding: const EdgeInsets.symmetric(
+                    vertical: 8,
+                    horizontal: 12,
+                  ),
+                ),
+                onChanged: _onSearch,
+              ),
             ),
           ),
+          
+          // 好友列表
           Expanded(
-            child: ListView.separated(
-              itemCount: filtered.length,
-              separatorBuilder: (_, __) => const Divider(height: 1, indent: 72),
-              itemBuilder: (context, index) {
-                final f = filtered[index];
-                final avatar = f.avatar ?? '';
-                return ListTile(
-                  leading: CircleAvatar(
-                    backgroundImage:
-                        avatar.isNotEmpty ? NetworkImage(avatar) : null,
-                    child:
-                        avatar.isEmpty
-                            ? const Icon(Icons.person_outline)
-                            : null,
-                  ),
-                  title: Text(f.name),
-                  subtitle: Text(
-                    '账号: ${f.userAccount}',
-                    style: const TextStyle(fontSize: 13),
-                  ),
-                  onTap: () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (_) => FriendDetailPage(friend: f),
+            child: Container(
+              color: Colors.white,
+              child: ListView.builder(
+                itemCount: filtered.length,
+                itemBuilder: (context, index) {
+                  final f = filtered[index];
+                  final avatar = f.avatar ?? '';
+                  final isLastItem = index == filtered.length - 1;
+                  
+                  return Container(
+                    color: Colors.white,
+                    child: Material(
+                      color: Colors.transparent,
+                      child: InkWell(
+                        onTap: () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (_) => FriendDetailPage(friend: f),
+                            ),
+                          );
+                        },
+                        child: Container(
+                          padding: const EdgeInsets.fromLTRB(16, 12, 16, 12),
+                          decoration: BoxDecoration(
+                            border: isLastItem
+                                ? null
+                                : Border(
+                                    bottom: BorderSide(
+                                      color: const Color(0xFFE5E5E5),
+                                      width: 0.5,
+                                    ),
+                                  ),
+                          ),
+                          child: Row(
+                            children: [
+                              // 头像
+                              Container(
+                                width: 48,
+                                height: 48,
+                                decoration: BoxDecoration(
+                                  borderRadius: BorderRadius.circular(6),
+                                  color: const Color(0xFFF0F0F0),
+                                ),
+                                child: ClipRRect(
+                                  borderRadius: BorderRadius.circular(6),
+                                  child: avatar.isNotEmpty
+                                      ? Image.network(
+                                          avatar,
+                                          fit: BoxFit.cover,
+                                          errorBuilder: (context, error, stackTrace) {
+                                            return Container(
+                                              color: const Color(0xFFF0F0F0),
+                                              child: Icon(
+                                                Icons.person,
+                                                size: 26,
+                                                color: Colors.grey[500],
+                                              ),
+                                            );
+                                          },
+                                        )
+                                      : Container(
+                                          color: const Color(0xFFF0F0F0),
+                                          child: Icon(
+                                            Icons.person,
+                                            size: 26,
+                                            color: Colors.grey[500],
+                                          ),
+                                        ),
+                                ),
+                              ),
+                              
+                              const SizedBox(width: 12),
+                              
+                              // 用户信息
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(
+                                      f.name,
+                                      style: const TextStyle(
+                                        fontSize: 17,
+                                        fontWeight: FontWeight.w400,
+                                        color: Colors.black87,
+                                        height: 1.2,
+                                      ),
+                                      overflow: TextOverflow.ellipsis,
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
                       ),
-                    );
-                  },
-                );
-              },
+                    ),
+                  );
+                },
+              ),
             ),
           ),
         ],
