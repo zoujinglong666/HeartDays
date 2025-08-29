@@ -53,6 +53,10 @@ class _ChatDetailPageState extends ConsumerState<ChatDetailPage> {
   final MessageQueue _messageQueue = MessageQueue();
   StreamSubscription<ConnectivityResult>? _connectivitySubscription;
   Database? _messageDatabase;
+  
+  // 表情面板状态
+  bool _showEmojiPanel = false;
+  bool _showMorePanel = false;
 
   late Connectivity _connectivity;
   late bool _isOnline;
@@ -358,54 +362,118 @@ class _ChatDetailPageState extends ConsumerState<ChatDetailPage> {
     // 可以更新消息送达状态
   }
   void _onEmojiPressed() {
-    _focusNode.unfocus(); // 先收起键盘
-
-    showModalBottomSheet(
-      context: context,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
-      ),
-      builder: (_) {
-        return SizedBox(
-          height: 300,
-          child: GridView.builder(
-            padding: const EdgeInsets.all(12),
-            gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-              crossAxisCount: 8,
-              mainAxisSpacing: 12,
-              crossAxisSpacing: 12,
-            ),
-            itemCount: emojiList.length,
-            itemBuilder: (_, index) {
-              return GestureDetector(
-                onTap: () {
-                  final emoji = emojiList[index];
-                  final text = _controller.text;
-                  final cursorPos = _controller.selection.baseOffset;
-                  final newText = text.replaceRange(
-                    cursorPos,
-                    cursorPos,
-                    emoji,
-                  );
-                  _controller.text = newText;
-                  _controller.selection = TextSelection.collapsed(offset: cursorPos + emoji.length);
-                  setState(() {});
-                },
-                child: Center(
-                  child: Text(emojiList[index], style: const TextStyle(fontSize: 24)),
-                ),
-              );
-            },
-          ),
-        );
-      },
-    );
+    setState(() {
+      _showEmojiPanel = !_showEmojiPanel;
+      _showMorePanel = false;
+      if (_showEmojiPanel) {
+        _focusNode.unfocus(); // 收起键盘
+      }
+    });
   }
 
 
   void _onPlusPressed() {
-    // 打开更多菜单，比如图片、文件
-    print('打开更多操作菜单');
+    setState(() {
+      _showMorePanel = !_showMorePanel;
+      _showEmojiPanel = false;
+      if (_showMorePanel) {
+        _focusNode.unfocus(); // 收起键盘
+      }
+    });
+  }
+
+  Widget _buildEmojiPanel() {
+    return Container(
+      height: 250,
+      color: Colors.grey[50],
+      child: GridView.builder(
+        padding: const EdgeInsets.all(12),
+        gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+          crossAxisCount: 8,
+          mainAxisSpacing: 12,
+          crossAxisSpacing: 12,
+        ),
+        itemCount: emojiList.length,
+        itemBuilder: (_, index) {
+          return GestureDetector(
+            onTap: () {
+              final emoji = emojiList[index];
+              final text = _controller.text;
+              final cursorPos = _controller.selection.baseOffset;
+              final newText = text.replaceRange(
+                cursorPos,
+                cursorPos,
+                emoji,
+              );
+              _controller.text = newText;
+              _controller.selection = TextSelection.collapsed(offset: cursorPos + emoji.length);
+              setState(() {});
+            },
+            child: Container(
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(color: Colors.grey[200]!),
+              ),
+              child: Center(
+                child: Text(emojiList[index], style: const TextStyle(fontSize: 24)),
+              ),
+            ),
+          );
+        },
+      ),
+    );
+  }
+
+  Widget _buildMorePanel() {
+    return Container(
+      height: 200,
+      color: Colors.grey[50],
+      child: GridView.count(
+        crossAxisCount: 4,
+        padding: const EdgeInsets.all(16),
+        children: [
+          _buildMoreItem(Icons.photo, '相册', () {
+            print('选择相册');
+          }),
+          _buildMoreItem(Icons.camera_alt, '拍照', () {
+            print('拍照');
+          }),
+          _buildMoreItem(Icons.attach_file, '文件', () {
+            print('选择文件');
+          }),
+          _buildMoreItem(Icons.location_on, '位置', () {
+            print('发送位置');
+          }),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildMoreItem(IconData icon, String label, VoidCallback onTap) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Container(
+            width: 50,
+            height: 50,
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: Colors.grey[200]!),
+            ),
+            child: Icon(icon, size: 28, color: Colors.grey[600]),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            label,
+            style: TextStyle(fontSize: 12, color: Colors.grey[600]),
+          ),
+        ],
+      ),
+    );
   }
   Future<void> _loadInitialHistory() async {
     setState(() {
@@ -863,54 +931,87 @@ class _ChatDetailPageState extends ConsumerState<ChatDetailPage> {
 
   Widget _buildMessageInput() {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
       decoration: BoxDecoration(
         color: Colors.white,
         border: Border(top: BorderSide(color: Colors.grey.shade200)),
       ),
-      child: Row(
+      child: Column(
         children: [
-          // 表情按钮
-          IconButton(
-            icon: const Icon(Icons.emoji_emotions_outlined, color: Colors.grey),
-            onPressed: _onEmojiPressed,
-          ),
-
-          // 输入框
-          Expanded(
-            child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 12),
-              decoration: BoxDecoration(
-                color: Colors.grey.shade100,
-                borderRadius: BorderRadius.circular(20),
-              ),
-              child: TextField(
-                controller: _controller,
-                focusNode: _focusNode,
-                onChanged: (_) => setState(() {}), // 监听内容变化
-                onSubmitted: (_) => _sendMessage(),
-                onTap: _scrollToBottom,
-                decoration: const InputDecoration(
-                  hintText: '请输入内容',
-                  border: InputBorder.none,
-                  isCollapsed: true,
-                  contentPadding: EdgeInsets.symmetric(vertical: 10),
+          // 输入框区域
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+            child: Row(
+              children: [
+                // 表情按钮
+                IconButton(
+                  icon: Icon(
+                    _showEmojiPanel ? Icons.keyboard : Icons.emoji_emotions_outlined,
+                    color: _showEmojiPanel ? Colors.blue : Colors.grey,
+                  ),
+                  onPressed: _onEmojiPressed,
                 ),
-              ),
+
+                // 输入框
+                Expanded(
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 12),
+                    decoration: BoxDecoration(
+                      color: Colors.grey.shade100,
+                      borderRadius: BorderRadius.circular(20),
+                    ),
+                    child: TextField(
+                      controller: _controller,
+                      focusNode: _focusNode,
+                      maxLines: 4,
+                      minLines: 1,
+                      onChanged: (_) => setState(() {}), // 监听内容变化
+                      onSubmitted: (_) => _sendMessage(),
+                      onTap: () {
+                        setState(() {
+                          _showEmojiPanel = false;
+                          _showMorePanel = false;
+                        });
+                        _scrollToBottom();
+                      },
+                      decoration: const InputDecoration(
+                        hintText: '请输入内容',
+                        border: InputBorder.none,
+                        isCollapsed: true,
+                        contentPadding: EdgeInsets.symmetric(vertical: 10),
+                      ),
+                    ),
+                  ),
+                ),
+
+                const SizedBox(width: 6),
+
+                // 发送 or 加号按钮
+                _controller.text.trim().isNotEmpty
+                    ? IconButton(
+                  icon: const Icon(Icons.send, color: Color(0xFF07C160)),
+                  onPressed: _sendMessage,
+                )
+                    : IconButton(
+                  icon: Icon(
+                    _showMorePanel ? Icons.keyboard : Icons.add_circle_outline,
+                    color: _showMorePanel ? Colors.blue : Colors.grey,
+                  ),
+                  onPressed: _onPlusPressed,
+                ),
+              ],
             ),
           ),
-
-          const SizedBox(width: 6),
-
-          // 发送 or 加号按钮
-          _controller.text.trim().isNotEmpty
-              ? IconButton(
-            icon: const Icon(Icons.send, color: Color(0xFF07C160)),
-            onPressed: _sendMessage,
-          )
-              : IconButton(
-            icon: const Icon(Icons.add_circle_outline, color: Colors.grey),
-            onPressed: _onPlusPressed,
+          // 表情面板
+          AnimatedContainer(
+            duration: const Duration(milliseconds: 200),
+            height: _showEmojiPanel ? 250 : 0,
+            child: _showEmojiPanel ? _buildEmojiPanel() : const SizedBox.shrink(),
+          ),
+          // 更多功能面板
+          AnimatedContainer(
+            duration: const Duration(milliseconds: 200),
+            height: _showMorePanel ? 200 : 0,
+            child: _showMorePanel ? _buildMorePanel() : const SizedBox.shrink(),
           ),
         ],
       ),

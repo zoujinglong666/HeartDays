@@ -259,86 +259,236 @@ class DraggableTodoItem extends ConsumerWidget {
     String selectedPriority = item.priority;
     DateTime? selectReminderAt = item.reminderAt;
 
+    // 在显示日期选择器时自动隐藏键盘
+    void showDatePicker() {
+      // 先隐藏键盘
+      FocusScope.of(context).unfocus();
+
+      // 延迟一下再显示日期选择器，确保键盘完全收起
+      Future.delayed(const Duration(milliseconds: 100), () {
+        AppDatePicker.show(
+          context: context,
+          mode: AppDatePickerMode.editDate,
+          initialDateTime: item.reminderAt,
+          onConfirm: (dateTime) {
+            selectReminderAt = dateTime;
+            item.reminderAt = dateTime;
+            // 通知StatefulBuilder更新UI
+            (context as Element).markNeedsBuild();
+          },
+        );
+      });
+    }
+
     showDialog(
       context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('编辑待办事项'),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            TextField(
-              controller: titleController,
-              decoration: const InputDecoration(labelText: '标题'),
-              autofocus: true,
-            ),
-            const SizedBox(height: 8),
-
-            StatefulBuilder(
-              builder: (context, setState) => ElevatedButton(
-                onPressed: () {
-                  AppDatePicker.show(
-                    context: context,
-                    mode: AppDatePickerMode.editDate,
-                    initialDateTime: item.reminderAt,
-                    onConfirm: (dateTime) {
-                      setState(() {
-                        selectReminderAt = dateTime;
-                        item.reminderAt = dateTime;
-                      });
-                    },
-                  );
-                },
-                child: Text(
-                  selectReminderAt != null
-                      ? '提醒时间：${selectReminderAt!.year}/${selectReminderAt!.month.toString().padLeft(2, '0')}/${selectReminderAt!.day.toString().padLeft(2, '0')} '
-                      '${selectReminderAt!.hour.toString().padLeft(2, '0')}:${selectReminderAt!.minute.toString().padLeft(2, '0')}'
-                      : '编辑日期',
-                ),
+      builder: (context) =>
+          Dialog(
+            shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(16)),
+            elevation: 0,
+            backgroundColor: Colors.transparent,
+            child: Container(
+              padding: const EdgeInsets.all(20),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(16),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withOpacity(0.1),
+                    blurRadius: 12,
+                    offset: const Offset(0, 4),
+                  ),
+                ],
               ),
-            )
-            ,
-            const Divider(height: 32),
-            StatefulBuilder(
-              builder: (context, setState) => Row(
-                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
                 children: [
-                  _buildPriorityOption(context, '低', 'low', selectedPriority, (val) {
-                    setState(() => selectedPriority = val);
-                  }),
-                  _buildPriorityOption(context, '中', 'medium', selectedPriority, (val) {
-                    setState(() => selectedPriority = val);
-                  }),
-                  _buildPriorityOption(context, '高', 'high', selectedPriority, (val) {
-                    setState(() => selectedPriority = val);
-                  }),
+                  // 标题
+                  Row(
+                    children: [
+                      const Icon(Icons.edit, color: Colors.blue),
+                      const SizedBox(width: 8),
+                      const Text(
+                        '编辑待办事项',
+                        style: TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      const Spacer(),
+                      // 关闭按钮
+                      IconButton(
+                        icon: const Icon(Icons.close, color: Colors.grey),
+                        onPressed: () => Navigator.pop(context),
+                        padding: EdgeInsets.zero,
+                        constraints: const BoxConstraints(),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 16),
+
+                  // 标题输入框
+                  TextField(
+                    controller: titleController,
+                    decoration: InputDecoration(
+                      labelText: '标题',
+                      prefixIcon: const Icon(Icons.title, color: Colors.blue),
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                        borderSide: BorderSide(color: Colors.grey.shade300),
+                      ),
+                      enabledBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                        borderSide: BorderSide(color: Colors.grey.shade300),
+                      ),
+                      focusedBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                        borderSide: const BorderSide(
+                            color: Colors.blue, width: 2),
+                      ),
+                      filled: true,
+                      fillColor: Colors.grey.shade50,
+                    ),
+                    autofocus: true,
+                  ),
+                  const SizedBox(height: 16),
+
+                  // 日期选择按钮
+                  StatefulBuilder(
+                    builder: (context, setState) =>
+                        InkWell(
+                          onTap: showDatePicker,
+                          borderRadius: BorderRadius.circular(12),
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(
+                                vertical: 12, horizontal: 16),
+                            decoration: BoxDecoration(
+                              border: Border.all(color: Colors.grey.shade300),
+                              borderRadius: BorderRadius.circular(12),
+                              color: Colors.grey.shade50,
+                            ),
+                            child: Row(
+                              children: [
+                                const Icon(Icons.calendar_today, color: Colors
+                                    .blue),
+                                const SizedBox(width: 12),
+                                Expanded(
+                                  child: Text(
+                                    selectReminderAt != null
+                                        ? '${selectReminderAt!
+                                        .year}/${selectReminderAt!.month
+                                        .toString().padLeft(
+                                        2, '0')}/${selectReminderAt!.day
+                                        .toString().padLeft(2, '0')} '
+                                        '${selectReminderAt!.hour.toString()
+                                        .padLeft(2, '0')}:${selectReminderAt!
+                                        .minute.toString().padLeft(2, '0')}'
+                                        : '设置提醒时间',
+                                    style: TextStyle(
+                                      color: selectReminderAt != null ? Colors
+                                          .black87 : Colors.grey.shade600,
+                                    ),
+                                  ),
+                                ),
+                                Icon(
+                                  Icons.arrow_forward_ios,
+                                  size: 16,
+                                  color: Colors.grey.shade600,
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                  ),
+
+                  const SizedBox(height: 20),
+
+                  // 优先级选择
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Text(
+                        '优先级',
+                        style: TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      StatefulBuilder(
+                        builder: (context, setState) =>
+                            Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                              children: [
+                                ...[
+                                  {'label': '低', 'value': 'low'},
+                                  {'label': '中', 'value': 'medium'},
+                                  {'label': '高', 'value': 'high'},
+                                ].map((priority) =>
+                                    _buildPriorityOption(
+                                      context,
+                                      priority['label']!,
+                                      priority['value']!,
+                                      selectedPriority,
+                                          (val) {
+                                        setState(() => selectedPriority = val);
+                                      },
+                                    )).toList(),
+                              ],
+                            ),
+                      ),
+
+                    ],
+                  ),
+
+                  const SizedBox(height: 24),
+
+                  // 操作按钮
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.end,
+                    children: [
+                      TextButton(
+                        onPressed: () => Navigator.pop(context),
+                        style: TextButton.styleFrom(
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 16, vertical: 10),
+                        ),
+                        child: const Text('取消'),
+                      ),
+                      const SizedBox(width: 8),
+                      ElevatedButton(
+                        onPressed: () {
+                          if (titleController.text
+                              .trim()
+                              .isNotEmpty) {
+                            todoNotifier.updateTodoFields(
+                                item.id,
+                                {
+                                  "title": titleController.text.trim(),
+                                  "reminder_at": selectReminderAt,
+                                  "priority": selectedPriority,
+                                }
+                            );
+                            Navigator.pop(context);
+                          }
+                        },
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.blue,
+                          foregroundColor: Colors.white,
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 16, vertical: 10),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                        ),
+                        child: const Text('保存'),
+                      ),
+                    ],
+                  ),
                 ],
               ),
             ),
-          ],
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('取消'),
-          ),
-          TextButton(
-            onPressed: () {
-              if (titleController.text.trim().isNotEmpty) {
-                todoNotifier.updateTodoFields(
-                  item.id,
-                    {
-                      "title": titleController.text.trim(),
-                      "reminder_at": selectReminderAt,
-                      "priority": selectedPriority,
-                    }
-
-                ); // ✅ 使用之前获取的 todoNotifier
-                Navigator.pop(context);
-              }
-            },
-            child: const Text('保存'),
-          ),
-        ],
       ),
     );
   }
@@ -352,18 +502,31 @@ class DraggableTodoItem extends ConsumerWidget {
     
     return InkWell(
       onTap: () => onChanged(value),
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+      borderRadius: BorderRadius.circular(20),
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 200),
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
         decoration: BoxDecoration(
           color: isSelected ? color.withOpacity(0.2) : Colors.transparent,
-          borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: color, width: 1),
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(
+            color: isSelected ? color : color.withOpacity(0.5),
+            width: isSelected ? 2 : 1,
+          ),
+          boxShadow: isSelected ? [
+            BoxShadow(
+              color: color.withOpacity(0.3),
+              blurRadius: 4,
+              offset: const Offset(0, 2),
+            ),
+          ] : null,
         ),
         child: Text(
           label,
           style: TextStyle(
-            color: color,
+            color: isSelected ? color : color.withOpacity(0.7),
             fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+            fontSize: 15,
           ),
         ),
       ),
