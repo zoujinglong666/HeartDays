@@ -203,73 +203,128 @@ class _AnniversaryCalendarState extends State<AnniversaryCalendar> {
     final eventColor = firstEvent.color ?? const Color(0xFF6A8CFF);
 
     return Container(
-      margin: const EdgeInsets.all(2),
-      // 增加最大高度，防止溢出
+      margin: const EdgeInsets.all(3),
       constraints: const BoxConstraints(minHeight: 72, maxHeight: 80, minWidth: double.infinity),
       decoration: BoxDecoration(
-        color: isSelected ? eventColor.withOpacity(0.15) : Colors.white,
-        borderRadius: BorderRadius.circular(12),
+        gradient: isSelected 
+            ? LinearGradient(
+                colors: [
+                  eventColor.withOpacity(0.2),
+                  eventColor.withOpacity(0.1),
+                ],
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+              )
+            : LinearGradient(
+                colors: [
+                  Colors.white,
+                  eventColor.withOpacity(0.05),
+                ],
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+              ),
+        borderRadius: BorderRadius.circular(16),
         border: isSelected
-            ? Border.all(color: eventColor, width: 2)
-            : Border.all(color: eventColor.withOpacity(0.3), width: 1),
+            ? Border.all(color: eventColor, width: 2.5)
+            : Border.all(color: eventColor.withOpacity(0.4), width: 1.5),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.03),
-            blurRadius: 4,
+            color: eventColor.withOpacity(isSelected ? 0.2 : 0.1),
+            blurRadius: isSelected ? 12 : 8,
+            offset: const Offset(0, 4),
+            spreadRadius: isSelected ? 1 : 0,
+          ),
+          BoxShadow(
+            color: Colors.black.withOpacity(0.05),
+            blurRadius: 6,
             offset: const Offset(0, 2),
           ),
         ],
       ),
-      padding: const EdgeInsets.symmetric(vertical: 6, horizontal: 4), // 减小垂直内边距
+      padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 6),
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         crossAxisAlignment: CrossAxisAlignment.center,
-        mainAxisSize: MainAxisSize.min, // 使用MainAxisSize.min减少占用空间
+        mainAxisSize: MainAxisSize.min,
         children: [
-          // 日期数字
+          // 日期数字 - 更现代的设计
           Container(
-            padding: const EdgeInsets.all(3), // 减小内边距
+            width: 28,
+            height: 28,
             decoration: BoxDecoration(
-              color: eventColor.withOpacity(0.1),
-              shape: BoxShape.circle,
+              gradient: LinearGradient(
+                colors: [
+                  eventColor,
+                  eventColor.withOpacity(0.8),
+                ],
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+              ),
+              borderRadius: BorderRadius.circular(14),
+              boxShadow: [
+                BoxShadow(
+                  color: eventColor.withOpacity(0.3),
+                  blurRadius: 4,
+                  offset: const Offset(0, 2),
+                ),
+              ],
             ),
-            child: Text(
-              '${date.day}',
-              style: TextStyle(
-                fontWeight: FontWeight.bold,
-                fontSize: 14, // 减小字体大小
-                color: eventColor,
+            child: Center(
+              child: Text(
+                '${date.day}',
+                style: const TextStyle(
+                  fontWeight: FontWeight.w700,
+                  fontSize: 14,
+                  color: Colors.white,
+                ),
               ),
             ),
           ),
-          const SizedBox(height: 4), // 减小间距
-          // 事件标题 - 只显示内容，不显示图标
+          const SizedBox(height: 6),
+          // 事件标题 - 优化字体和颜色
           Flexible(
             child: Text(
               firstEvent.title,
               style: TextStyle(
-                  fontSize: 12, // 减小字体大小
-                  color: eventColor,
-                  fontWeight: FontWeight.w600
+                fontSize: 11,
+                color: eventColor.withOpacity(0.9),
+                fontWeight: FontWeight.w600,
+                letterSpacing: 0.2,
               ),
               textAlign: TextAlign.center,
               overflow: TextOverflow.ellipsis,
-              maxLines: 1, // 限制最多显示1行
+              maxLines: 1,
             ),
           ),
-          // 多事件指示器
+          // 多事件指示器 - 更精致的设计
           if (moreCount > 0)
             Padding(
-              padding: const EdgeInsets.only(top: 2),
+              padding: const EdgeInsets.only(top: 3),
               child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 0), // 减小内边距
+                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                 decoration: BoxDecoration(
-                  color: eventColor.withOpacity(0.1),
-                  borderRadius: BorderRadius.circular(8),
+                  gradient: LinearGradient(
+                    colors: [
+                      eventColor.withOpacity(0.8),
+                      eventColor.withOpacity(0.6),
+                    ],
+                  ),
+                  borderRadius: BorderRadius.circular(10),
+                  boxShadow: [
+                    BoxShadow(
+                      color: eventColor.withOpacity(0.2),
+                      blurRadius: 2,
+                      offset: const Offset(0, 1),
+                    ),
+                  ],
                 ),
                 child: Text(
                   '+$moreCount',
-                  style: TextStyle(fontSize: 10, color: eventColor, fontWeight: FontWeight.w500), // 减小字体大小
+                  style: const TextStyle(
+                    fontSize: 9,
+                    color: Colors.white,
+                    fontWeight: FontWeight.w600,
+                  ),
                 ),
               ),
             ),
@@ -279,38 +334,117 @@ class _AnniversaryCalendarState extends State<AnniversaryCalendar> {
   }
 
   Widget _buildEmptyCell(DateTime date, {bool isSelected = false}) {
-    final cellColor = isSelected ? const Color(0xFFE3F2FD) : Colors.white;
-    final borderColor = isSelected ? const Color(0xFF90CAF9) : Colors.grey.withOpacity(0.2);
-
+    final today = DateTime.now();
+    final isToday = date.year == today.year && date.month == today.month && date.day == today.day;
+    
     return Container(
-      margin: const EdgeInsets.all(2),
-      // 固定大小，确保所有格子一致
+      margin: const EdgeInsets.all(3),
       constraints: const BoxConstraints(minHeight: 72, maxHeight: 72, minWidth: double.infinity),
       decoration: BoxDecoration(
-        color: cellColor,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: borderColor, width: isSelected ? 2 : 1),
+        gradient: isSelected 
+            ? const LinearGradient(
+                colors: [
+                  Color(0xFFE3F2FD),
+                  Color(0xFFF3E5F5),
+                ],
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+              )
+            : isToday
+                ? LinearGradient(
+                    colors: [
+                      Colors.white,
+                      const Color(0xFF6A8CFF).withOpacity(0.05),
+                    ],
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                  )
+                : const LinearGradient(
+                    colors: [
+                      Colors.white,
+                      Color(0xFFFAFAFA),
+                    ],
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                  ),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(
+          color: isSelected 
+              ? const Color(0xFF90CAF9)
+              : isToday
+                  ? const Color(0xFF6A8CFF).withOpacity(0.4)
+                  : Colors.grey.withOpacity(0.15),
+          width: isSelected ? 2.5 : isToday ? 2 : 1,
+        ),
         boxShadow: [
+          if (isSelected || isToday)
+            BoxShadow(
+              color: isSelected 
+                  ? const Color(0xFF90CAF9).withOpacity(0.2)
+                  : const Color(0xFF6A8CFF).withOpacity(0.1),
+              blurRadius: isSelected ? 12 : 8,
+              offset: const Offset(0, 4),
+              spreadRadius: isSelected ? 1 : 0,
+            ),
           BoxShadow(
-            color: Colors.black.withOpacity(0.02),
-            blurRadius: 3,
-            offset: const Offset(0, 1),
+            color: Colors.black.withOpacity(0.03),
+            blurRadius: 4,
+            offset: const Offset(0, 2),
           ),
         ],
       ),
       child: Center(
         child: Container(
-          padding: const EdgeInsets.all(6),
+          width: 32,
+          height: 32,
           decoration: BoxDecoration(
-            color: isSelected ? const Color(0xFF90CAF9).withOpacity(0.1) : Colors.grey.withOpacity(0.05),
-            shape: BoxShape.circle,
+            gradient: isSelected 
+                ? const LinearGradient(
+                    colors: [
+                      Color(0xFF90CAF9),
+                      Color(0xFF64B5F6),
+                    ],
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                  )
+                : isToday
+                    ? LinearGradient(
+                        colors: [
+                          const Color(0xFF6A8CFF).withOpacity(0.2),
+                          const Color(0xFF6A8CFF).withOpacity(0.1),
+                        ],
+                        begin: Alignment.topLeft,
+                        end: Alignment.bottomRight,
+                      )
+                    : LinearGradient(
+                        colors: [
+                          Colors.grey.withOpacity(0.08),
+                          Colors.grey.withOpacity(0.05),
+                        ],
+                        begin: Alignment.topLeft,
+                        end: Alignment.bottomRight,
+                      ),
+            borderRadius: BorderRadius.circular(16),
+            border: isToday && !isSelected
+                ? Border.all(
+                    color: const Color(0xFF6A8CFF).withOpacity(0.3),
+                    width: 1.5,
+                  )
+                : null,
           ),
-          child: Text(
-            '${date.day}',
-            style: TextStyle(
-              color: isSelected ? const Color(0xFF1976D2) : Colors.black87,
-              fontSize: 16,
-              fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+          child: Center(
+            child: Text(
+              '${date.day}',
+              style: TextStyle(
+                color: isSelected 
+                    ? Colors.white
+                    : isToday
+                        ? const Color(0xFF6A8CFF)
+                        : const Color(0xFF2C3E50),
+                fontSize: 16,
+                fontWeight: isSelected || isToday ? FontWeight.w700 : FontWeight.w600,
+                letterSpacing: 0.2,
+              ),
             ),
           ),
         ),
