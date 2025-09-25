@@ -3,6 +3,7 @@ import 'package:dio/dio.dart';
 import 'package:heart_days/common/event_bus.dart';
 import 'package:heart_days/http/model/api_response.dart';
 import 'package:heart_days/provider/auth_provider.dart';
+import 'package:heart_days/services/ChatSocketService.dart';
 import 'package:heart_days/utils/ToastUtils.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -250,6 +251,14 @@ class TokenInterceptorHandler extends Interceptor {
               await prefsInstance.setString('refresh_token', newRefreshToken);
 
               print("✅ Token已更新: ${newToken.substring(0, 20)}...");
+
+              // 通知 WebSocket 服务更新连接
+              try {
+                ChatSocketService().refreshConnection();
+                print("🔄 已通知 WebSocket 服务刷新连接");
+              } catch (e) {
+                print("⚠️ 通知 WebSocket 刷新失败: $e");
+              }
 
               // 等一帧，确保 token 更新完毕
               await Future.delayed(Duration(milliseconds: 10));

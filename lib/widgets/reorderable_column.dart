@@ -7,12 +7,12 @@ class ReorderableColumn extends StatefulWidget {
   final EdgeInsets padding;
 
   const ReorderableColumn({
-    Key? key,
+    super.key,
     required this.children,
     required this.onReorder,
     this.needsLongPressDraggable = true,
     this.padding = EdgeInsets.zero,
-  }) : super(key: key);
+  });
 
   @override
   State<ReorderableColumn> createState() => _ReorderableColumnState();

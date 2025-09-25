@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'dart:async';
 import 'package:flutter/services.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 class PomodoroTimerPage extends StatefulWidget {
   const PomodoroTimerPage({super.key});
@@ -47,10 +48,12 @@ class _PomodoroTimerPageState extends State<PomodoroTimerPage>
     _animation = Tween<double>(begin: 0, end: 1).animate(_animationController);
     
     _initNotifications();
+    _restoreTimerState(); // 恢复计时器状态
   }
 
   @override
   void dispose() {
+    _saveTimerState(); // 保存计时器状态
     _timer?.cancel();
     _animationController.dispose();
     WidgetsBinding.instance.removeObserver(this);
@@ -105,6 +108,152 @@ class _PomodoroTimerPageState extends State<PomodoroTimerPage>
         importance: Importance.high,
       ),
     );
+  }
+
+  // 保存计时器状态
+  Future<void> _saveTimerState() async {
+    final prefs = await SharedPreferences.getInstance();
+    
+    if (_isRunning) {
+      // 保存当前时间戳，用于计算经过的时间
+      await prefs.setInt('pomodoro_start_time', DateTime.now().millisecondsSinceEpoch);
+      await prefs.setInt('pomodoro_time_left', _timeLeft);
+      await prefs.setBool('pomodoro_is_running', _isRunning);
+      await prefs.setBool('pomodoro_is_break', _isBreak);
+      await prefs.setInt('pomodoro_total_time', _totalTime);
+      await prefs.setInt('pomodoro_completed_sessions', _completedSessions);
+      
+      print('💾 保存计时器状态: 剩余时间 $_timeLeft 秒, 运行中: $_isRunning, 休息: $_isBreak');
+    } else {
+      // 如果没有运行，清除保存的状态
+      await _clearSavedState();
+    }
+  }
+
+  // 恢复计时器状态
+  Future<void> _restoreTimerState() async {
+    final prefs = await SharedPreferences.getInstance();
+    
+    final isRunning = prefs.getBool('pomodoro_is_running') ?? false;
+    if (!isRunning) {
+      print('📱 没有保存的运行状态，使用默认设置');
+      return;
+    }
+    
+    final startTime = prefs.getInt('pomodoro_start_time');
+    final savedTimeLeft = prefs.getInt('pomodoro_time_left');
+    final isBreak = prefs.getBool('pomodoro_is_break') ?? false;
+    final totalTime = prefs.getInt('pomodoro_total_time') ?? _totalTime;
+    final completedSessions = prefs.getInt('pomodoro_completed_sessions') ?? 0;
+    
+    if (startTime != null && savedTimeLeft != null) {
+      // 计算经过的时间
+      final currentTime = DateTime.now().millisecondsSinceEpoch;
+      final elapsedSeconds = ((currentTime - startTime) / 1000).floor();
+      final newTimeLeft = savedTimeLeft - elapsedSeconds;
+      
+      print('🔄 恢复计时器状态: 保存时剩余 $savedTimeLeft 秒, 经过 $elapsedSeconds 秒, 现在剩余 $newTimeLeft 秒');
+      
+      if (newTimeLeft > 0) {
+        // 计时器还在运行
+        setState(() {
+          _timeLeft = newTimeLeft;
+          _totalTime = totalTime;
+          _isBreak = isBreak;
+          _completedSessions = completedSessions;
+          _isRunning = true;
+        });
+        
+        // 继续计时器
+        _continueTimer();
+        print('✅ 计时器已恢复运行');
+      } else {
+        // 计时器应该已经完成了
+        print('⏰ 计时器在后台已完成，触发完成事件');
+        await _clearSavedState();
+        _handleTimerCompletedInBackground();
+      }
+    }
+  }
+
+  // 继续计时器（不重新开始动画）
+  void _continueTimer() {
+    if (_isRunning) {
+      _animationController.repeat();
+      
+      _timer = Timer.periodic(const Duration(seconds: 1), (timer) {
+        setState(() {
+          if (_timeLeft > 0) {
+            _timeLeft--;
+            // 在后台时，每秒更新通知（实时显示倒计时）
+            if (_isInBackground) {
+              _updateNotification();
+            }
+          } else {
+            _timerComplete();
+          }
+        });
+      });
+    }
+  }
+
+  // 处理在后台完成的计时器
+  void _handleTimerCompletedInBackground() {
+    setState(() {
+      _isRunning = false;
+    });
+    
+    // 显示完成通知
+    _showCompletionNotification();
+    
+    // 播放声音和震动
+    if (_soundEnabled) {
+      HapticFeedback.mediumImpact();
+    }
+    if (_vibrationEnabled) {
+      HapticFeedback.vibrate();
+    }
+    
+    // 准备下一个会话
+    _prepareNextSession();
+  }
+
+  // 准备下一个会话（不显示对话框）
+  void _prepareNextSession() {
+    if (_isBreak) {
+      // 休息结束，准备工作
+      setState(() {
+        _isBreak = false;
+        _completedSessions++;
+        _timeLeft = _workTime * 60;
+        _totalTime = _workTime * 60;
+      });
+    } else {
+      // 工作结束，准备休息
+      setState(() {
+        _isBreak = true;
+        // 判断是否应该长休息
+        if (_completedSessions % _sessionsBeforeLongBreak == 0) {
+          _timeLeft = _longBreakTime * 60;
+          _totalTime = _longBreakTime * 60;
+        } else {
+          _timeLeft = _breakTime * 60;
+          _totalTime = _breakTime * 60;
+        }
+      });
+    }
+  }
+
+  // 清除保存的状态
+  Future<void> _clearSavedState() async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.remove('pomodoro_start_time');
+    await prefs.remove('pomodoro_time_left');
+    await prefs.remove('pomodoro_is_running');
+    await prefs.remove('pomodoro_is_break');
+    await prefs.remove('pomodoro_total_time');
+    await prefs.remove('pomodoro_completed_sessions');
+    print('🗑️ 已清除保存的计时器状态');
   }
 
   // 显示通知
@@ -194,6 +343,7 @@ class _PomodoroTimerPageState extends State<PomodoroTimerPage>
       _isRunning = true;
     });
 
+    _saveTimerState(); // 保存状态
     _animationController.repeat();
 
     _timer = Timer.periodic(const Duration(seconds: 1), (timer) {
@@ -218,6 +368,7 @@ class _PomodoroTimerPageState extends State<PomodoroTimerPage>
 
     _timer?.cancel();
     _animationController.stop();
+    _clearSavedState(); // 暂停时清除保存的状态
     
     // 暂停时停止通知
     _stopNotification();
@@ -232,6 +383,7 @@ class _PomodoroTimerPageState extends State<PomodoroTimerPage>
 
     _timer?.cancel();
     _animationController.reset();
+    _clearSavedState(); // 重置时清除保存的状态
     
     // 重置时停止通知
     _stopNotification();
@@ -244,6 +396,8 @@ class _PomodoroTimerPageState extends State<PomodoroTimerPage>
     setState(() {
       _isRunning = false;
     });
+
+    _clearSavedState(); // 完成时清除保存的状态
 
     // 停止计时通知
     _stopNotification();
@@ -355,11 +509,13 @@ class _PomodoroTimerPageState extends State<PomodoroTimerPage>
         _completedSessions++;
         _timeLeft = _workTime * 60;
         _totalTime = _workTime * 60;
+        _isRunning = true; // 自动开始下一个会话
       });
     } else {
       // 工作结束，开始休息
       setState(() {
         _isBreak = true;
+        _isRunning = true; // 自动开始下一个会话
         // 判断是否应该长休息
         if (_completedSessions % _sessionsBeforeLongBreak == 0) {
           _timeLeft = _longBreakTime * 60;
@@ -370,6 +526,9 @@ class _PomodoroTimerPageState extends State<PomodoroTimerPage>
         }
       });
     }
+    
+    // 开始新的计时器
+    _continueTimer();
     
     // 如果在后台，更新通知状态
     if (_isInBackground && _notificationShown) {

@@ -18,8 +18,8 @@ final class Consts {
 
   /// About network request
   static const request = (
-  baseUrl: "http://10.9.17.103:8888/api/v1",
-  socketUrl: "http://10.9.17.103:8888",
+  baseUrl: "http://10.9.17.104:8888/api/v1",
+  socketUrl: "http://10.9.17.104:8888",
 
   minWaitingTime: Duration(milliseconds: 500),
   cachedTime: Duration(milliseconds: 2000),

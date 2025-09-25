@@ -590,7 +590,10 @@ class _PlanPageState extends ConsumerState<PlanPage> with RouteAware {
                                 ),
                               ),
                               TextButton(
-                                onPressed: () => Navigator.pop(context, true),
+                                onPressed: () => {
+                                  Navigator.pop(context, true)
+
+                                } ,
                                 child: const Text(
                                   '删除',
                                   style: TextStyle(

@@ -12,6 +12,7 @@ class ChatSocketService {
   late IO.Socket socket;
   String userId = '';
   bool _connected = false;
+  String? _currentToken; // 跟踪当前使用的 token
 
   // 回调函数
   Function(dynamic)? onNewMessage;
@@ -44,17 +45,24 @@ class ChatSocketService {
   static const int _reconnectInterval = 5; // 每5秒尝试重连
   bool _manuallyDisconnected = false; // 是否手动断开（避免手动断开还去重连）
 
-  void connect(String token, String myUserId) {
+  void connect(String token, String myUserId) async {
     if (_connected) {
       print('⚠️ WebSocket 已连接,请勿重连');
       return;
     }
     _manuallyDisconnected = false;
     userId = myUserId;
+    
+    // 获取最新的 token
+    final prefs = await SharedPreferences.getInstance();
+    final latestToken = prefs.getString('token') ?? token;
+    _currentToken = latestToken; // 记录当前使用的 token
+    print('🔑 使用 token 连接: ${latestToken.substring(0, 20)}...');
+    
     socket = IO.io(Consts.request.socketUrl, <String, dynamic>{
       'transports': ['websocket'],
       'autoConnect': false,
-      'extraHeaders': {'Authorization': 'Bearer $token'},
+      'extraHeaders': {'Authorization': 'Bearer $latestToken'},
     });
 
     socket.on('connect', (_) {
@@ -77,12 +85,18 @@ class ChatSocketService {
     socket.on('connect_error', (err) async {
       _connected = false;
       print('⚠️ 连接错误: $err');
-      if (err.toString().contains('401') || err.toString().contains('jwt expired')) {
+      if (err.toString().contains('401') || err.toString().contains('jwt expired') || err.toString().contains('unauthorized')) {
+        print('🔑 检测到认证错误，尝试使用最新 token 重连...');
         final prefs = await SharedPreferences.getInstance();
         final newToken = prefs.getString('token');
-        if (newToken != null) {
-          print('🔄 token 刷新后重连...');
+        if (newToken != null && newToken != token) {
+          print('🔄 发现新 token，重新连接...');
           reconnectWithToken(newToken);
+        } else {
+          print('❌ 没有找到有效的新 token');
+          if (!_manuallyDisconnected) {
+            _startReconnectTimer(token, myUserId);
+          }
         }
       } else {
         if (!_manuallyDisconnected) {
@@ -99,10 +113,13 @@ class ChatSocketService {
   /// 定时重连
   void _startReconnectTimer(String token, String myUserId) {
     _stopReconnectTimer();
-    _reconnectTimer = Timer.periodic(Duration(seconds: _reconnectInterval), (timer) {
+    _reconnectTimer = Timer.periodic(Duration(seconds: _reconnectInterval), (timer) async {
       if (!_connected) {
         print('⏳ 检测到未连接，尝试重连...');
-        connect(token, myUserId);
+        // 每次重连前都获取最新的 token
+        final prefs = await SharedPreferences.getInstance();
+        final latestToken = prefs.getString('token') ?? token;
+        connect(latestToken, myUserId);
       }
     });
   }
@@ -243,9 +260,75 @@ class ChatSocketService {
 
   }
   void reconnectWithToken(String token) async {
+    print('🔄 使用新 token 重新连接: ${token.substring(0, 20)}...');
+    _currentToken = token; // 更新当前 token
     disconnect(); // 断开当前连接
     await Future.delayed(Duration(seconds: 1));
     connect(token, userId); // 使用新 token 重新连接
+  }
+
+  /// 主动刷新连接（当检测到 token 更新时调用）
+  void refreshConnection() async {
+    final prefs = await SharedPreferences.getInstance();
+    final newToken = prefs.getString('token');
+    
+    if (newToken == null) {
+      print('⚠️ 没有找到新 token');
+      return;
+    }
+    
+    // 比较当前使用的 token 和存储的 token
+    if (_currentToken == newToken) {
+      print('🔍 Token 未变化，无需刷新连接');
+      return;
+    }
+    
+    print('🔄 检测到新 token，刷新连接...');
+    print('🔄 旧 token: ${_currentToken?.substring(0, 20) ?? 'null'}...');
+    print('🔄 新 token: ${newToken.substring(0, 20)}...');
+    
+    if (_connected) {
+      reconnectWithToken(newToken);
+    } else {
+      // 如果当前未连接，直接使用新 token 连接
+      print('🔄 当前未连接，使用新 token 直接连接');
+      connect(newToken, userId);
+    }
+  }
+
+  /// 检查并更新 token（可以在 HTTP 请求成功后调用）
+  void checkAndUpdateToken() async {
+    final prefs = await SharedPreferences.getInstance();
+    final storedToken = prefs.getString('token');
+    
+    if (storedToken == null) {
+      print('⚠️ 存储中没有 token');
+      return;
+    }
+    
+    if (_currentToken != storedToken) {
+      print('🔍 检测到 token 已更新');
+      print('🔍 当前使用: ${_currentToken?.substring(0, 20) ?? 'null'}...');
+      print('🔍 存储中的: ${storedToken.substring(0, 20)}...');
+      refreshConnection();
+    } else {
+      print('🔍 Token 状态正常，无需更新');
+    }
+  }
+
+  /// 获取当前使用的 token
+  String? get currentToken => _currentToken;
+
+  /// 强制使用最新 token 重连（用于调试）
+  void forceReconnectWithLatestToken() async {
+    final prefs = await SharedPreferences.getInstance();
+    final latestToken = prefs.getString('token');
+    if (latestToken != null) {
+      print('🔧 强制使用最新 token 重连');
+      reconnectWithToken(latestToken);
+    } else {
+      print('⚠️ 没有找到最新 token');
+    }
   }
   /// 加入自己的用户房间（用于接收通知/好友申请等）
   void joinUserRoom(String myUserId) {

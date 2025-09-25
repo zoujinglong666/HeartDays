@@ -1,7 +1,6 @@
 import 'package:bot_toast/bot_toast.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:heart_days/Consts/index.dart';
 import 'package:heart_days/common/event_bus.dart';
 import 'package:heart_days/pages/SplashPage.dart';
 import 'package:heart_days/pages/main_page.dart';
