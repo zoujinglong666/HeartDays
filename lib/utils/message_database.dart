@@ -4,8 +4,9 @@ import '../models/message.dart';
 
 class MessageDatabase {
   static const String _databaseName = 'heart_days_messages.db';
-  static const int _databaseVersion = 1;
+  static const int _databaseVersion = 2; // 增加版本号以支持新表
   static const String _tableName = 'messages';
+  static const String _readMessagesTableName = 'read_messages'; // 新增已读消息表
 
   // 数据库初始化
   static Future<Database> init() async {
@@ -16,6 +17,7 @@ class MessageDatabase {
       path,
       version: _databaseVersion,
       onCreate: (db, version) async {
+        // 创建消息表
         await db.execute('''
           CREATE TABLE $_tableName (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -31,14 +33,41 @@ class MessageDatabase {
             lastRetryAt TEXT
           )
         ''');
+        
+        // 创建已读消息表
+        await db.execute('''
+          CREATE TABLE $_readMessagesTableName (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            sessionId TEXT NOT NULL,
+            messageId TEXT NOT NULL,
+            readAt TEXT NOT NULL,
+            UNIQUE(sessionId, messageId)
+          )
+        ''');
+        
         // 创建索引提升查询性能
         await db.execute('CREATE INDEX idx_sessionId ON $_tableName(sessionId)');
         await db.execute('CREATE INDEX idx_sendStatus ON $_tableName(sendStatus)');
+        await db.execute('CREATE INDEX idx_read_sessionId ON $_readMessagesTableName(sessionId)');
+        await db.execute('CREATE INDEX idx_read_messageId ON $_readMessagesTableName(messageId)');
       },
-      onUpgrade: (db, oldVersion, newVersion) {
+      onUpgrade: (db, oldVersion, newVersion) async {
         // 数据库升级逻辑
-        if (oldVersion < newVersion) {
-          // 可以添加表结构变更语句
+        if (oldVersion < 2 && newVersion >= 2) {
+          // 添加已读消息表
+          await db.execute('''
+            CREATE TABLE $_readMessagesTableName (
+              id INTEGER PRIMARY KEY AUTOINCREMENT,
+              sessionId TEXT NOT NULL,
+              messageId TEXT NOT NULL,
+              readAt TEXT NOT NULL,
+              UNIQUE(sessionId, messageId)
+            )
+          ''');
+          
+          // 创建索引
+          await db.execute('CREATE INDEX idx_read_sessionId ON $_readMessagesTableName(sessionId)');
+          await db.execute('CREATE INDEX idx_read_messageId ON $_readMessagesTableName(messageId)');
         }
       },
     );
@@ -125,6 +154,72 @@ class MessageDatabase {
   static Future<int> clearSessionMessages(Database db, String sessionId) async {
     return await db.delete(
       _tableName,
+      where: 'sessionId = ?',
+      whereArgs: [sessionId],
+    );
+  }
+
+  // 保存已读消息ID
+  static Future<int> saveReadMessageId(Database db, String sessionId, String messageId) async {
+    return await db.insert(
+      _readMessagesTableName,
+      {
+        'sessionId': sessionId,
+        'messageId': messageId,
+        'readAt': DateTime.now().toIso8601String(),
+      },
+      conflictAlgorithm: ConflictAlgorithm.ignore, // 如果已存在则忽略
+    );
+  }
+
+  // 获取会话的所有已读消息ID
+  static Future<Set<String>> getReadMessageIds(Database db, String sessionId) async {
+    final List<Map<String, dynamic>> maps = await db.query(
+      _readMessagesTableName,
+      columns: ['messageId'],
+      where: 'sessionId = ?',
+      whereArgs: [sessionId],
+    );
+
+    return maps.map((map) => map['messageId'] as String).toSet();
+  }
+
+  // 检查消息是否已读
+  static Future<bool> isMessageRead(Database db, String sessionId, String messageId) async {
+    final List<Map<String, dynamic>> maps = await db.query(
+      _readMessagesTableName,
+      where: 'sessionId = ? AND messageId = ?',
+      whereArgs: [sessionId, messageId],
+      limit: 1,
+    );
+
+    return maps.isNotEmpty;
+  }
+
+  // 批量保存已读消息ID
+  static Future<void> batchSaveReadMessageIds(Database db, String sessionId, List<String> messageIds) async {
+    final batch = db.batch();
+    final readAt = DateTime.now().toIso8601String();
+    
+    for (final messageId in messageIds) {
+      batch.insert(
+        _readMessagesTableName,
+        {
+          'sessionId': sessionId,
+          'messageId': messageId,
+          'readAt': readAt,
+        },
+        conflictAlgorithm: ConflictAlgorithm.ignore,
+      );
+    }
+    
+    await batch.commit(noResult: true);
+  }
+
+  // 清空会话的已读消息记录
+  static Future<int> clearSessionReadMessages(Database db, String sessionId) async {
+    return await db.delete(
+      _readMessagesTableName,
       where: 'sessionId = ?',
       whereArgs: [sessionId],
     );

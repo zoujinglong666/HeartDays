@@ -561,14 +561,14 @@ class CustomSlidableAction extends StatelessWidget {
   final int flex;
 
   const CustomSlidableAction({
-    Key? key,
+    super.key,
     required this.onPressed,
     required this.backgroundColor,
     required this.foregroundColor,
     required this.icon,
     required this.label,
     this.flex = 1,
-  }) : super(key: key);
+  });
 
   @override
   Widget build(BuildContext context) {

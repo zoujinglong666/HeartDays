@@ -49,6 +49,7 @@ class _ChatDetailPageState extends ConsumerState<ChatDetailPage> {
   final int _pageSize = 20;
   final FocusNode _focusNode = FocusNode();
   final Set<String> _readMessageIds = {}; // 防止重复标记已读
+  final Set<String> _persistentReadMessageIds = {}; // 持久化的已读消息ID
   String? selectedMessageLocalId;
   final MessageQueue _messageQueue = MessageQueue();
   StreamSubscription<ConnectivityResult>? _connectivitySubscription;
@@ -82,10 +83,13 @@ class _ChatDetailPageState extends ConsumerState<ChatDetailPage> {
       }
     });
 
-    _loadInitialHistory();
-    _initDatabase();
+    _initDatabase().then((_) {
+      // 数据库初始化完成后再加载已读消息ID
+      _loadReadMessageIds();
+    });
     _initConnectivityListener();
     _loadUnsentMessages();
+    _loadInitialHistory();
     _messageQueue.onMessageSent = _onMessageSent;
     _startHeartbeatRetry();
   }
@@ -102,6 +106,47 @@ class _ChatDetailPageState extends ConsumerState<ChatDetailPage> {
 
   Future<void> _initDatabase() async {
     _messageDatabase = await MessageDatabase.init();
+  }
+
+  // 加载已读消息ID
+  Future<void> _loadReadMessageIds() async {
+    if (_messageDatabase == null) {
+      // 如果数据库还未初始化，延迟加载
+      Future.delayed(const Duration(milliseconds: 100), () {
+        _loadReadMessageIds();
+      });
+      return;
+    }
+    
+    try {
+      final readIds = await MessageDatabase.getReadMessageIds(
+        _messageDatabase!,
+        widget.chatSession.sessionId,
+      );
+      setState(() {
+        _persistentReadMessageIds.addAll(readIds);
+        _readMessageIds.addAll(readIds);
+      });
+      print('已加载 ${readIds.length} 个已读消息ID');
+    } catch (e) {
+      print('加载已读消息ID失败: $e');
+    }
+  }
+
+  // 保存已读消息ID到数据库
+  Future<void> _saveReadMessageId(String messageId) async {
+    if (_messageDatabase == null) return;
+    
+    try {
+      await MessageDatabase.saveReadMessageId(
+        _messageDatabase!,
+        widget.chatSession.sessionId,
+        messageId,
+      );
+      _persistentReadMessageIds.add(messageId);
+    } catch (e) {
+      print('保存已读消息ID失败: $e');
+    }
   }
 
   void _initConnectivityListener() {
@@ -528,12 +573,18 @@ class _ChatDetailPageState extends ConsumerState<ChatDetailPage> {
         totalMessages = res.data!.total;
         final newMsgList =
             records.map((msg) {
+              final messageId = msg.id.toString();
+              // 检查消息是否已读，如果已读则添加到已读集合中
+              if (_persistentReadMessageIds.contains(messageId)) {
+                _readMessageIds.add(messageId);
+              }
+              
               return {
                 'fromMe': msg.senderId == loginUser?.id,
                 'text': msg.content,
                 'createdAt': msg.createdAt,
                 'sendStatus': MessageSendStatus.success,
-                'localId': msg.id.toString(),
+                'localId': messageId,
                 'messageId': msg.id,
               };
             }).toList();
@@ -794,10 +845,34 @@ class _ChatDetailPageState extends ConsumerState<ChatDetailPage> {
         if (info.visibleFraction > 0.5 &&
             messageId != null &&
             !_readMessageIds.contains(messageId) &&
+            !_persistentReadMessageIds.contains(messageId) &&
             sendStatus == MessageSendStatus.success &&
             !isMe) {
+          
+          // 立即添加到内存集合，防止重复调用
           _readMessageIds.add(messageId);
-          await markMessageReadApi(messageId); // ✅ 调用已读 API
+          
+          print('准备标记消息已读: $messageId');
+          
+          try {
+            // 调用已读API
+            final response = await markMessageReadApi(messageId);
+            if (response.success) {
+              // API调用成功后，保存到持久化存储
+              await _saveReadMessageId(messageId);
+              print('消息已读标记成功: $messageId');
+            } else {
+              // API调用失败，从内存集合中移除，允许下次重试
+              _readMessageIds.remove(messageId);
+              print('消息已读API调用失败: $messageId');
+            }
+          } catch (e) {
+            // 异常情况下，从内存集合中移除，允许下次重试
+            _readMessageIds.remove(messageId);
+            print('标记消息已读异常: $messageId, 错误: $e');
+          }
+        } else if (messageId != null && (_readMessageIds.contains(messageId) || _persistentReadMessageIds.contains(messageId))) {
+          print('消息已读过，跳过API调用: $messageId');
         }
       },
       child: Stack(

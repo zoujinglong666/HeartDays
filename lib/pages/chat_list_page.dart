@@ -8,6 +8,7 @@ import 'package:heart_days/pages/add_friend_page.dart';
 import 'package:heart_days/pages/chat_detail_page.dart';
 import 'package:heart_days/pages/friend_list_page.dart';
 import 'package:heart_days/pages/friend_request_page.dart';
+import 'package:heart_days/pages/create_group_chat_page.dart';
 import 'package:heart_days/provider/auth_provider.dart';
 import 'package:heart_days/services/ChatSocketService.dart';
 import 'package:heart_days/utils/date_utils.dart';
@@ -68,6 +69,7 @@ class _ChatListPageState extends ConsumerState<ChatListPage> {
         mainAxisSize: MainAxisSize.min,
         children: [
           _buildMenuItem(Icons.home, '添加好友'),
+          _buildMenuItem(Icons.group, '创建群聊'),
           _buildMenuItem(Icons.settings, '好友申请'),
         ],
       ),
@@ -96,6 +98,13 @@ Widget _buildMenuItem(IconData icon, String text, {Color? color}) {
           Navigator.push(
             context,
             MaterialPageRoute(builder: (_) => const FriendRequestPage()),
+          );
+        }
+        if (text == '创建群聊') {
+          _controller.hideMenu();
+          Navigator.push(
+            context,
+            MaterialPageRoute(builder: (_) => const CreateGroupChatPage()),
           );
         }
       });

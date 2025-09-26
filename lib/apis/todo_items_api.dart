@@ -151,6 +151,13 @@ Future<ApiResponse<void>> updateTodoApi(Map<String, dynamic>? data) async {
     data: data,
   );
 }
+Future<ApiResponse<void>> updateOrderTodoApi(Map<String, dynamic>? data) async {
+  return await HttpManager.post<List<BackendTodoItem>>(
+    "/todos/order",
+    data: data,
+  );
+}
+
 
 
 
