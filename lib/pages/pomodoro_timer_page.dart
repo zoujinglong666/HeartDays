@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter/services.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:permission_handler/permission_handler.dart';
 
 class PomodoroTimerPage extends StatefulWidget {
   const PomodoroTimerPage({super.key});
@@ -35,6 +36,7 @@ class _PomodoroTimerPageState extends State<PomodoroTimerPage>
   final FlutterLocalNotificationsPlugin _notifications = FlutterLocalNotificationsPlugin();
   bool _isInBackground = false;
   bool _notificationShown = false; // 跟踪通知是否已显示
+  bool _notificationPermissionGranted = false; // 通知权限状态
 
   @override
   void initState() {
@@ -80,6 +82,9 @@ class _PomodoroTimerPageState extends State<PomodoroTimerPage>
 
   // 初始化通知
   Future<void> _initNotifications() async {
+    // 首先请求通知权限
+    await _requestNotificationPermission();
+    
     const AndroidInitializationSettings initializationSettingsAndroid =
         AndroidInitializationSettings('@mipmap/ic_launcher');
     
@@ -106,6 +111,258 @@ class _PomodoroTimerPageState extends State<PomodoroTimerPage>
         '番茄钟完成提醒',
         description: '专注时间或休息时间完成时的提醒',
         importance: Importance.high,
+      ),
+    );
+  }
+
+  // 请求通知权限
+  Future<void> _requestNotificationPermission() async {
+    // 检查当前权限状态
+    final status = await Permission.notification.status;
+    
+    if (status.isGranted) {
+      _notificationPermissionGranted = true;
+      return;
+    }
+    
+    // 如果权限被永久拒绝，显示设置对话框
+    if (status.isPermanentlyDenied) {
+      _showPermissionSettingsDialog();
+      return;
+    }
+    
+    // 显示权限请求对话框
+    final shouldRequest = await _showPermissionRequestDialog();
+    if (!shouldRequest) {
+      _notificationPermissionGranted = false;
+      return;
+    }
+    
+    // 请求权限
+    final result = await Permission.notification.request();
+    _notificationPermissionGranted = result.isGranted;
+    
+    if (!result.isGranted) {
+      _showPermissionDeniedDialog();
+    }
+  }
+
+  // 显示权限请求对话框
+  Future<bool> _showPermissionRequestDialog() async {
+    return await showDialog<bool>(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: const Row(
+          children: [
+            Icon(Icons.notifications_outlined, color: Color(0xFFFF6B6B), size: 24),
+            SizedBox(width: 12),
+            Text(
+              '通知权限',
+              style: TextStyle(
+                fontSize: 18,
+                fontWeight: FontWeight.bold,
+                color: Color(0xFF1A1A1A),
+              ),
+            ),
+          ],
+        ),
+        content: const Text(
+          '番茄钟需要通知权限来在后台显示计时状态和完成提醒。这将帮助您：• 在后台查看剩余时间• 及时收到完成提醒• 保持专注状态',
+          style: TextStyle(
+            fontSize: 16,
+            color: Color(0xFF666666),
+            height: 1.5,
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text(
+              '暂不开启',
+              style: TextStyle(
+                fontSize: 16,
+                color: Color(0xFF8E8E93),
+                fontWeight: FontWeight.w500,
+              ),
+            ),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.pop(context, true),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: const Color(0xFFFF6B6B),
+              foregroundColor: Colors.white,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+              ),
+              elevation: 0,
+            ),
+            child: const Text(
+              '开启通知',
+              style: TextStyle(
+                fontSize: 16,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ),
+        ],
+      ),
+    ) ?? false;
+  }
+
+  // 显示权限被拒绝对话框
+  void _showPermissionDeniedDialog() {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: const Row(
+          children: [
+            Icon(Icons.notifications_off_outlined, color: Color(0xFFFF6B6B), size: 24),
+            SizedBox(width: 12),
+            Text(
+              '通知已关闭',
+              style: TextStyle(
+                fontSize: 18,
+                fontWeight: FontWeight.bold,
+                color: Color(0xFF1A1A1A),
+              ),
+            ),
+          ],
+        ),
+        content: const Text(
+          '您已关闭通知权限。番茄钟仍可正常使用，但无法在后台显示计时状态。如需开启通知，可在设置中手动开启。',
+          style: TextStyle(
+            fontSize: 16,
+            color: Color(0xFF666666),
+            height: 1.5,
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text(
+              '我知道了',
+              style: TextStyle(
+                fontSize: 16,
+                color: Color(0xFFFF6B6B),
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // 显示权限设置对话框
+  void _showPermissionSettingsDialog() {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: const Row(
+          children: [
+            Icon(Icons.settings_outlined, color: Color(0xFFFF6B6B), size: 24),
+            SizedBox(width: 12),
+            Text(
+              '需要通知权限',
+              style: TextStyle(
+                fontSize: 18,
+                fontWeight: FontWeight.bold,
+                color: Color(0xFF1A1A1A),
+              ),
+            ),
+          ],
+        ),
+        content: const Text(
+          '通知权限已被永久拒绝。要启用通知功能，请前往系统设置手动开启。设置路径：应用设置 > 权限 > 通知',
+          style: TextStyle(
+            fontSize: 16,
+            color: Color(0xFF666666),
+            height: 1.5,
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text(
+              '取消',
+              style: TextStyle(
+                fontSize: 16,
+                color: Color(0xFF8E8E93),
+                fontWeight: FontWeight.w500,
+              ),
+            ),
+          ),
+          ElevatedButton(
+            onPressed: () {
+              Navigator.pop(context);
+              openAppSettings();
+            },
+            style: ElevatedButton.styleFrom(
+              backgroundColor: const Color(0xFFFF6B6B),
+              foregroundColor: Colors.white,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+              ),
+              elevation: 0,
+            ),
+            child: const Text(
+              '前往设置',
+              style: TextStyle(
+                fontSize: 16,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // 显示通知禁用对话框
+  void _showNotificationDisabledDialog() {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: const Row(
+          children: [
+            Icon(Icons.notifications_off_outlined, color: Color(0xFFFF6B6B), size: 24),
+            SizedBox(width: 12),
+            Text(
+              '通知已关闭',
+              style: TextStyle(
+                fontSize: 18,
+                fontWeight: FontWeight.bold,
+                color: Color(0xFF1A1A1A),
+              ),
+            ),
+          ],
+        ),
+        content: const Text(
+          '您已关闭通知权限。番茄钟仍可正常使用，但无法在后台显示计时状态和完成提醒。如需重新开启，请点击通知权限开关。',
+          style: TextStyle(
+            fontSize: 16,
+            color: Color(0xFF666666),
+            height: 1.5,
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text(
+              '我知道了',
+              style: TextStyle(
+                fontSize: 16,
+                color: Color(0xFFFF6B6B),
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -258,7 +515,7 @@ class _PomodoroTimerPageState extends State<PomodoroTimerPage>
 
   // 显示通知
   Future<void> _showNotification() async {
-    if (_notificationShown) return; // 防止重复显示
+    if (_notificationShown || !_notificationPermissionGranted) return; // 防止重复显示或权限未授予
     
     try {
       const AndroidNotificationDetails androidPlatformChannelSpecifics =
@@ -419,6 +676,8 @@ class _PomodoroTimerPageState extends State<PomodoroTimerPage>
 
   // 显示完成通知
   Future<void> _showCompletionNotification() async {
+    if (!_notificationPermissionGranted) return; // 检查权限
+    
     try {
       AndroidNotificationDetails androidPlatformChannelSpecifics =
           AndroidNotificationDetails(
@@ -784,6 +1043,21 @@ class _PomodoroTimerPageState extends State<PomodoroTimerPage>
                         setState(() {
                           _vibrationEnabled = val;
                         });
+                        setModalState(() {}); // 更新模态框状态
+                      },
+                    ),
+                    _buildSwitchItem(
+                      title: '通知权限',
+                      value: _notificationPermissionGranted,
+                      onChanged: (val) async {
+                        if (val) {
+                          await _requestNotificationPermission();
+                        } else {
+                          setState(() {
+                            _notificationPermissionGranted = false;
+                          });
+                          _showNotificationDisabledDialog();
+                        }
                         setModalState(() {}); // 更新模态框状态
                       },
                     ),
