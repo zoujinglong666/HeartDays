@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:math';
 
 import 'package:heart_days/Consts/index.dart';
 import 'package:heart_days/common/notification.dart';
@@ -9,134 +10,245 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:socket_io_client/socket_io_client.dart' as IO;
 
 class ChatSocketService {
-  IO.Socket? socket; // 改为可空类型，避免late初始化错误
+  IO.Socket? socket;
   String userId = '';
   bool _connected = false;
-  String? _currentToken; // 跟踪当前使用的 token
-  String? _currentUserId; // 跟踪当前连接的用户ID
+  String? _currentToken;
+  String? _currentUserId;
+  
+  // 连接状态管理
+  ConnectionState _connectionState = ConnectionState.disconnected;
+  int _reconnectAttempts = 0;
+  static const int _maxReconnectAttempts = 10;
+  static const int _baseReconnectDelay = 1000; // 1秒基础延迟
+  
+  // 性能优化
+  final Map<String, DateTime> _lastEventTime = {};
+  static const int _eventThrottleMs = 100; // 事件节流100ms
 
-  // 回调函数
-  Function(dynamic)? onNewMessage;
-  Function(dynamic)? onFriendRequest;
-  Function(dynamic)? onOnlineStatus;
-  Function(dynamic)? onUserStatus;
-  Function(dynamic)? onFriendStatus;
-  Function(dynamic)? onTyping;
-  Function(dynamic)? onStopTyping;
-  Function(dynamic)? onOfflineMessages;
-  Function(dynamic)? onMessageRead;
-  Function(dynamic)? onMessageReadConfirm;
-  Function(dynamic)? onMessageWithdrawn;
-  Function(dynamic)? onMessageWithdrawnConfirm;
-  Function(dynamic)? onMessageDelivered;
-  Function(dynamic)? onMessageSent;
-  Function(dynamic)? onMessageAck;
-  Function(dynamic)? onMessageAckConfirm;
-  Function(dynamic)? onCheckUserStatus;
+  // 回调函数映射，便于管理
+  final Map<String, Function(dynamic)?> _callbacks = {
+    'newMessage': null,
+    'friendRequest': null,
+    'onlineStatus': null,
+    'userStatus': null,
+    'friendStatus': null,
+    'typing': null,
+    'stopTyping': null,
+    'offlineMessages': null,
+    'messageRead': null,
+    'messageReadConfirm': null,
+    'messageWithdrawn': null,
+    'messageWithdrawnConfirm': null,
+    'messageDelivered': null,
+    'messageSent': null,
+    'messageAck': null,
+    'messageAckConfirm': null,
+    'checkUserStatus': null,
+  };
+
+  // 兼容性getter
+  Function(dynamic)? get onNewMessage => _callbacks['newMessage'];
+  Function(dynamic)? get onFriendRequest => _callbacks['friendRequest'];
+  Function(dynamic)? get onOnlineStatus => _callbacks['onlineStatus'];
+  Function(dynamic)? get onUserStatus => _callbacks['userStatus'];
+  Function(dynamic)? get onFriendStatus => _callbacks['friendStatus'];
+  Function(dynamic)? get onTyping => _callbacks['typing'];
+  Function(dynamic)? get onStopTyping => _callbacks['stopTyping'];
+  Function(dynamic)? get onOfflineMessages => _callbacks['offlineMessages'];
+  Function(dynamic)? get onMessageRead => _callbacks['messageRead'];
+  Function(dynamic)? get onMessageReadConfirm => _callbacks['messageReadConfirm'];
+  Function(dynamic)? get onMessageWithdrawn => _callbacks['messageWithdrawn'];
+  Function(dynamic)? get onMessageWithdrawnConfirm => _callbacks['messageWithdrawnConfirm'];
+  Function(dynamic)? get onMessageDelivered => _callbacks['messageDelivered'];
+  Function(dynamic)? get onMessageSent => _callbacks['messageSent'];
+  Function(dynamic)? get onMessageAck => _callbacks['messageAck'];
+  Function(dynamic)? get onMessageAckConfirm => _callbacks['messageAckConfirm'];
+  Function(dynamic)? get onCheckUserStatus => _callbacks['checkUserStatus'];
 
   factory ChatSocketService() {
     return _instance;
   }
-  bool get isConnected => _connected;
+  
+  bool get isConnected => _connected && _connectionState == ConnectionState.connected;
+  ConnectionState get connectionState => _connectionState;
+  int get reconnectAttempts => _reconnectAttempts;
+  
   ChatSocketService._internal();
 
   static ChatSocketService? _singleton;
-
-  // 2. 把原来的 _instance 改成可空静态变量
   static ChatSocketService get _instance =>
       _singleton ??= ChatSocketService._internal();
 
   Timer? _heartbeatTimer;
   Timer? _reconnectTimer;
-  static const int _heartbeatInterval = 10 * 1000; // 10秒心跳
-  static const int _reconnectInterval = 5; // 每5秒尝试重连
-  bool _manuallyDisconnected = false; // 是否手动断开（避免手动断开还去重连）
+  static const int _heartbeatInterval = 15 * 1000; // 15秒心跳，减少频率
+  bool _manuallyDisconnected = false;
 
-  void connect(String token, String myUserId) async {
-    // 检查是否需要切换用户
-    if (_connected && _currentUserId != myUserId) {
-      print('🔄 检测到用户切换，从 $_currentUserId 切换到 $myUserId');
-      await switchUser(token, myUserId);
-      return;
+  Future<void> connect(String token, String myUserId) async {
+    try {
+      // 状态检查和用户切换
+      if (_connected && _currentUserId != myUserId) {
+        print('🔄 检测到用户切换，从 $_currentUserId 切换到 $myUserId');
+        await switchUser(token, myUserId);
+        return;
+      }
+
+      if (_connected && _currentUserId == myUserId && _currentToken == token) {
+        print('✅ 同一用户的WebSocket已连接，无需重连');
+        return;
+      }
+
+      _setConnectionState(ConnectionState.connecting);
+      _manuallyDisconnected = false;
+      userId = myUserId;
+      _currentUserId = myUserId;
+
+      // 获取最新token
+      final prefs = await SharedPreferences.getInstance();
+      final latestToken = prefs.getString('token') ?? token;
+      _currentToken = latestToken;
+      
+      print('🔑 用户 $myUserId 开始连接: ${latestToken.substring(0, min(20, latestToken.length))}...');
+
+      // 创建Socket连接
+      socket = IO.io(Consts.request.socketUrl, <String, dynamic>{
+        'transports': ['websocket'],
+        'autoConnect': false,
+        'timeout': 10000, // 10秒超时
+        'extraHeaders': {'Authorization': 'Bearer $latestToken'},
+        'forceNew': true, // 强制创建新连接
+      });
+
+      _setupSocketEventHandlers(latestToken, myUserId);
+      _registerEventListeners();
+      
+      socket!.connect();
+      
+    } catch (e) {
+      print('❌ 连接初始化失败: $e');
+      _setConnectionState(ConnectionState.error);
+      _scheduleReconnect(token, myUserId);
     }
-
-    if (_connected && _currentUserId == myUserId) {
-      print('⚠️ 同一用户的WebSocket已连接,请勿重连');
-      return;
-    }
-
-    _manuallyDisconnected = false;
-    userId = myUserId;
-    _currentUserId = myUserId; // 记录当前用户ID
-
-    // 获取最新的 token
-    final prefs = await SharedPreferences.getInstance();
-    final latestToken = prefs.getString('token') ?? token;
-    _currentToken = latestToken; // 记录当前使用的 token
-    print('🔑 用户 $myUserId 使用 token 连接: ${latestToken.substring(
-        0, 20)}...');
-
-    socket = IO.io(Consts.request.socketUrl, <String, dynamic>{
-      'transports': ['websocket'],
-      'autoConnect': false,
-      'extraHeaders': {'Authorization': 'Bearer $latestToken'},
-    });
-
+  }
+  
+  void _setupSocketEventHandlers(String token, String userId) {
     socket!.on('connect', (_) {
       print('✅ WebSocket 连接成功: ${socket!.id}');
       _connected = true;
-      joinUserRoom(myUserId);
+      _setConnectionState(ConnectionState.connected);
+      _reconnectAttempts = 0; // 重置重连计数
+      
+      joinUserRoom(userId);
       _startHeartbeat();
-      _stopReconnectTimer(); // 连接成功就停止重连计时
+      _stopReconnectTimer();
     });
 
-    socket!.on('disconnect', (_) {
-      print('❌ WebSocket 已断开');
+    socket!.on('disconnect', (reason) {
+      print('❌ WebSocket 断开连接: $reason');
       _connected = false;
+      _setConnectionState(ConnectionState.disconnected);
       _stopHeartbeat();
+      
       if (!_manuallyDisconnected) {
-        _startReconnectTimer(token, myUserId);
+        _scheduleReconnect(token, userId);
       }
     });
 
     socket!.on('connect_error', (err) async {
-      _connected = false;
       print('⚠️ 连接错误: $err');
-      if (err.toString().contains('401') || err.toString().contains('jwt expired') || err.toString().contains('unauthorized')) {
-        print('🔑 检测到认证错误，尝试使用最新 token 重连...');
-        final prefs = await SharedPreferences.getInstance();
-        final newToken = prefs.getString('token');
-        if (newToken != null && newToken != token) {
-          print('🔄 发现新 token，重新连接...');
-          reconnectWithToken(newToken);
-        } else {
-          print('❌ 没有找到有效的新 token');
-          if (!_manuallyDisconnected) {
-            _startReconnectTimer(token, myUserId);
-          }
-        }
-      } else {
-        if (!_manuallyDisconnected) {
-          _startReconnectTimer(token, myUserId);
-        }
+      _connected = false;
+      _setConnectionState(ConnectionState.error);
+      
+      // 处理认证错误
+      if (_isAuthError(err)) {
+        await _handleAuthError(token, userId);
+      } else if (!_manuallyDisconnected) {
+        _scheduleReconnect(token, userId);
       }
     });
 
-    // 注册业务事件
-    _registerEventListeners();
-    socket!.connect();
+    socket!.on('reconnect', (attemptNumber) {
+      print('🔄 重连成功，尝试次数: $attemptNumber');
+      _reconnectAttempts = 0;
+    });
+
+    socket!.on('reconnect_error', (err) {
+      print('❌ 重连失败: $err');
+      _reconnectAttempts++;
+    });
+  }
+  
+  bool _isAuthError(dynamic error) {
+    final errorStr = error.toString().toLowerCase();
+    return errorStr.contains('401') || 
+           errorStr.contains('jwt expired') || 
+           errorStr.contains('unauthorized') ||
+           errorStr.contains('authentication');
+  }
+  
+  Future<void> _handleAuthError(String token, String userId) async {
+    print('🔑 处理认证错误，尝试刷新token...');
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final newToken = prefs.getString('token');
+      
+      if (newToken != null && newToken != token) {
+        print('🔄 发现新token，重新连接...');
+        await Future.delayed(const Duration(milliseconds: 500));
+        reconnectWithToken(newToken);
+      } else {
+        print('❌ 没有找到有效的新token');
+        _setConnectionState(ConnectionState.authError);
+        if (!_manuallyDisconnected) {
+          _scheduleReconnect(token, userId);
+        }
+      }
+    } catch (e) {
+      print('❌ 处理认证错误失败: $e');
+      _scheduleReconnect(token, userId);
+    }
+  }
+  
+  void _setConnectionState(ConnectionState state) {
+    if (_connectionState != state) {
+      _connectionState = state;
+      print('🔄 连接状态变更: ${state.name}');
+    }
   }
 
-  /// 定时重连
-  void _startReconnectTimer(String token, String myUserId) {
+  /// 智能重连调度
+  void _scheduleReconnect(String token, String userId) {
+    if (_manuallyDisconnected || _reconnectAttempts >= _maxReconnectAttempts) {
+      if (_reconnectAttempts >= _maxReconnectAttempts) {
+        print('❌ 达到最大重连次数，停止重连');
+        _setConnectionState(ConnectionState.failed);
+      }
+      return;
+    }
+
     _stopReconnectTimer();
-    _reconnectTimer = Timer.periodic(Duration(seconds: _reconnectInterval), (timer) async {
-      if (!_connected) {
-        print('⏳ 检测到未连接，尝试重连...');
-        // 每次重连前都获取最新的 token
-        final prefs = await SharedPreferences.getInstance();
-        final latestToken = prefs.getString('token');
-        connect(latestToken!, myUserId);
+    _reconnectAttempts++;
+    
+    // 指数退避算法：延迟时间 = 基础延迟 * 2^(重连次数-1)，最大30秒
+    final delay = min(_baseReconnectDelay * pow(2, _reconnectAttempts - 1).toInt(), 30000);
+    
+    print('⏳ 第 $_reconnectAttempts 次重连将在 ${delay}ms 后开始...');
+    _setConnectionState(ConnectionState.reconnecting);
+    
+    _reconnectTimer = Timer(Duration(milliseconds: delay), () async {
+      if (!_manuallyDisconnected && !_connected) {
+        print('🔄 开始第 $_reconnectAttempts 次重连...');
+        
+        // 每次重连前获取最新token
+        try {
+          final prefs = await SharedPreferences.getInstance();
+          final latestToken = prefs.getString('token') ?? token;
+          await connect(latestToken, userId);
+        } catch (e) {
+          print('❌ 重连失败: $e');
+          _scheduleReconnect(token, userId);
+        }
       }
     });
   }
@@ -146,23 +258,31 @@ class ChatSocketService {
     _reconnectTimer = null;
   }
 
-  /// 手动断开
+  /// 手动断开连接
   void disconnect() {
     print('🔌 手动断开连接');
     _manuallyDisconnected = true;
     _stopHeartbeat();
     _stopReconnectTimer();
 
-    // 检查socket是否已初始化再断开连接
     try {
-      if (_connected && socket != null) {
-        socket!.disconnect();
+      if (socket != null) {
+        // 清理所有事件监听器
+        socket!.clearListeners();
+        
+        if (_connected) {
+          socket!.disconnect();
+        }
+        socket!.dispose();
+        socket = null;
       }
     } catch (e) {
       print('⚠️ 断开连接时出错: $e');
     }
 
     _connected = false;
+    _setConnectionState(ConnectionState.disconnected);
+    _reconnectAttempts = 0;
   }
 
   /// 切换用户（完全重置连接状态）
@@ -229,116 +349,153 @@ class ChatSocketService {
   void _registerEventListeners() {
     if (socket == null) return;
 
-    // 监听新消息
-    socket!.on('newMessage', (data) async {
+    // 事件映射，便于统一管理
+    final eventMap = {
+      'newMessage': (data) => _handleNewMessage(data),
+      'friendRequest': (data) => _handleFriendRequest(data),
+      'online': (data) => _handleOnlineStatus(data),
+      'userStatus': (data) => _handleUserStatus(data),
+      'friendStatus': (data) => _handleFriendStatus(data),
+      'typing': (data) => _handleTyping(data),
+      'stopTyping': (data) => _handleStopTyping(data),
+      'offlineMessages': (data) => _handleOfflineMessages(data),
+      'messageReadConfirm': (data) => _handleMessageReadConfirm(data),
+      'readMessage': (data) => _handleMessageRead(data),
+      'messageWithdrawnConfirm': (data) => _handleMessageWithdrawnConfirm(data),
+      'messageWithdrawn': (data) => _handleMessageWithdrawn(data),
+      'messageDelivered': (data) => _handleMessageDelivered(data),
+      'messageSent': (data) => _handleMessageSent(data),
+      'messageAck': (data) => _handleMessageAck(data),
+      'messageAckConfirm': (data) => _handleMessageAckConfirm(data),
+      'checkUserStatus': (data) => _handleCheckUserStatus(data),
+    };
+
+    // 批量注册事件监听器
+    eventMap.forEach((event, handler) {
+      socket!.on(event, (data) => _throttledEventHandler(event, data, handler));
+    });
+  }
+  
+  /// 事件节流处理，防止频繁触发
+  void _throttledEventHandler(String eventName, dynamic data, Function handler) {
+    final now = DateTime.now();
+    final lastTime = _lastEventTime[eventName];
+    
+    if (lastTime == null || now.difference(lastTime).inMilliseconds > _eventThrottleMs) {
+      _lastEventTime[eventName] = now;
+      try {
+        handler(data);
+      } catch (e) {
+        print('❌ 处理事件 $eventName 时出错: $e');
+      }
+    }
+  }
+
+  // 各种事件处理方法
+  void _handleNewMessage(dynamic data) async {
+    try {
       final prefs = await SharedPreferences.getInstance();
       final latestToken = prefs.getString('token');
-      if (latestToken!.isNotEmpty && data['senderId'] != userId) {
+      
+      if (latestToken?.isNotEmpty == true && data['senderId'] != userId) {
         final currentTime = DateFormat('HH:mm').format(DateTime.now());
-        // MyToast.showNotification(
-        //   title: "新消息 $currentTime",
-        //   subtitle: data['content'],
-        // );
         MyNotification.showNotification(
           title: "新消息 $currentTime",
-          subtitle: data['content'],
+          subtitle: data['content'] ?? '收到新消息',
         );
-
       }
-      onNewMessage?.call(data);
-    });
+      
+      _callbacks['newMessage']?.call(data);
+    } catch (e) {
+      print('❌ 处理新消息时出错: $e');
+    }
+  }
 
-    // 监听好友申请
-    socket!.on('friendRequest', (data) {
-      ToastUtils.showToast('收到好友申请: ${data['from']['nickname']}');
-      onFriendRequest?.call(data);
-    });
+  void _handleFriendRequest(dynamic data) {
+    try {
+      final nickname = data['from']?['nickname'] ?? '未知用户';
+      ToastUtils.showToast('收到好友申请: $nickname');
+      _callbacks['friendRequest']?.call(data);
+    } catch (e) {
+      print('❌ 处理好友请求时出错: $e');
+    }
+  }
 
-    // 监听在线状态
-    socket!.on('online', (data) {
-      print('用户在线状态变化: $data');
-      onOnlineStatus?.call(data);
-    });
+  void _handleOnlineStatus(dynamic data) {
+    print('用户在线状态变化: $data');
+    _callbacks['onlineStatus']?.call(data);
+  }
 
-    // 监听用户状态
-    socket!.on('userStatus', (data) {
-      onUserStatus?.call(data);
-    });
+  void _handleUserStatus(dynamic data) {
+    _callbacks['userStatus']?.call(data);
+  }
 
-    // 监听好友在线状态变化
-    socket!.on('friendStatus', (data) {
-      onFriendStatus?.call(data);
-    });
+  void _handleFriendStatus(dynamic data) {
+    _callbacks['friendStatus']?.call(data);
+    // 通知所有监听器
+    for (final listener in _friendStatusListeners) {
+      try {
+        listener(data);
+      } catch (e) {
+        print('❌ 好友状态监听器出错: $e');
+      }
+    }
+  }
 
-    // 监听他人输入状态
-    socket!.on('typing', (data) {
-      print('用户 ${data['userId']} 正在输入');
-      onTyping?.call(data);
-    });
+  void _handleTyping(dynamic data) {
+    print('用户 ${data['userId']} 正在输入');
+    _callbacks['typing']?.call(data);
+  }
 
-    // 监听他人停止输入
-    socket!.on('stopTyping', (data) {
-      print('用户 ${data['userId']} 停止输入');
-      onStopTyping?.call(data);
-    });
+  void _handleStopTyping(dynamic data) {
+    print('用户 ${data['userId']} 停止输入');
+    _callbacks['stopTyping']?.call(data);
+  }
 
-    // 监听离线消息
-    socket!.on('offlineMessages', (data) {
-      onOfflineMessages?.call(data);
-    });
+  void _handleOfflineMessages(dynamic data) {
+    _callbacks['offlineMessages']?.call(data);
+  }
 
-    // 监听消息已读确认
-    socket!.on('messageReadConfirm', (data) {
-      print('消息已读确认: ${data['messageId']}');
-      onMessageReadConfirm?.call(data);
-    });
+  void _handleMessageReadConfirm(dynamic data) {
+    print('消息已读确认: ${data['messageId']}');
+    _callbacks['messageReadConfirm']?.call(data);
+  }
 
-    // 监听他人消息已读
-    socket!.on('readMessage', (data) {
-      print('用户 ${data['userId']} 已读消息: ${data['messageId']}');
-      onMessageRead?.call(data);
-    });
+  void _handleMessageRead(dynamic data) {
+    print('用户 ${data['userId']} 已读消息: ${data['messageId']}');
+    _callbacks['messageRead']?.call(data);
+  }
 
-    // 监听撤回确认
-    socket!.on('messageWithdrawnConfirm', (data) {
-      print('消息已撤回: ${data['messageId']}');
-      onMessageWithdrawnConfirm?.call(data);
-    });
+  void _handleMessageWithdrawnConfirm(dynamic data) {
+    print('消息已撤回: ${data['messageId']}');
+    _callbacks['messageWithdrawnConfirm']?.call(data);
+  }
 
-    // 监听他人撤回消息
-    socket!.on('messageWithdrawn', (data) {
-      print('用户 ${data['userId']} 撤回了消息: ${data['messageId']}');
-      onMessageWithdrawn?.call(data);
-    });
+  void _handleMessageWithdrawn(dynamic data) {
+    print('用户 ${data['userId']} 撤回了消息: ${data['messageId']}');
+    _callbacks['messageWithdrawn']?.call(data);
+  }
 
-    // 监听消息送达确认
-    socket!.on('messageDelivered', (data) {
-      print('消息已送达用户: ${data['messageId']}');
-      onMessageDelivered?.call(data);
-    });
+  void _handleMessageDelivered(dynamic data) {
+    print('消息已送达用户: ${data['messageId']}');
+    _callbacks['messageDelivered']?.call(data);
+  }
 
-    // 监听消息发送确认
-    socket!.on('messageSent', (data) {
-      print('消息已发送，服务器ID: ${data['messageId']}');
-      onMessageSent?.call(data);
-    });
+  void _handleMessageSent(dynamic data) {
+    print('消息已发送，服务器ID: ${data['messageId']}');
+    _callbacks['messageSent']?.call(data);
+  }
 
-    // 监听消息确认
-    socket!.on('messageAck', (data) {
-      onMessageAck?.call(data);
-    });
+  void _handleMessageAck(dynamic data) {
+    _callbacks['messageAck']?.call(data);
+  }
 
-    // 监听消息确认回复
-    socket!.on('messageAckConfirm', (data) {
-      onMessageAckConfirm?.call(data);
-    });
+  void _handleMessageAckConfirm(dynamic data) {
+    _callbacks['messageAckConfirm']?.call(data);
+  }
 
-    // 检查用户状态
-    socket!.on('checkUserStatus', (data) {
-      onCheckUserStatus?.call(data);
-    });
-
-
+  void _handleCheckUserStatus(dynamic data) {
+    _callbacks['checkUserStatus']?.call(data);
   }
   void reconnectWithToken(String token) async {
     print('🔄 使用新 token 重新连接: ${token.substring(0, 20)}...');
@@ -557,84 +714,93 @@ class ChatSocketService {
   }
 
 
-  /// 设置新消息回调
+  /// 统一的回调设置方法
+  void setCallback(String eventName, Function(dynamic)? callback) {
+    if (_callbacks.containsKey(eventName)) {
+      _callbacks[eventName] = callback;
+    } else {
+      print('⚠️ 未知的事件类型: $eventName');
+    }
+  }
+
+  /// 兼容性方法 - 设置新消息回调
   void setOnNewMessage(Function(dynamic) callback) {
-    onNewMessage = callback;
+    _callbacks['newMessage'] = callback;
   }
 
   /// 设置好友请求回调
   void setOnFriendRequest(Function(dynamic) callback) {
-    onFriendRequest = callback;
+    _callbacks['friendRequest'] = callback;
   }
 
   /// 设置在线状态回调
   void setOnOnlineStatus(Function(dynamic) callback) {
-    onOnlineStatus = callback;
+    _callbacks['onlineStatus'] = callback;
   }
 
   /// 设置用户状态回调
   void setOnUserStatus(Function(dynamic) callback) {
-    onUserStatus = callback;
+    _callbacks['userStatus'] = callback;
   }
 
   /// 设置好友状态回调
   void setOnFriendStatus(Function(dynamic) callback) {
-    onFriendStatus = callback;
+    _callbacks['friendStatus'] = callback;
   }
 
   /// 设置正在输入回调
   void setOnTyping(Function(dynamic) callback) {
-    onTyping = callback;
+    _callbacks['typing'] = callback;
   }
 
   /// 设置停止输入回调
   void setOnStopTyping(Function(dynamic) callback) {
-    onStopTyping = callback;
+    _callbacks['stopTyping'] = callback;
   }
 
   /// 设置离线消息回调
   void setOnOfflineMessages(Function(dynamic) callback) {
-    onOfflineMessages = callback;
+    _callbacks['offlineMessages'] = callback;
   }
 
   /// 设置消息已读回调
   void setOnMessageRead(Function(dynamic) callback) {
-    onMessageRead = callback;
+    _callbacks['messageRead'] = callback;
   }
 
   /// 设置消息已读确认回调
   void setOnMessageReadConfirm(Function(dynamic) callback) {
-    onMessageReadConfirm = callback;
+    _callbacks['messageReadConfirm'] = callback;
   }
 
   /// 设置消息撤回回调
   void setOnMessageWithdrawn(Function(dynamic) callback) {
-    onMessageWithdrawn = callback;
+    _callbacks['messageWithdrawn'] = callback;
   }
 
   /// 设置消息撤回确认回调
   void setOnMessageWithdrawnConfirm(Function(dynamic) callback) {
-    onMessageWithdrawnConfirm = callback;
+    _callbacks['messageWithdrawnConfirm'] = callback;
   }
 
   /// 设置消息送达回调
   void setOnMessageDelivered(Function(dynamic) callback) {
-    onMessageDelivered = callback;
+    _callbacks['messageDelivered'] = callback;
   }
 
   /// 设置消息发送回调
   void setOnMessageSent(Function(dynamic) callback) {
-    onMessageSent = callback;
+    _callbacks['messageSent'] = callback;
   }
 
   /// 设置消息确认回调
   void setOnMessageAck(Function(dynamic) callback) {
-    onMessageAck = callback;
+    _callbacks['messageAck'] = callback;
   }
 
   /// 设置消息确认回复回调
   void setOnMessageAckConfirm(Function(dynamic) callback) {
-    onMessageAckConfirm = callback;
+    _callbacks['messageAckConfirm'] = callback;
   }
 
 
@@ -660,31 +826,76 @@ class ChatSocketService {
 
 
 
-  // 3. 内部清理辅助
+  // 内部清理辅助
   void _clean() {
     socket = null;
     _currentToken = null;
     _currentUserId = null;
     userId = '';
     _connected = false;
-    // 所有回调置空
-    onNewMessage = null;
-    onFriendRequest = null;
-    onOnlineStatus = null;
-    onUserStatus = null;
-    onFriendStatus = null;
-    onTyping = null;
-    onStopTyping = null;
-    onOfflineMessages = null;
-    onMessageRead = null;
-    onMessageReadConfirm = null;
-    onMessageWithdrawn = null;
-    onMessageWithdrawnConfirm = null;
-    onMessageDelivered = null;
-    onMessageSent = null;
-    onMessageAck = null;
-    onMessageAckConfirm = null;
+    _setConnectionState(ConnectionState.disconnected);
+    _reconnectAttempts = 0;
+    
+    // 清理所有回调
+    _callbacks.updateAll((key, value) => null);
     _friendStatusListeners.clear();
+    _lastEventTime.clear();
   }
 
+  /// 获取连接统计信息
+  Map<String, dynamic> getConnectionStats() {
+    return {
+      'connected': _connected,
+      'connectionState': _connectionState.name,
+      'reconnectAttempts': _reconnectAttempts,
+      'currentUserId': _currentUserId,
+      'hasToken': _currentToken != null,
+      'socketId': socket?.id,
+      'manuallyDisconnected': _manuallyDisconnected,
+    };
+  }
+
+  /// 强制重置连接状态（调试用）
+  void forceResetConnectionState() {
+    print('🔧 强制重置连接状态');
+    _reconnectAttempts = 0;
+    _manuallyDisconnected = false;
+    _setConnectionState(ConnectionState.disconnected);
+  }
+}
+
+/// 连接状态枚举
+enum ConnectionState {
+  disconnected,
+  connecting,
+  connected,
+  reconnecting,
+  error,
+  authError,
+  failed,
+}
+
+extension ConnectionStateExtension on ConnectionState {
+  String get name {
+    switch (this) {
+      case ConnectionState.disconnected:
+        return '已断开';
+      case ConnectionState.connecting:
+        return '连接中';
+      case ConnectionState.connected:
+        return '已连接';
+      case ConnectionState.reconnecting:
+        return '重连中';
+      case ConnectionState.error:
+        return '连接错误';
+      case ConnectionState.authError:
+        return '认证错误';
+      case ConnectionState.failed:
+        return '连接失败';
+    }
+  }
+  
+  bool get isConnected => this == ConnectionState.connected;
+  bool get isConnecting => this == ConnectionState.connecting || this == ConnectionState.reconnecting;
+  bool get hasError => this == ConnectionState.error || this == ConnectionState.authError || this == ConnectionState.failed;
 }
