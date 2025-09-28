@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:heart_days/components/Button.dart';
+import 'package:heart_days/pages/notification_demo_page.dart';
 
 class AboutPage extends StatelessWidget {
   const AboutPage({super.key});
@@ -129,6 +130,15 @@ class AboutPage extends StatelessWidget {
                   color: primaryColor,
                 ),
               ),
+              onTap: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder:
+                        (_) => NotificationDemoPage(),
+                  ),
+                );
+              },
             ),
             const SizedBox(height: 12),
             Text(

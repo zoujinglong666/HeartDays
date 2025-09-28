@@ -14,7 +14,13 @@ class UserSwitchHelper {
   /// [token] 新用户的认证token
   /// [userId] 新用户的ID
   Future<void> onUserLogin(String token, String userId) async {
-    print('👤 用户登录: $userId');
+    print('👤 用户登录处理: $userId');
+    
+    // 检查是否为同一用户
+    if (_chatService.isCurrentUser(userId) && _chatService.currentToken == token) {
+      print('✅ 同一用户且token相同，跳过连接');
+      return;
+    }
     
     // 保存新用户信息到本地存储
     final prefs = await SharedPreferences.getInstance();

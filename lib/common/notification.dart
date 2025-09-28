@@ -27,6 +27,10 @@ class MyNotification {
           },
           child: Container(
             margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+            constraints: const BoxConstraints(
+              maxHeight: 80,  // 限制最大高度
+              maxWidth: 350,  // 限制最大宽度
+            ),
             child: _AnimatedBorderContainer(
               onClose: () {
                 cancel();
@@ -64,7 +68,11 @@ class MyNotification {
             onTap?.call();
           },
           child: Container(
-            margin: const EdgeInsets.fromLTRB(16, 8, 16, 0),
+            margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+            constraints: const BoxConstraints(
+              maxHeight: 80,  // 限制最大高度
+              maxWidth: 350,  // 限制最大宽度
+            ),
             child: _WeChatNotificationCard(
               appName: appName,
               message: message,
@@ -127,7 +135,7 @@ class _AnimatedBorderContainerState extends State<_AnimatedBorderContainer>
     return ClipRRect(
       borderRadius: BorderRadius.circular(20),
       child: BackdropFilter(
-        filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
+        filter: ImageFilter.blur(sigmaX: 5, sigmaY: 5),
         child: AnimatedBuilder(
           animation: _controller,
           builder: (context, child) {
@@ -175,6 +183,8 @@ class _AnimatedBorderContainerState extends State<_AnimatedBorderContainer>
                                 fontWeight: FontWeight.w600,
                                 color: Colors.white,
                               ),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
                             ),
                           if (widget.subtitle != null)
                             Text(
@@ -183,6 +193,8 @@ class _AnimatedBorderContainerState extends State<_AnimatedBorderContainer>
                                 fontSize: 13,
                                 color: Colors.white.withOpacity(0.9),
                               ),
+                              maxLines: 2,
+                              overflow: TextOverflow.ellipsis,
                             ),
                         ],
                       ),
@@ -285,7 +297,7 @@ class _WeChatNotificationCardState extends State<_WeChatNotificationCard>
   void initState() {
     super.initState();
     _animationController = AnimationController(
-      duration: const Duration(milliseconds: 400),
+      duration: const Duration(milliseconds: 350),
       vsync: this,
     );
 
@@ -326,9 +338,9 @@ class _WeChatNotificationCardState extends State<_WeChatNotificationCard>
             child: ClipRRect(
               borderRadius: BorderRadius.circular(20),
               child: BackdropFilter(
-                filter: ImageFilter.blur(sigmaX: 20, sigmaY: 20),
+                filter: ImageFilter.blur(sigmaX: 5, sigmaY: 5),
                 child: Container(
-                  padding: const EdgeInsets.all(16),
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                   decoration: BoxDecoration(
                     borderRadius: BorderRadius.circular(20),
                     gradient: LinearGradient(
@@ -360,8 +372,8 @@ class _WeChatNotificationCardState extends State<_WeChatNotificationCard>
                     children: [
                       // 应用图标
                       Container(
-                        width: 48,
-                        height: 48,
+                        width: 40,
+                        height: 40,
                         decoration: BoxDecoration(
                           borderRadius: BorderRadius.circular(12),
                           boxShadow: [
@@ -390,41 +402,48 @@ class _WeChatNotificationCardState extends State<_WeChatNotificationCard>
                       Expanded(
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          mainAxisSize: MainAxisSize.min,
                           children: [
                             // 应用名称和时间
                             Row(
                               mainAxisAlignment: MainAxisAlignment.spaceBetween,
                               children: [
-                                Text(
-                                  widget.appName,
-                                  style: const TextStyle(
-                                    fontSize: 16,
-                                    fontWeight: FontWeight.w600,
-                                    color: Colors.white,
-                                    letterSpacing: -0.2,
+                                Expanded(
+                                  child: Text(
+                                    widget.appName,
+                                    style: const TextStyle(
+                                      fontSize: 15,
+                                      fontWeight: FontWeight.w600,
+                                      color: Colors.white,
+                                      letterSpacing: -0.2,
+                                    ),
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
                                   ),
                                 ),
+                                const SizedBox(width: 8),
                                 Text(
                                   widget.time,
                                   style: TextStyle(
-                                    fontSize: 13,
+                                    fontSize: 12,
                                     color: Colors.white.withOpacity(0.8),
                                     fontWeight: FontWeight.w500,
                                   ),
                                 ),
                               ],
                             ),
-                            const SizedBox(height: 4),
-                            // 消息内容
+                            const SizedBox(height: 2),
+                            // 消息内容 - 只显示一行
                             Text(
                               widget.message,
                               style: TextStyle(
-                                fontSize: 14,
+                                fontSize: 13,
                                 color: Colors.white.withOpacity(0.9),
-                                height: 1.3,
+                                height: 1.2,
                                 letterSpacing: -0.1,
                               ),
-                              maxLines: 2,
+                              maxLines: 1, // 只显示一行
                               overflow: TextOverflow.ellipsis,
                             ),
                           ],

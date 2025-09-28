@@ -24,10 +24,13 @@ class UserSessionManager {
     
     if (_currentUserId != null && _currentToken != null) {
       print('📱 发现已登录用户: $_currentUserId');
-      await _switchHelper.checkUserSwitch();
+      // 直接连接，不需要检查切换
+      await _switchHelper.onUserLogin(_currentToken!, _currentUserId!);
     } else {
       print('📱 未发现登录用户');
     }
+    
+    print('✅ UserSessionManager 初始化成功');
   }
 
   /// 用户登录

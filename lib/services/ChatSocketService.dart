@@ -87,15 +87,22 @@ class ChatSocketService {
 
   Future<void> connect(String token, String myUserId) async {
     try {
-      // 状态检查和用户切换
+      // 检查是否已经连接且为同一用户
+      if (_connected && _currentUserId == myUserId && _currentToken == token) {
+        print('✅ 同一用户的WebSocket已连接，无需重连');
+        return;
+      }
+
+      // 如果连接中但用户不同，需要切换用户
       if (_connected && _currentUserId != myUserId) {
         print('🔄 检测到用户切换，从 $_currentUserId 切换到 $myUserId');
         await switchUser(token, myUserId);
         return;
       }
 
-      if (_connected && _currentUserId == myUserId && _currentToken == token) {
-        print('✅ 同一用户的WebSocket已连接，无需重连');
+      // 如果正在连接中，避免重复连接
+      if (_connectionState == ConnectionState.connecting) {
+        print('⏳ 正在连接中，跳过重复连接请求');
         return;
       }
 
@@ -497,7 +504,7 @@ class ChatSocketService {
   void _handleCheckUserStatus(dynamic data) {
     _callbacks['checkUserStatus']?.call(data);
   }
-  void reconnectWithToken(String token) async {
+  Future<void> reconnectWithToken(String token) async {
     print('🔄 使用新 token 重新连接: ${token.substring(0, 20)}...');
     _currentToken = token; // 更新当前 token
     disconnect(); // 断开当前连接
@@ -509,17 +516,30 @@ class ChatSocketService {
   Future<void> safeUserSwitch(String newToken, String newUserId) async {
     print('🛡️ 安全切换用户: $_currentUserId -> $newUserId');
 
-    if (_currentUserId == newUserId && _currentToken == newToken) {
-      print('✅ 用户和token都相同，无需切换');
+    // 检查是否为完全相同的用户和token
+    if (_currentUserId == newUserId && _currentToken == newToken && _connected) {
+      print('✅ 用户、token和连接状态都相同，无需切换');
       return;
     }
 
-    // 更新SharedPreferences中的token
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setString('token', newToken);
+    // 如果是同一用户但token不同，只需要更新token并重连
+    if (_currentUserId == newUserId && _currentToken != newToken) {
+      print('🔄 同一用户token更新，重新连接');
+      _currentToken = newToken;
+      await reconnectWithToken(newToken);
+      return;
+    }
 
-    // 执行用户切换
-    await switchUser(newToken, newUserId);
+    // 不同用户，执行完整的用户切换
+    if (_currentUserId != newUserId) {
+      print('🔄 切换到不同用户，执行完整切换');
+      await switchUser(newToken, newUserId);
+      return;
+    }
+
+    // 其他情况，直接连接
+    print('🔄 执行连接');
+    await connect(newToken, newUserId);
   }
 
   /// 主动刷新连接（当检测到 token 更新时调用）
