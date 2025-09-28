@@ -7,10 +7,19 @@ import 'package:heart_days/pages/main_page.dart';
 import 'package:heart_days/pages/login_page.dart';
 import 'package:heart_days/pages/startup_debug_page.dart';
 import 'package:heart_days/utils/navigation_service.dart';
+import 'package:heart_days/utils/UserSessionManager.dart';
 
 void main() async {
   // 确保Flutter绑定初始化
   WidgetsFlutterBinding.ensureInitialized();
+
+  // ✅ 初始化用户会话管理器
+  try {
+    await UserSessionManager().initialize();
+    print('✅ UserSessionManager 初始化成功');
+  } catch (e) {
+    print('❌ UserSessionManager 初始化失败: $e');
+  }
 
   // ✅ 监听 Token 过期事件
   eventBus.on<TokenExpiredEvent>().listen((event) {

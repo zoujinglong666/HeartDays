@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:heart_days/apis/chat.dart';
@@ -20,15 +22,31 @@ class FriendDetailPage extends ConsumerStatefulWidget {
 }
 
 class _FriendDetailPageState extends ConsumerState<FriendDetailPage> {
+  // 备注编辑相关
+  final TextEditingController _remarkController = TextEditingController();
+  final FocusNode _remarkFocus = FocusNode();
+  bool _editingRemark = false;
+  String? _editStartValue;
+  Timer? _debounceTimer;
+  DateTime? _lastSaveAt;
+  static const Duration _debounceDuration = Duration(milliseconds: 500);
+  static const Duration _throttleInterval = Duration(seconds: 2);
+
+  @override
+  void initState() {
+    super.initState();
+    // 初始备注为好友备注或昵称
+    final initialRemark = widget.friend.friendNickname?.isNotEmpty == true
+        ? widget.friend.friendNickname!
+        : (widget.friend.name ?? '');
+    _remarkController.text = initialRemark;
+    _editStartValue = initialRemark;
+  }
   @override
   Widget build(BuildContext context) {
     final avatar = widget.friend.avatar ?? '';
     final name = widget.friend.name ?? '';
     final userAccount = widget.friend.userAccount ?? '';
-    final displayName =
-    widget.friend.friendNickname?.isNotEmpty == true
-        ? widget.friend.friendNickname!
-        : widget.friend.name;
     final theme = Theme.of(context);
     final primaryColor = theme.primaryColor;
     return Scaffold(
@@ -102,7 +120,7 @@ class _FriendDetailPageState extends ConsumerState<FriendDetailPage> {
                     Divider(height: 24, thickness: 1, color: Colors.grey[100]),
                   _buildInfoItem('账号', userAccount, primaryColor),
                     Divider(height: 24, thickness: 1, color: Colors.grey[100]),
-              _buildInfoItem('备注', displayName, primaryColor),
+                    _buildRemarkItem(primaryColor),
                 ]
             ),
               ),
@@ -161,16 +179,6 @@ class _FriendDetailPageState extends ConsumerState<FriendDetailPage> {
                         }
                       },
                     ),
-                    Divider(height: 0.5, indent: 72, color: Colors.grey[100]),
-                    _buildFunctionItem(
-                      icon: Icons.edit,
-                      iconColor: Colors.white,
-                      title: '添加备注',
-                      backgroundColor: Colors.orange,
-                      onTap: () {
-                        _showRemarkDialog(context); // 👈 添加这个方法
-                      },
-                    ),
                   ],
                 ),
               ),
@@ -183,48 +191,206 @@ class _FriendDetailPageState extends ConsumerState<FriendDetailPage> {
     );
   }
 
-  void _showRemarkDialog(BuildContext context) {
-    final TextEditingController remarkController = TextEditingController();
-
-    showDialog(
-      context: context,
-      builder: (context) {
-        return AlertDialog(
-          title: const Text('添加备注'),
-          content: TextField(
-            controller: remarkController,
-            decoration: const InputDecoration(
-              hintText: '请输入备注',
+  Widget _buildRemarkItem(Color primaryColor) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        // 标签行
+        Row(
+          children: [
+            SizedBox(
+              width: 60,
+              child: Text(
+                '备注',
+                style: TextStyle(fontSize: 16, color: Colors.grey[600]),
+              ),
             ),
-            autofocus: true,
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.of(context).pop(),
-              child: const Text('取消'),
-            ),
-            TextButton(
-              onPressed: () async {
-                final remark = remarkController.text.trim();
-                if (remark.isNotEmpty) {
-                  // 你可以在这里调用接口或更新备注字段
-                  final res= await settingFriendNickNameApi({
-                    "friendId": widget.friend.id,
-                    "friendNickname": remark,
+            const SizedBox(width: 16),
+            // 展示或编辑区域
+            Expanded(
+              child: GestureDetector(
+                onTap: () {
+                  setState(() {
+                    _editingRemark = true;
+                    _editStartValue = _remarkController.text.trim();
                   });
-                  if(res.success){
-                    ToastUtils.showToast('修改成功');
-
-                  }
-                  Navigator.of(context).pop();
-                }
-              },
-              child: const Text('保存'),
+                  Future.delayed(const Duration(milliseconds: 50), () {
+                    _remarkFocus.requestFocus();
+                  });
+                },
+                child: AnimatedSwitcher(
+                  duration: const Duration(milliseconds: 180),
+                  child: _editingRemark
+                      ? Container(
+                    key: const ValueKey('remark_editing'),
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 12, vertical: 6),
+                    decoration: BoxDecoration(
+                      color: Colors.grey.shade100,
+                      borderRadius: BorderRadius.circular(8),
+                      border: Border.all(color: Colors.grey.shade300),
+                    ),
+                    child: TextField(
+                      controller: _remarkController,
+                      focusNode: _remarkFocus,
+                      maxLines: 2,
+                      minLines: 1,
+                      decoration: const InputDecoration(
+                        hintText: '输入备注，自动保存',
+                        border: InputBorder.none,
+                        isCollapsed: true,
+                      ),
+                      onChanged: (val) {
+                        _scheduleDebouncedSave(val);
+                      },
+                      onEditingComplete: () {
+                        final newVal = _remarkController.text.trim();
+                        if (_editStartValue != null &&
+                            newVal == _editStartValue) {
+                          _debounceTimer?.cancel();
+                        } else {
+                          _commitRemark(newVal);
+                        }
+                        setState(() {
+                          _editingRemark = false;
+                        });
+                      },
+                      onSubmitted: (_) {
+                        final newVal = _remarkController.text.trim();
+                        if (_editStartValue != null &&
+                            newVal == _editStartValue) {
+                          _debounceTimer?.cancel();
+                        } else {
+                          _commitRemark(newVal);
+                        }
+                        setState(() {
+                          _editingRemark = false;
+                        });
+                      },
+                      onTapOutside: (_) {
+                        final newVal = _remarkController.text.trim();
+                        if (_editStartValue != null &&
+                            newVal == _editStartValue) {
+                          _debounceTimer?.cancel();
+                        } else {
+                          _commitRemark(newVal);
+                        }
+                        setState(() {
+                          _editingRemark = false;
+                        });
+                      },
+                    ),
+                  )
+                      : Container(
+                    key: const ValueKey('remark_view'),
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 8, vertical: 6),
+                    decoration: BoxDecoration(
+                      color: Colors.transparent,
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: Row(
+                      children: [
+                        Expanded(
+                          child: Text(
+                            _remarkController.text.isNotEmpty
+                                ? _remarkController.text
+                                : (widget.friend.name ?? ''),
+                            style: const TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.w500,
+                            ),
+                          ),
+                        ),
+                        TextButton(
+                          onPressed: () {
+                            setState(() {
+                              _editingRemark = true;
+                              _editStartValue = _remarkController.text.trim();
+                            });
+                            Future.delayed(
+                                const Duration(milliseconds: 50), () {
+                              _remarkFocus.requestFocus();
+                            });
+                          },
+                          child: const Text('编辑'),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
             ),
           ],
-        );
-      },
+        ),
+        // 提示说明
+        Padding(
+          padding: const EdgeInsets.only(left: 76, top: 4),
+          child: Text(
+            '备注在会话和联系人中优先显示，长文本自动折叠',
+            style: TextStyle(fontSize: 12, color: Colors.grey[500]),
+          ),
+        ),
+      ],
     );
+  }
+
+  void _scheduleDebouncedSave(String val) {
+    final trimmed = val.trim();
+    // 若文本未变化，直接取消防抖并退出
+    if (_editStartValue != null && trimmed == _editStartValue) {
+      _debounceTimer?.cancel();
+      return;
+    }
+    // 取消上一次防抖定时器
+    _debounceTimer?.cancel();
+    _debounceTimer = Timer(_debounceDuration, () {
+      _commitRemark(trimmed);
+    });
+  }
+
+  Future<void> _commitRemark(String val) async {
+    final trimmed = val.trim();
+    // 与当前已保存值相同，或为空：不请求
+    final currentSaved = (widget.friend.friendNickname
+        ?.trim()
+        .isNotEmpty == true)
+        ? widget.friend.friendNickname!.trim()
+        : (widget.friend.name ?? '').trim();
+    if (trimmed.isEmpty || trimmed == currentSaved) {
+      return;
+    }
+
+    final now = DateTime.now();
+    // 节流：2s内最多一次
+    if (_lastSaveAt != null) {
+      final diff = now.difference(_lastSaveAt!);
+      if (diff < _throttleInterval) {
+        return;
+      }
+    }
+    _lastSaveAt = now;
+    final res = await settingFriendNickNameApi({
+      "friendId": widget.friend.id,
+      "friendNickname": trimmed,
+    });
+    if (res.success) {
+      // 更新本地显示
+      setState(() {
+        _remarkController.text = trimmed;
+        widget.friend.friendNickname = trimmed;
+        _editStartValue = trimmed;
+      });
+      ToastUtils.showToast('备注已保存');
+    }
+  }
+
+  @override
+  void dispose() {
+    _debounceTimer?.cancel();
+    _remarkController.dispose();
+    _remarkFocus.dispose();
+    super.dispose();
   }
 
   Widget _buildInfoItem(String label, String value, Color primaryColor) {

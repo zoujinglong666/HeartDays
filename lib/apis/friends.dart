@@ -77,7 +77,7 @@ class FriendVO {
   final String email;
   final String avatar;
   final String userAccount;
-  final String? friendNickname; // 可空字段
+  late final String? friendNickname; // 可空字段
 
   FriendVO({
     required this.id,

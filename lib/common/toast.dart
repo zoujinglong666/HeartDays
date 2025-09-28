@@ -1,3 +1,5 @@
+import 'dart:ui';
+
 import 'package:bot_toast/bot_toast.dart';
 import 'package:flutter/material.dart';
 
@@ -251,7 +253,7 @@ class MyToast {
     );
   }
 
-  static CancelFunc showNotification({
+  static CancelFunc showNotification1({
     String? title,
     String? subtitle,
     Widget? leading,
@@ -281,4 +283,279 @@ class MyToast {
       onClose: onClose,
     );
   }
+
+  static CancelFunc showNotification({
+    String? title,
+    String? subtitle,
+    Widget? leading,
+    Widget? trailing,
+    VoidCallback? onTap,
+    VoidCallback? onClose,
+  }) {
+    assert(title != null || subtitle != null);
+
+    return BotToast.showCustomNotification(
+      crossPage: true,
+      duration: const Duration(seconds: 6),
+      align: Alignment.topCenter,
+      toastBuilder: (cancel) {
+        return GestureDetector(
+          onTap: () {
+            cancel();
+            onTap?.call();
+          },
+          child: Container(
+            margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(20),
+              child: BackdropFilter(
+                filter: ImageFilter.blur(sigmaX: 20, sigmaY: 20),
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(20),
+                    // 背景渐变：微亮+轻透
+                    gradient: LinearGradient(
+                      colors: [
+                        Colors.white.withOpacity(0.20),
+                        Colors.white.withOpacity(0.08),
+                      ],
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                    ),
+                    // 细高光边框
+                    border: Border.all(
+                      color: Colors.white.withOpacity(0.5),
+                      width: 0.8,
+                    ),
+                    // 阴影 & 内层描边
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withOpacity(0.25),
+                        blurRadius: 16,
+                        offset: const Offset(0, 6),
+                      ),
+                      // 顶部轻微高光
+                      BoxShadow(
+                        color: Colors.white.withOpacity(0.25),
+                        blurRadius: 0.5,
+                        spreadRadius: -0.5,
+                        offset: const Offset(-0.5, -0.5),
+                      ),
+                      // 底部轻微暗边
+                      BoxShadow(
+                        color: Colors.black.withOpacity(0.12),
+                        blurRadius: 0.5,
+                        spreadRadius: -0.5,
+                        offset: const Offset(0.8, 0.8),
+                      ),
+                    ],
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      if (leading != null) ...[
+                        leading,
+                        const SizedBox(width: 10),
+                      ],
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            if (title != null)
+                              Text(
+                                title,
+                                style: const TextStyle(
+                                  fontSize: 15,
+                                  fontWeight: FontWeight.w600,
+                                  color: Colors.white,
+                                ),
+                              ),
+                            if (subtitle != null)
+                              Text(
+                                subtitle,
+                                style: TextStyle(
+                                  fontSize: 13,
+                                  color: Colors.white.withOpacity(0.9),
+                                ),
+                              ),
+                          ],
+                        ),
+                      ),
+                      if (trailing != null) ...[
+                        const SizedBox(width: 10),
+                        trailing,
+                      ],
+                      GestureDetector(
+                        onTap: () {
+                          cancel();
+                          onClose?.call();
+                        },
+                        child: const Padding(
+                          padding: EdgeInsets.all(4.0),
+                          child: Icon(Icons.close, size: 18, color: Colors.white),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+
+
+
+
+  /// iOS 16 风格液态玻璃通知卡片
+  /// 返回 CancelFunc 可随时关闭
+  static CancelFunc showNotification3({
+    String? title,
+    String? subtitle,
+    Widget? leading,
+    Widget? trailing,
+    VoidCallback? onTap,
+    VoidCallback? onClose,
+    Duration duration = const Duration(seconds: 6),
+  }) {
+    assert(title != null || subtitle != null);
+
+    return BotToast.showCustomNotification(
+      crossPage: true,
+      duration: duration,
+      align: Alignment.topCenter,
+      toastBuilder: (cancel) {
+        return GestureDetector(
+          onTap: () {
+            cancel();
+            onTap?.call();
+          },
+          child: Container(
+            margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(20),
+              child: BackdropFilter(
+                filter: ImageFilter.blur(sigmaX: 24, sigmaY: 24),
+                child: Container(
+                  padding:
+                  const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                  decoration: BoxDecoration(
+                    // 半透明白色渐变（亮/暗自动切换）
+                    gradient: LinearGradient(
+                      colors: [
+                        Colors.white.withOpacity(0.20),
+                        Colors.white.withOpacity(0.15),
+                      ],
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                    ),
+                    borderRadius: BorderRadius.circular(20),
+                    // 高光描边 + 外发光
+                    border: Border.all(
+                      color: Colors.white.withOpacity(0.30),
+                      width: 0.8,
+                    ),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.white.withOpacity(0.15),
+                        blurRadius: 10,
+                        spreadRadius: -2,
+                      ),
+                      BoxShadow(
+                        color: Colors.black.withOpacity(0.15),
+                        blurRadius: 20,
+                        offset: const Offset(0, 6),
+                      ),
+                    ],
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      // 左侧图标占位 36 px
+                      if (leading != null) ...[
+                        SizedBox.square(dimension: 36, child: leading),
+                        const SizedBox(width: 12),
+                      ] else
+                        const SizedBox(width: 4),
+                      // 标题 + 副标题
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            if (title != null)
+                              Text(
+                                title,
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: const TextStyle(
+                                  fontSize: 15,
+                                  fontWeight: FontWeight.w600,
+                                  color: Colors.white,
+                                  letterSpacing: -0.1,
+                                ),
+                              ),
+                            if (subtitle != null)
+                              Text(
+                                subtitle,
+                                maxLines: 2,
+                                overflow: TextOverflow.ellipsis,
+                                style: TextStyle(
+                                  fontSize: 13,
+                                  color: Colors.white.withOpacity(0.85),
+                                  letterSpacing: -0.08,
+                                ),
+                              ),
+                          ],
+                        ),
+                      ),
+                      // 右侧关闭按钮
+                      if (trailing != null) ...[
+                        const SizedBox(width: 8),
+                        trailing,
+                      ],
+                      GestureDetector(
+                        onTap: () {
+                          cancel();
+                          onClose?.call();
+                        },
+                        child: Container(
+                          width: 26,
+                          height: 26,
+                          alignment: Alignment.center,
+                          decoration: BoxDecoration(
+                            color: Colors.white.withOpacity(0.12),
+                            shape: BoxShape.circle,
+                          ),
+                          child: const Icon(Icons.close,
+                              size: 14, color: Colors.white),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+
+
+
+
 }
+
+
+
+
+
+
+

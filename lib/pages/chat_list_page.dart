@@ -129,39 +129,10 @@ class _ChatListTabState extends ConsumerState<ChatListTab> {
   @override
   void initState() {
     super.initState();
-    _connectSocket();
     fetchChats();
   }
 
-  void _connectSocket() async {
-    // final authState = ref.read(authProvider);
-    // final user = authState.user;
-    // final token = authState.token;
-    // final socketService = ChatSocketService();
-    // socketService.connect(token!, user!.id);
-    // // 注册事件回调
-    // socketService.setOnNewMessage(_onNewMessage);
-    // socketService.setOnFriendRequest(_onFriendRequest);
-    // socketService.setOnOnlineStatus(_onOnlineStatus);
-  }
-  
-  // // 处理新消息
-  // void _onNewMessage(dynamic data) {
-  //   print('收到新消息: $data');
-  //   // 可以更新聊天列表或显示通知
-  // }
-  //
-  // // 处理好友请求
-  // void _onFriendRequest(dynamic data) {
-  //   print('收到好友请求: $data');
-  //   // 可以显示通知或更新UI
-  // }
-  //
-  // // 处理在线状态变化
-  // void _onOnlineStatus(dynamic data) {
-  //   print('在线状态变化: $data');
-  //   // 可以更新用户在线状态显示
-  // }
+
 
   Future<void> fetchChats() async {
     setState(() {
@@ -402,15 +373,18 @@ class _ChatListTabState extends ConsumerState<ChatListTab> {
                     ],
                   ),
                 ),
-                onTap: () {
+                onTap: () async {
                   if (chat.sessionId.isEmpty) return;
                   ChatSocketService().joinSession(chat.sessionId);
-                  Navigator.push(
+                  final needRefresh = await Navigator.push(
                     context,
                     MaterialPageRoute(
                       builder: (context) => ChatDetailPage(chatSession: chat),
                     ),
                   );
+                  if (needRefresh == true) {
+                    await fetchChats();
+                  }
                 },
               ),
             ),

@@ -706,10 +706,10 @@ class _ChatDetailPageState extends ConsumerState<ChatDetailPage> {
     _stopHeartbeatRetry();
     _messageQueue.dispose();
     _messageDatabase?.close();
-    _socketService.socket.off('newMessage', _onNewMessage);
-    _socketService.socket.off('messageSent', _onMessageSentWrapper);
-    _socketService.socket.off('messageAck', _onMessageAck);
-    _socketService.socket.off('messageAckConfirm', _onMessageAckConfirm);
+    _socketService.socket?.off('newMessage', _onNewMessage);
+    _socketService.socket?.off('messageSent', _onMessageSentWrapper);
+    _socketService.socket?.off('messageAck', _onMessageAck);
+    _socketService.socket?.off('messageAckConfirm', _onMessageAckConfirm);
 
     _controller.dispose();
     _scrollController.dispose();
@@ -718,7 +718,12 @@ class _ChatDetailPageState extends ConsumerState<ChatDetailPage> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
+    return WillPopScope(
+      onWillPop: () async {
+        Navigator.pop(context, true);
+        return false; // 阻止默认返回，改为携带结果返回
+      },
+      child: Scaffold(
       appBar: AppBar(
         backgroundColor: Colors.white,
         foregroundColor: Colors.black87,
@@ -811,6 +816,7 @@ class _ChatDetailPageState extends ConsumerState<ChatDetailPage> {
           ],
         ),
       ),
+    )
     );
   }
 

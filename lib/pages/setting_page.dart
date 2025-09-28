@@ -7,7 +7,6 @@ import 'package:heart_days/apis/user.dart';
 import 'package:heart_days/provider/auth_provider.dart';
 import 'package:heart_days/utils/ToastUtils.dart';
 import 'package:path_provider/path_provider.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 
 class SettingsPage extends ConsumerStatefulWidget {
   const SettingsPage({super.key});
@@ -214,22 +213,10 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
               TextButton(
                 onPressed: () async {
                   // 1. 调用登出逻辑
+                  // 立即执行
+                  await userLogoutApi();
+                  await Future.delayed(const Duration(milliseconds: 200));
                   await ref.read(authProvider.notifier).logout();
-
-                  // 2. 调用服务端登出接口（可选）
-                  try {
-                    await userLogoutApi();
-                  } catch (e) {
-                    print("登出请求失败: $e");
-                  }
-
-                  // 3. 再次清理本地缓存（保险措施）
-                  final prefs = await SharedPreferences.getInstance();
-                  await prefs.remove('auth_data');
-                  await prefs.remove('token');
-                  await prefs.remove('refresh_token');
-                  await prefs.reload(); // 可选
-
                   // 4. 跳转登录页面，清除所有历史页面
                   if (context.mounted) {
                     Navigator.of(context).pushNamedAndRemoveUntil(
@@ -238,7 +225,6 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
                     );
                   }
                 },
-
                 child: const Text(
                   '确定',
                   style: TextStyle(color: Colors.redAccent),

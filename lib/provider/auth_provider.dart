@@ -135,6 +135,8 @@ import 'dart:convert';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:heart_days/apis/user.dart';
 import 'package:heart_days/common/toast.dart';
+import 'package:heart_days/services/ChatSocketService.dart';
+import 'package:heart_days/utils/UserSessionManager.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 // ================== AuthState ==================
@@ -222,6 +224,17 @@ class AuthNotifier extends StateNotifier<AuthState> {
       isInitialized: true,
     );
     _scheduleSave();
+    
+    // 通知UserSessionManager token已更新
+    try {
+      final sessionManager = UserSessionManager();
+      if (sessionManager.currentToken != token) {
+        print('🔄 AuthProvider检测到token变化，通知UserSessionManager');
+        await sessionManager.refreshToken(token);
+      }
+    } catch (e) {
+      print('⚠️ AuthProvider通知UserSessionManager失败: $e');
+    }
   }
 
   // ---------------- 更新用户信息 ----------------
@@ -233,14 +246,14 @@ class AuthNotifier extends StateNotifier<AuthState> {
   // ---------------- 登出 ----------------
   Future<void> logout() async {
     _saveDebounceTimer?.cancel(); // 取消未完成的保存
-
     state = const AuthState(isInitialized: true);
+    await ChatSocketService().destroy();
+    await UserSessionManager().logout();
     final prefs = await SharedPreferences.getInstance();
     await prefs.remove(_storageKey);
     await prefs.remove('token');
     await prefs.remove('refresh_token');
     MyToast.showToast("已退出登录");
-    // 不再调用 prefs.clear()，避免误伤其他缓存
   }
 
   // ---------------- Getter ----------------

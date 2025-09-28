@@ -57,7 +57,6 @@ class _AddFriendPageState extends State<AddFriendPage> {
     });
 
     try {
-      // ChatSocketService().sendFriendRequest(friend.id);
       await friendsRequestApi({'friendId': friend.id});
 
       // 更新好友列表以反映新状态
