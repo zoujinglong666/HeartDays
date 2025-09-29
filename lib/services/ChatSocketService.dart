@@ -84,6 +84,7 @@ class ChatSocketService {
   Timer? _reconnectTimer;
   static const int _heartbeatInterval = 15 * 1000; // 15秒心跳，减少频率
   bool _manuallyDisconnected = false;
+  bool _listenersRegistered = false; // 防止重复注册事件监听
 
   Future<void> connect(String token, String myUserId) async {
     try {
@@ -100,9 +101,9 @@ class ChatSocketService {
         return;
       }
 
-      // 如果正在连接中，避免重复连接
-      if (_connectionState == ConnectionState.connecting) {
-        print('⏳ 正在连接中，跳过重复连接请求');
+      // 如果正在连接或重连中，避免重复连接
+      if (_connectionState == ConnectionState.connecting || _connectionState == ConnectionState.reconnecting) {
+        print('⏳ 正在连接/重连中，跳过重复连接请求');
         return;
       }
 
@@ -124,7 +125,7 @@ class ChatSocketService {
         'autoConnect': false,
         'timeout': 10000, // 10秒超时
         'extraHeaders': {'Authorization': 'Bearer $latestToken'},
-        'forceNew': true, // 强制创建新连接
+        'forceNew': false, // 不强制新建底层连接，避免重复连接与监听堆积
       });
 
       _setupSocketEventHandlers(latestToken, myUserId);
@@ -156,6 +157,20 @@ class ChatSocketService {
       _connected = false;
       _setConnectionState(ConnectionState.disconnected);
       _stopHeartbeat();
+
+      // 如果是服务器主动断开（旧连接被替换为最新连接），不再重连
+      final reasonStr = reason?.toString() ?? '';
+      if (reasonStr.contains('io server disconnect')) {
+        _stopReconnectTimer();
+        // 彻底清理当前socket，避免重复重连与监听堆积
+        try {
+          socket?.clearListeners();
+          socket?.dispose();
+        } catch (_) {}
+        socket = null;
+        _listenersRegistered = false;
+        return;
+      }
       
       if (!_manuallyDisconnected) {
         _scheduleReconnect(token, userId);
@@ -282,6 +297,7 @@ class ChatSocketService {
         }
         socket!.dispose();
         socket = null;
+        _listenersRegistered = false;
       }
     } catch (e) {
       print('⚠️ 断开连接时出错: $e');
@@ -355,6 +371,7 @@ class ChatSocketService {
 
   void _registerEventListeners() {
     if (socket == null) return;
+    if (_listenersRegistered) return; // 已注册过则不再重复注册
 
     // 事件映射，便于统一管理
     final eventMap = {
@@ -381,6 +398,7 @@ class ChatSocketService {
     eventMap.forEach((event, handler) {
       socket!.on(event, (data) => _throttledEventHandler(event, data, handler));
     });
+    _listenersRegistered = true;
   }
   
   /// 事件节流处理，防止频繁触发
@@ -406,6 +424,7 @@ class ChatSocketService {
       
       if (latestToken?.isNotEmpty == true && data['senderId'] != userId) {
         final currentTime = DateFormat('HH:mm').format(DateTime.now());
+        print(data.toString());
         MyNotification.showNotification(
           title: "新消息 $currentTime",
           subtitle: data['content'] ?? '收到新消息',
@@ -601,16 +620,17 @@ class ChatSocketService {
   bool isCurrentUser(String userId) {
     return _currentUserId == userId;
   }
+  Future<String> getLocalToken() async {
+    final prefs = await SharedPreferences.getInstance();
+    final latestToken = prefs.getString('token')?? '';
+    return latestToken;
+  }
 
   /// 强制使用最新 token 重连（用于调试）
   void forceReconnectWithLatestToken() async {
-    final prefs = await SharedPreferences.getInstance();
-    final latestToken = prefs.getString('token');
-    if (latestToken != null) {
-      print('🔧 强制使用最新 token 重连');
-      reconnectWithToken(latestToken);
-    } else {
-      print('⚠️ 没有找到最新 token');
+    final localToken=await getLocalToken();
+    if (localToken != null) {
+      reconnectWithToken(localToken);
     }
   }
   /// 加入自己的用户房间（用于接收通知/好友申请等）
@@ -646,7 +666,6 @@ class ChatSocketService {
 
   /// 发送好友申请
   void sendFriendRequest(String targetUserId) {
-    print('发送好友请求给用户: $targetUserId');
     if (socket != null && _connected) {
       socket!.emit('friendRequest', {'to': targetUserId});
     }
@@ -680,7 +699,6 @@ class ChatSocketService {
       if (lastMessageTime != null) {
         data['lastMessageTime'] = lastMessageTime;
       }
-      print("获取离线消息");
       socket!.emit('getOfflineMessages', data);
     }
   }
