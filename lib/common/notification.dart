@@ -48,6 +48,7 @@ class MyNotification {
   }
 
   /// 微信风格通知 - 类似图片中的效果
+  /// 微信风格通知 - 带轻微黑色遮罩增强可读性
   static CancelFunc showWeChatStyleNotification({
     required String appName,
     required String message,
@@ -55,7 +56,7 @@ class MyNotification {
     String? time,
     VoidCallback? onTap,
     VoidCallback? onClose,
-    Duration duration = const Duration(seconds: 5),
+    Duration duration = const Duration(seconds: 10),
   }) {
     return BotToast.showCustomNotification(
       crossPage: true,
@@ -73,6 +74,10 @@ class MyNotification {
               maxHeight: 80,  // 限制最大高度
               maxWidth: 350,  // 限制最大宽度
             ),
+            decoration: BoxDecoration(
+              color: Colors.black.withOpacity(0.01), // ✅ 半透明黑色遮罩
+              borderRadius: BorderRadius.circular(24),
+            ),
             child: _WeChatNotificationCard(
               appName: appName,
               message: message,
@@ -88,6 +93,7 @@ class MyNotification {
       },
     );
   }
+
 }
 
 class _AnimatedBorderContainer extends StatefulWidget {
@@ -133,7 +139,7 @@ class _AnimatedBorderContainerState extends State<_AnimatedBorderContainer>
   @override
   Widget build(BuildContext context) {
     return ClipRRect(
-      borderRadius: BorderRadius.circular(20),
+      borderRadius: BorderRadius.circular(24),
       child: BackdropFilter(
         filter: ImageFilter.blur(sigmaX: 5, sigmaY: 5),
         child: AnimatedBuilder(
@@ -146,7 +152,7 @@ class _AnimatedBorderContainerState extends State<_AnimatedBorderContainer>
                 padding:
                 const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
                 decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(20),
+                  borderRadius: BorderRadius.circular(24),
                   gradient: LinearGradient(
                     colors: [
                       Colors.white.withOpacity(0.20),
@@ -336,13 +342,13 @@ class _WeChatNotificationCardState extends State<_WeChatNotificationCard>
           child: Opacity(
             opacity: _fadeAnimation.value,
             child: ClipRRect(
-              borderRadius: BorderRadius.circular(20),
+              borderRadius: BorderRadius.circular(24),
               child: BackdropFilter(
                 filter: ImageFilter.blur(sigmaX: 5, sigmaY: 5),
                 child: Container(
                   padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                   decoration: BoxDecoration(
-                    borderRadius: BorderRadius.circular(20),
+                    borderRadius: BorderRadius.circular(24),
                     gradient: LinearGradient(
                       begin: Alignment.topLeft,
                       end: Alignment.bottomRight,

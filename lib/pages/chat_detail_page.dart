@@ -182,6 +182,15 @@ class _ChatDetailPageState extends ConsumerState<ChatDetailPage>
 
     // 异步初始化
     _initializeAsync();
+
+    // 页面进入后自动聚焦输入框（首帧渲染完成后）
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) {
+        _showEmojiPanel = false;
+        _showMorePanel = false;
+        FocusScope.of(context).requestFocus(_focusNode);
+      }
+    });
   }
   
   Future<void> _initializeAsync() async {
@@ -249,10 +258,15 @@ class _ChatDetailPageState extends ConsumerState<ChatDetailPage>
     super.didChangeAppLifecycleState(state);
     switch (state) {
       case AppLifecycleState.resumed:
-        // 应用恢复时重新连接
+        // 应用恢复时：若未连接则重连；同时确保加入房间并拉取离线消息
         if (!_socketService.isConnected) {
           _initConnect();
         }
+        // 即使已连接也重新加入房间，以防订阅被系统暂停
+        _socketService.joinSession(widget.chatSession.sessionId);
+        // 拉取离线消息（从最后一条本地消息时间开始）
+        final lastTime = _getLastMessageTime();
+        _socketService.getOfflineMessages(lastTime);
         break;
       case AppLifecycleState.paused:
         // 应用暂停时停止输入状态
@@ -270,6 +284,12 @@ class _ChatDetailPageState extends ConsumerState<ChatDetailPage>
       loginUser = user;
     });
     _socketService = ChatSocketService();
+    // 确保页面进入时建立连接
+    final token = authState.token;
+    final userId = user?.id;
+    if (token != null && userId != null) {
+      _socketService.connect(token, userId);
+    }
     _joinSession();
   }
 
@@ -368,28 +388,24 @@ class _ChatDetailPageState extends ConsumerState<ChatDetailPage>
 
   // 修改_actuallySendMessage方法以匹配MessageQueue期望的签名
   Future<bool> _actuallySendMessage(Map<String, dynamic> message) async {
+    // 若未连接，触发页面级连接并让队列稍后重试，避免“假成功”
+    if (!_socketService.isConnected) {
+      _initConnect();
+      return false;
+    }
+    // 发送前确保加入会话房间
+    _socketService.joinSession(widget.chatSession.sessionId);
+
     try {
       _socketService.sendMessage(
         sessionId: widget.chatSession.sessionId,
         content: message['text'],
         localId: message['localId'],
       );
-      // 因为服务器会返回确认消息，避免重复显示
-      // 如果有_messageDatabase实例，更新数据库中的状态
-      if (_messageDatabase != null && message['localId'] != null) {
-        // 使用MessageDatabase的静态方法更新状态
-        await MessageDatabase.updateMessageStatus(
-          _messageDatabase!,
-          message['localId'],
-          MessageSendStatus.success,
-        );
-      }
 
       return true;
     } catch (e) {
-      // 如果有_messageDatabase实例，更新数据库中的状态
       if (_messageDatabase != null && message['localId'] != null) {
-        // 使用MessageDatabase的静态方法更新状态
         await MessageDatabase.updateMessageStatus(
           _messageDatabase!,
           message['localId'],
@@ -487,6 +503,13 @@ class _ChatDetailPageState extends ConsumerState<ChatDetailPage>
             }
           }
         });
+        // 收到服务器确认后再持久化标记成功（以服务器返回的 messageId 或本地 localId 为准）
+        if (_messageDatabase != null && (messageId != null || localId != null)) {
+          await MessageDatabase.markAsSent(
+            _messageDatabase!,
+            (messageId ?? localId).toString(),
+          );
+        }
       } else {
         // 消息不存在，添加新消息
         setState(() {
@@ -556,11 +579,48 @@ class _ChatDetailPageState extends ConsumerState<ChatDetailPage>
   // 处理离线消息
   void _onOfflineMessages(dynamic data) {
     if (!mounted) return;
-    setState(() {
+    try {
+      final List<dynamic> list = (data is Map && data['messages'] is List)
+          ? (data['messages'] as List)
+          : (data is List ? data : []);
+      if (list.isEmpty) {
+        print('收到离线消息: 空');
+        return;
+      }
 
-    });
-    print('收到离线消息: $data');
-    // 可以处理离线消息
+      // 过滤出当前会话的消息，并去重
+      final newMsgs = <Map<String, dynamic>>[];
+      for (final item in list) {
+        final sessionId = item['sessionId'];
+        if (sessionId != widget.chatSession.sessionId) continue;
+
+        final messageId = item['id'] ?? item['messageId'];
+        final localId = item['localId'];
+        final exists = messages.any((m) =>
+            (m['messageId']?.toString() == messageId?.toString()) ||
+            (m['localId']?.toString() == localId?.toString()));
+        if (exists) continue;
+
+        newMsgs.add({
+          'fromMe': item['senderId'] == loginUser?.id,
+          'text': item['content'],
+          'createdAt': item['createdAt'],
+          'sendStatus': MessageSendStatus.success,
+          'localId': messageId?.toString() ?? localId ?? _uuid.v4(),
+          'messageId': messageId,
+        });
+      }
+
+      if (newMsgs.isNotEmpty) {
+        setState(() {
+          messages.addAll(newMsgs);
+        });
+        _scrollToBottomSmooth();
+        print('离线消息已合并: ${newMsgs.length} 条');
+      }
+    } catch (e) {
+      print('处理离线消息异常: $e');
+    }
   }
 
   // 处理消息已读确认
@@ -577,18 +637,14 @@ class _ChatDetailPageState extends ConsumerState<ChatDetailPage>
 
   // 处理撤回确认
   void _onMessageWithdrawnConfirm(dynamic data) {
-    print('消息已撤回: ${data['id']}');
-    // 可以从UI中移除消息
+    print('消息已撤回: ${data['id'] ?? data['messageId']}');
+    _removeMessageByPayload(data);
   }
 
   // 处理他人撤回消息
   void _onMessageWithdrawn(dynamic data) {
-    print('用户 ${data['userId']} 撤回了消息: ${data['id']}');
-    // 可以从UI中移除消息
-      setState(() {
-        messages.removeWhere((m) => m['messageId'] == data['messageId']);
-      });
-
+    print('用户 ${data['userId']} 撤回了消息: ${data['id'] ?? data['messageId']}');
+    _removeMessageByPayload(data);
   }
 
   // 处理消息送达确认
@@ -1017,6 +1073,8 @@ class _ChatDetailPageState extends ConsumerState<ChatDetailPage>
     _socketService.socket?.off('messageAckConfirm', _onMessageAckConfirm);
     _socketService.socket?.off('typing', _onTyping);
     _socketService.socket?.off('stopTyping', _onStopTyping);
+    _socketService.socket?.off('messageWithdrawn', _onMessageWithdrawn);
+    _socketService.socket?.off('messageWithdrawnConfirm', _onMessageWithdrawnConfirm);
 
     // 释放控制器和动画
     _controller.dispose();
@@ -1366,6 +1424,7 @@ class _ChatDetailPageState extends ConsumerState<ChatDetailPage>
                     child: TextField(
                       controller: _controller,
                       focusNode: _focusNode,
+                      autofocus: true,
                       maxLines: null,
                       textInputAction: TextInputAction.send,
                       onSubmitted: (_) => _sendMessage(),
@@ -1612,6 +1671,32 @@ class _ChatDetailPageState extends ConsumerState<ChatDetailPage>
   void _copyMessage(String text) {
     Clipboard.setData(ClipboardData(text: text));
     ToastUtils.showToast('已复制到剪贴板');
+  }
+
+  // 获取当前页面最后一条消息的时间（用于拉取离线消息的起点）
+  String? _getLastMessageTime() {
+    if (messages.isEmpty) return null;
+    // 取最后一条消息的 createdAt
+    for (int i = messages.length - 1; i >= 0; i--) {
+      final ts = messages[i]['createdAt'];
+      if (ts != null && ts.toString().isNotEmpty) {
+        return ts.toString();
+      }
+    }
+    return null;
+  }
+
+  // 统一根据服务器撤回事件数据移除本地消息
+  void _removeMessageByPayload(dynamic data) {
+    final dynamic rawId = data['messageId'] ?? data['id'];
+    if (rawId == null) return;
+    final String idStr = rawId.toString();
+    setState(() {
+      messages.removeWhere((m) =>
+        (m['messageId']?.toString() == idStr) ||
+        (m['localId']?.toString() == idStr)
+      );
+    });
   }
 
 

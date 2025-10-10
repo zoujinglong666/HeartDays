@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:math';
 
+import 'package:flutter/material.dart';
 import 'package:heart_days/Consts/index.dart';
 import 'package:heart_days/common/notification.dart';
 import 'package:heart_days/common/toast.dart';
@@ -119,12 +120,20 @@ class ChatSocketService {
       
       print('🔑 用户 $myUserId 开始连接: ${latestToken.substring(0, min(20, latestToken.length))}...');
 
+      var rawToken = latestToken;
+      if (rawToken.startsWith('Bearer ')) {
+        rawToken = rawToken.substring(7);
+      }
+
       // 创建Socket连接
       socket = IO.io(Consts.request.socketUrl, <String, dynamic>{
         'transports': ['websocket'],
         'autoConnect': false,
         'timeout': 10000, // 10秒超时
-        'extraHeaders': {'Authorization': 'Bearer $latestToken'},
+        // 兼容性：通过 query 传递 token，后端可从 handshake.query.token 读取
+        'query': {'token': rawToken},
+        // 备用：同时保留 Authorization 头，便于支持直接从头读取
+        'extraHeaders': {'Authorization': 'Bearer $rawToken'},
         'forceNew': false, // 不强制新建底层连接，避免重复连接与监听堆积
       });
 
@@ -424,10 +433,15 @@ class ChatSocketService {
       
       if (latestToken?.isNotEmpty == true && data['senderId'] != userId) {
         final currentTime = DateFormat('HH:mm').format(DateTime.now());
-        print(data.toString());
-        MyNotification.showNotification(
-          title: "新消息 $currentTime",
-          subtitle: data['content'] ?? '收到新消息',
+
+        MyNotification.showWeChatStyleNotification(
+          appName: data['senderInfo']['displayName'],
+          message: data['content'],
+          time: currentTime,
+          avatar: data['senderInfo']['avatar'],
+          onTap: () {
+
+          },
         );
       }
       
@@ -647,7 +661,7 @@ class ChatSocketService {
     }
   }
 
-  /// 发送聊天消息
+  /// 发送聊天消息（带ack确认）
   void sendMessage({
     required String sessionId,
     required String content,
@@ -655,12 +669,28 @@ class ChatSocketService {
     String type = 'text',
   }) {
     if (socket != null && _connected) {
-      socket!.emit('sendMessage', {
+      final payload = {
         'sessionId': sessionId,
         'content': content,
         'localId': localId,
         'type': type,
-      });
+      };
+
+      try {
+        // 优先使用 socket.io ack（若库支持）
+        // 成功回执后触发 messageSent 回调，避免“假成功”
+        // 注意：服务器需在处理完成后调用 ack 返回 { messageId, localId, ... }
+        // 超时则走失败逻辑，由上层队列重试
+        // emitWithAck 在部分版本上返回 Future，若不可用则会抛异常进入 fallback
+        socket!.emitWithAck('sendMessage', payload, ack: (ackData) {
+          try {
+            _callbacks['messageSent']?.call(ackData);
+          } catch (_) {}
+        });
+      } catch (_) {
+        // Fallback：旧版本不支持 emitWithAck，退回普通 emit
+        socket!.emit('sendMessage', payload);
+      }
     }
   }
 
