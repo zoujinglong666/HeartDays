@@ -323,6 +323,7 @@ class _ChatDetailPageState extends ConsumerState<ChatDetailPage>
     setState(() {
       loginUser = user;
     });
+    // _socketService = ChatSocketService(); // Removed to prevent re-initialization
     // 确保页面进入时建立连接
     final token = authState.token;
     final userId = user?.id;

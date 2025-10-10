@@ -158,6 +158,10 @@ class ChatSocketService {
       joinUserRoom(userId);
       _startHeartbeat();
       _stopReconnectTimer();
+
+      // 连接成功后，立即获取离线/最新消息
+      print('🚀 连接成功，开始获取离线消息...');
+      getOfflineMessages();
     });
 
     socket!.on('disconnect', (reason) {
