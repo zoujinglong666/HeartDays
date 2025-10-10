@@ -88,26 +88,27 @@ class ChatSocketService {
   bool _listenersRegistered = false; // 防止重复注册事件监听
 
   Future<void> connect(String token, String myUserId) async {
+    // If trying to connect for a different user, perform a full reset first.
+    if (_currentUserId != null && _currentUserId != myUserId) {
+      print('🔄 User switch detected. Resetting connection for new user: $myUserId');
+      reset();
+      // Give a moment for the old connection to tear down before creating a new one.
+      await Future.delayed(const Duration(milliseconds: 300));
+    }
+
+    // If already connected as the same user with the same token, do nothing.
+    if (_connected && _currentUserId == myUserId && _currentToken == token) {
+      print('✅ Already connected as user $myUserId. No action needed.');
+      return;
+    }
+
+    // If a connection process is already underway, do nothing.
+    if (_connectionState == ConnectionState.connecting || _connectionState == ConnectionState.reconnecting) {
+      print('⏳ Connection attempt in progress for $myUserId. Skipping duplicate request.');
+      return;
+    }
+
     try {
-      // 检查是否已经连接且为同一用户
-      if (_connected && _currentUserId == myUserId && _currentToken == token) {
-        print('✅ 同一用户的WebSocket已连接，无需重连');
-        return;
-      }
-
-      // 如果连接中但用户不同，需要切换用户
-      if (_connected && _currentUserId != myUserId) {
-        print('🔄 检测到用户切换，从 $_currentUserId 切换到 $myUserId');
-        await switchUser(token, myUserId);
-        return;
-      }
-
-      // 如果正在连接或重连中，避免重复连接
-      if (_connectionState == ConnectionState.connecting || _connectionState == ConnectionState.reconnecting) {
-        print('⏳ 正在连接/重连中，跳过重复连接请求');
-        return;
-      }
-
       _setConnectionState(ConnectionState.connecting);
       _manuallyDisconnected = false;
       userId = myUserId;
@@ -130,11 +131,9 @@ class ChatSocketService {
         'transports': ['websocket'],
         'autoConnect': false,
         'timeout': 10000, // 10秒超时
-        // 兼容性：通过 query 传递 token，后端可从 handshake.query.token 读取
         'query': {'token': rawToken},
-        // 备用：同时保留 Authorization 头，便于支持直接从头读取
         'extraHeaders': {'Authorization': 'Bearer $rawToken'},
-        'forceNew': false, // 不强制新建底层连接，避免重复连接与监听堆积
+        'forceNew': true, // Force a new connection on user switch or reconnect
       });
 
       _setupSocketEventHandlers(latestToken, myUserId);
@@ -227,7 +226,7 @@ class ChatSocketService {
       if (newToken != null && newToken != token) {
         print('🔄 发现新token，重新连接...');
         await Future.delayed(const Duration(milliseconds: 500));
-        reconnectWithToken(newToken);
+        connect(newToken, userId);
       } else {
         print('❌ 没有找到有效的新token');
         _setConnectionState(ConnectionState.authError);
@@ -317,33 +316,7 @@ class ChatSocketService {
     _reconnectAttempts = 0;
   }
 
-  /// 切换用户（完全重置连接状态）
-  Future<void> switchUser(String newToken, String newUserId) async {
-    print('🔄 开始切换用户: $_currentUserId -> $newUserId');
 
-    // 1. 离开当前用户房间（只有在连接且socket已初始化时才执行）
-    if (_connected && _currentUserId != null && socket != null) {
-      try {
-        print('🚪 离开用户房间: $_currentUserId');
-        socket!.emit('leaveUserRoom', {'userId': _currentUserId});
-      } catch (e) {
-        print('⚠️ 离开用户房间时出错: $e');
-      }
-    }
-
-    // 2. 断开当前连接
-    disconnect();
-
-    // 3. 清理状态
-    _clearUserState();
-
-    // 4. 等待一下确保连接完全断开
-    await Future.delayed(Duration(milliseconds: 500));
-
-    // 5. 使用新用户信息重新连接
-    print('🔄 使用新用户信息重新连接: $newUserId');
-    connect(newToken, newUserId);
-  }
 
   /// 清理用户状态
   void _clearUserState() {
@@ -401,6 +374,8 @@ class ChatSocketService {
       'messageAck': (data) => _handleMessageAck(data),
       'messageAckConfirm': (data) => _handleMessageAckConfirm(data),
       'checkUserStatus': (data) => _handleCheckUserStatus(data),
+      'forceDisconnect': (data) => _handleForceDisconnect(data),
+      'kicked': (data) => _handleForceDisconnect(data),
     };
 
     // 批量注册事件监听器
@@ -537,71 +512,33 @@ class ChatSocketService {
   void _handleCheckUserStatus(dynamic data) {
     _callbacks['checkUserStatus']?.call(data);
   }
-  Future<void> reconnectWithToken(String token) async {
-    print('🔄 使用新 token 重新连接: ${token.substring(0, 20)}...');
-    _currentToken = token; // 更新当前 token
-    disconnect(); // 断开当前连接
-    await Future.delayed(Duration(seconds: 1));
-    connect(token, userId); // 使用新 token 重新连接
+
+  void _handleForceDisconnect(dynamic data) {
+    print('🔌 Received force disconnect from server: ${data?['message']}');
+    ToastUtils.showToast(data?['message'] ?? '您的账号已在别处登录或会话已失效');
+    reset();
   }
 
-  /// 安全的用户切换方法（推荐使用）
-  Future<void> safeUserSwitch(String newToken, String newUserId) async {
-    print('🛡️ 安全切换用户: $_currentUserId -> $newUserId');
-
-    // 检查是否为完全相同的用户和token
-    if (_currentUserId == newUserId && _currentToken == newToken && _connected) {
-      print('✅ 用户、token和连接状态都相同，无需切换');
-      return;
-    }
-
-    // 如果是同一用户但token不同，只需要更新token并重连
-    if (_currentUserId == newUserId && _currentToken != newToken) {
-      print('🔄 同一用户token更新，重新连接');
-      _currentToken = newToken;
-      await reconnectWithToken(newToken);
-      return;
-    }
-
-    // 不同用户，执行完整的用户切换
-    if (_currentUserId != newUserId) {
-      print('🔄 切换到不同用户，执行完整切换');
-      await switchUser(newToken, newUserId);
-      return;
-    }
-
-    // 其他情况，直接连接
-    print('🔄 执行连接');
-    await connect(newToken, newUserId);
-  }
 
   /// 主动刷新连接（当检测到 token 更新时调用）
   void refreshConnection() async {
     final prefs = await SharedPreferences.getInstance();
     final newToken = prefs.getString('token');
 
-    if (newToken == null) {
-      print('⚠️ 没有找到新 token');
+    if (newToken == null || _currentUserId == null) {
+      print('⚠️ Cannot refresh connection: new token or user ID is missing.');
       return;
     }
 
-    // 比较当前使用的 token 和存储的 token
     if (_currentToken == newToken) {
-      print('🔍 Token 未变化，无需刷新连接');
+      print('🔍 Token has not changed. No refresh needed.');
       return;
     }
 
-    print('🔄 检测到新 token，刷新连接...');
-    print('🔄 旧 token: ${_currentToken?.substring(0, 20) ?? 'null'}...');
-    print('🔄 新 token: ${newToken.substring(0, 20)}...');
-
-    if (_connected) {
-      reconnectWithToken(newToken);
-    } else {
-      // 如果当前未连接，直接使用新 token 连接
-      print('🔄 当前未连接，使用新 token 直接连接');
-      connect(newToken, userId);
-    }
+    print('🔄 Token has changed. Refreshing connection...');
+    // Simply call connect with the new token and existing user ID.
+    // The connect method will handle the reset logic.
+    connect(newToken, _currentUserId!);
   }
 
   /// 检查并更新 token（可以在 HTTP 请求成功后调用）
@@ -643,8 +580,8 @@ class ChatSocketService {
   /// 强制使用最新 token 重连（用于调试）
   void forceReconnectWithLatestToken() async {
     final localToken=await getLocalToken();
-    if (localToken != null) {
-      reconnectWithToken(localToken);
+    if (localToken != null && _currentUserId != null) {
+      connect(localToken, _currentUserId!);
     }
   }
   /// 加入自己的用户房间（用于接收通知/好友申请等）

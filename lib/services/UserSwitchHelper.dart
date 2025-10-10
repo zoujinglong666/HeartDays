@@ -28,7 +28,7 @@ class UserSwitchHelper {
     await prefs.setString('userId', userId);
     
     // 安全切换WebSocket连接
-    await _chatService.safeUserSwitch(token, userId);
+    await _chatService.connect(token, userId);
   }
 
   /// 用户登出时调用
@@ -59,7 +59,7 @@ class UserSwitchHelper {
     // 检查当前WebSocket连接的用户是否与存储的用户一致
     if (!_chatService.isCurrentUser(storedUserId)) {
       print('🔄 检测到用户不一致，执行切换');
-      await _chatService.safeUserSwitch(storedToken, storedUserId);
+      await _chatService.connect(storedToken, storedUserId);
     } else {
       print('✅ 用户信息一致');
       // 检查token是否需要更新
@@ -75,7 +75,7 @@ class UserSwitchHelper {
     
     if (token != null && userId != null) {
       print('🔧 强制刷新连接');
-      await _chatService.safeUserSwitch(token, userId);
+      await _chatService.connect(token, userId);
     }
   }
 }

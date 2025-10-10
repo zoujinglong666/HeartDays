@@ -1,19 +1,22 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:heart_days/components/CuteTabBar.dart';
 import 'package:heart_days/pages/home_page.dart';
 import 'package:heart_days/pages/mine_page.dart';
 import 'package:heart_days/pages/node_page.dart';
 import 'package:heart_days/pages/plan_page.dart';
+import 'package:heart_days/provider/auth_provider.dart';
+import 'package:heart_days/services/ChatSocketService.dart';
 
-class MainPage extends StatefulWidget {
+class MainPage extends ConsumerStatefulWidget {
   const MainPage({super.key});
 
   @override
-  State<MainPage> createState() => _MainPageState();
+  ConsumerState<MainPage> createState() => _MainPageState();
 }
 
-class _MainPageState extends State<MainPage> {
+class _MainPageState extends ConsumerState<MainPage> with WidgetsBindingObserver {
   static const int pageCount = 4;
   int selectIndex = 0;
 
@@ -23,6 +26,7 @@ class _MainPageState extends State<MainPage> {
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
 
     pages = List<Widget?>.filled(pageCount, null, growable: false);
     pages[0] = const HomePage(); // 首页立即构建
@@ -71,6 +75,31 @@ class _MainPageState extends State<MainPage> {
         return const MinePage();
       default:
         return const HomePage();
+    }
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    super.didChangeAppLifecycleState(state);
+    if (state == AppLifecycleState.resumed) {
+      _handleAppResume();
+    }
+  }
+
+  void _handleAppResume() async {
+    final authState = ref.read(authProvider);
+    final token = authState.token;
+    final userId = authState.user?.id;
+
+    if (token != null && userId != null) {
+      final socketService = ChatSocketService();
+      await socketService.connect(token, userId);
     }
   }
 

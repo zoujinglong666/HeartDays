@@ -56,7 +56,6 @@ class MyApp extends ConsumerWidget {
       routes: {
         '/login': (context) => const LoginPage(),
         '/main': (context) => MainPage(),
-        '/startup_debug': (context) => const StartupDebugPage(),
       },
       builder: (context, child) {
         child = botToastBuilder(context, child);

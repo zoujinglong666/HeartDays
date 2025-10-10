@@ -87,7 +87,7 @@ class _ChatDetailPageState extends ConsumerState<ChatDetailPage>
     '🕠', '🕡', '🕢', '🕣', '🕤', '🕥', '🕦', '🕧',
   ];
   
-  late final ChatSocketService _socketService;
+  final ChatSocketService _socketService = ChatSocketService();
   User? loginUser;
 
   // 状态管理
@@ -258,15 +258,7 @@ class _ChatDetailPageState extends ConsumerState<ChatDetailPage>
     super.didChangeAppLifecycleState(state);
     switch (state) {
       case AppLifecycleState.resumed:
-        // 应用恢复时：若未连接则重连；同时确保加入房间并拉取离线消息
-        if (!_socketService.isConnected) {
-          _initConnect();
-        }
-        // 即使已连接也重新加入房间，以防订阅被系统暂停
-        _socketService.joinSession(widget.chatSession.sessionId);
-        // 拉取离线消息（从最后一条本地消息时间开始）
-        final lastTime = _getLastMessageTime();
-        _socketService.getOfflineMessages(lastTime);
+        _handleAppResume();
         break;
       case AppLifecycleState.paused:
         // 应用暂停时停止输入状态
@@ -277,13 +269,60 @@ class _ChatDetailPageState extends ConsumerState<ChatDetailPage>
     }
   }
 
+  Future<void> _handleAppResume() async {
+    // 确保服务已初始化
+    if (!mounted) return;
+
+    // 检查连接状态，如果未连接，则尝试重连
+    if (!_socketService.isConnected) {
+      final authState = ref.read(authProvider);
+      final token = authState.token;
+      final userId = authState.user?.id;
+      if (token != null && userId != null) {
+        await _socketService.connect(token, userId);
+      }
+    }
+
+    // 延迟一小段时间，确保连接和会话状态同步
+    await Future.delayed(const Duration(milliseconds: 200));
+    if (!mounted) return;
+
+    // 重新加入会话并获取离线消息
+    _socketService.joinSession(widget.chatSession.sessionId);
+    final lastTime = _getLastMessageTime();
+    _socketService.getOfflineMessages(lastTime);
+  }
+
+  // Future<void> _handleAppResume() async {
+  //   // 确保服务已初始化
+  //   if (!mounted) return;
+  //
+  //   // 检查连接状态，如果未连接，则尝试重连
+  //   if (!_socketService.isConnected) {
+  //     final authState = ref.read(authProvider);
+  //     final token = authState.token;
+  //     final userId = authState.user?.id;
+  //     if (token != null && userId != null) {
+  //       await _socketService.connect(token, userId);
+  //     }
+  //   }
+  //
+  //   // 延迟一小段时间，确保连接和会话状态同步
+  //   await Future.delayed(const Duration(milliseconds: 200));
+  //   if (!mounted) return;
+  //
+  //   // 重新加入会话并获取离线消息
+  //   _socketService.joinSession(widget.chatSession.sessionId);
+  //   final lastTime = _getLastMessageTime();
+  //   _socketService.getOfflineMessages(lastTime);
+  // }
+
   void _initConnect() async {
     final authState = ref.read(authProvider);
     final user = authState.user;
     setState(() {
       loginUser = user;
     });
-    _socketService = ChatSocketService();
     // 确保页面进入时建立连接
     final token = authState.token;
     final userId = user?.id;
@@ -614,6 +653,15 @@ class _ChatDetailPageState extends ConsumerState<ChatDetailPage>
       if (newMsgs.isNotEmpty) {
         setState(() {
           messages.addAll(newMsgs);
+          // 合并后按时间戳重新排序，确保消息顺序正确
+          messages.sort((a, b) {
+            final aTime = a['createdAt'];
+            final bTime = b['createdAt'];
+            if (aTime is String && bTime is String) {
+              return aTime.compareTo(bTime);
+            }
+            return 0; // 对于无效时间戳，保持原顺序
+          });
         });
         _scrollToBottomSmooth();
         print('离线消息已合并: ${newMsgs.length} 条');
